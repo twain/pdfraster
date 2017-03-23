@@ -88,7 +88,7 @@ typedef struct t_colorspace {
 typedef struct {
 	pduint32			off;				// offset of page object in file
 	double				MediaBox[4];
-	RasterPixelFormat	format;
+	RasterReaderPixelFormat	format;
     t_colorspace        cs;                 // colorspace descriptor
 	unsigned long		width;
 	unsigned long		height;
@@ -103,8 +103,8 @@ typedef struct {
     pduint32            pos;                // position of the strip (stream/dict)
     pduint32            data_pos;           // start offset of actual strip data
     long                raw_size;           // size of actual (in-file) strip data
-    RasterCompression   compression;        // image compression
-    RasterPixelFormat   format;
+    RasterReaderCompression   compression;        // image compression
+    RasterReaderPixelFormat   format;
     t_colorspace        cs;                 // colorspace
     unsigned long       width;
     unsigned long       height;             // of this strip
@@ -1908,9 +1908,9 @@ static int find_strip(t_pdfrasreader* reader, int p, int s, pduint32* pstrip)
 
 // Given a colorspace and a bit depth (per component), infer and return the "pixel format".
 // Returns RASREAD_FORMAT_NULL on error - up to caller to report the problem.
-static RasterPixelFormat infer_pixel_format(t_colorspace cs)
+static RasterReaderPixelFormat infer_pixel_format(t_colorspace cs)
 {
-    RasterPixelFormat format = RASREAD_FORMAT_NULL;
+    RasterReaderPixelFormat format = RASREAD_FORMAT_NULL;
     //CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED
     int depth = cs.bitsPerComponent;
     switch (cs.style) {
@@ -2258,7 +2258,7 @@ int pdfrasread_page_count(t_pdfrasreader* reader)
 }
 
 // Return the pixel format of the raster image of page n (indexed from 0)
-RasterPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n)
+RasterReaderPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n)
 {
     t_pdfpageinfo info;
     if (!get_page_info(reader, n, &info)) {
@@ -2370,7 +2370,7 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buf
     return length;
 }
 
-RasterCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s)
+RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s)
 {
     t_pdfstripinfo strip;
     if (!get_strip_info(reader, p, s, &strip)) {

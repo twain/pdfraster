@@ -7,6 +7,7 @@
 #include <string.h>
 #include <vcclr.h>
 
+#include "PdfRaster.h"
 #include "pdfrasread.h"
 #include "PdfRasterReader.h"
 
@@ -27,4 +28,3 @@
 #else
 #	define LOG(x)
 #endif
-

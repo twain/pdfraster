@@ -54,19 +54,5 @@ namespace PdfRasterWriter {
 		void encoder_end_document(int enc);
 		void encoder_destroy(int enc);
 #pragma endregion Public Methods for PdfRasterWriter
-
-		///////////////////////////////////////////////////////////////////////////////
-		// Private Definitions: PdfRasterWriter
-		///////////////////////////////////////////////////////////////////////////////
-	private:
-#pragma region Private Definitions: PdfRasterWriter
-#pragma endregion Private Definitions for PdfRasterWriter
-
-		///////////////////////////////////////////////////////////////////////////////
-		// Private Methods: PdfRasterWriter
-		///////////////////////////////////////////////////////////////////////////////
-	private:
-#pragma region Private Methods: PdfRasterWriter
-#pragma endregion Private Methods for PdfRasterWriter
 	};
 }

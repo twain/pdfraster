@@ -304,7 +304,7 @@ void error_tests()
     reader = pdfrasread_open_filename(RASREAD_API_LEVEL, "bitonal badgamma.pdf");
     ASSERT(reader);
     if (reader) {
-        RasterPixelFormat format = pdfrasread_page_format(reader, 0);
+        RasterReaderPixelFormat format = pdfrasread_page_format(reader, 0);
         ASSERT(format == RASREAD_BITONAL);
         pdfrasread_destroy(reader);
     }
