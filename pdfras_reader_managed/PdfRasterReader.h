@@ -15,26 +15,28 @@ namespace PdfRasterReader {
 	public:
 		value struct PdfRasterConst
 		{
-			literal int PDFRASRD_API_LEVEL = RASREAD_API_LEVEL;
-			literal String^ PDFRASRD_LIBRARY_VERSION = PDFRAS_LIBRARY_VERSION;
+			literal int PDFRASREAD_API_LEVEL = RASREAD_API_LEVEL;
+			literal String^ PDFRASREAD_LIBRARY_VERSION = PDFRAS_LIBRARY_VERSION;
 		};
 
 		// Pixel Formats
-		enum struct PdfRasterPixelFormat
+		enum struct PdfRasterReaderPixelFormat
 		{
-			PDFRASRD_BITONAL = PDFRAS_BITONAL,				//  1-bit per pixel, 0=black
-			PDFRASRD_GRAYSCALE = PDFRAS_GRAY8,				//  8-bit per pixel, 0=black
-			PDFRASRD_GRAYSCALE16 = PDFRAS_GRAY16,			// 16-bit per pixel, 0=black
-			PDFRASRD_RGB = PDFRAS_RGB24,					// 24-bit per pixel, sRGB
-			PDFRASRD_RGB48 = PDFRAS_RGB48,					// 48-bit per pixel
+			PDFRASREAD_FORMAT_NULL = RASREAD_FORMAT_NULL,			// null value
+			PDFRASREAD_BITONAL = RASREAD_BITONAL,					//  1-bit per pixel, 0=black
+			PDFRASREAD_GRAYSCALE = RASREAD_GRAY8,					//  8-bit per pixel, 0=black
+			PDFRASREAD_GRAYSCALE16 = RASREAD_GRAY16,				// 16-bit per pixel, 0=black
+			PDFRASREAD_RGB = RASREAD_RGB24,							// 24-bit per pixel, sRGB
+			PDFRASREAD_RGB48 = RASREAD_RGB48,						// 48-bit per pixel
 		};
 
 		// Compression Modes
-		enum struct PdfRasterCompression
+		enum struct PdfRasterReaderCompression
 		{
-			PDFRASRD_UNCOMPRESSED = PDFRAS_UNCOMPRESSED,	// uncompressed (/Filter null)
-			PDFRASRD_JPEG = PDFRAS_JPEG,					// JPEG baseline (DCTDecode)
-			PDFRASRD_CCITTG4 = PDFRAS_CCITTG4,				// CCITT Group 4 (CCITTFaxDecode)
+			PDFRASREAD_COMPRESSION_NULL = RASREAD_COMPRESSION_NULL,	// null value
+			PDFRASREAD_UNCOMPRESSED = RASREAD_UNCOMPRESSED,			// uncompressed (/Filter null)
+			PDFRASREAD_JPEG = RASREAD_JPEG,							// JPEG baseline (DCTDecode)
+			PDFRASEARD_CCITTG4 = RASREAD_CCITTG4,					// CCITT Group 4 (CCITTFaxDecode)
 		};
 #pragma endregion Public Definitions for PdfRasterReader
 
@@ -44,15 +46,15 @@ namespace PdfRasterReader {
 #pragma region Public Methods: PdfRasterReader
 	public:
 		int  decoder_create(int apiLevel, String^ pdfFileName);
-		void decoder_get_creator(int enc, String^ creator);
-		void decoder_get_resolution(int enc, double xdpi, double ydpi);
-		void decoder_get_pixelformat(int enc, PdfRasterPixelFormat format);
-		void decoder_get_compression(int enc, PdfRasterCompression compression);
-		void decoder_start_page(int enc, int width);
-		void decoder_read_strip(int enc, int rows, array<unsigned char>^ buf, unsigned offset, unsigned len);
-		void decoder_end_page(int enc);
-		void decoder_end_document(int enc);
-		void decoder_destroy(int enc);
+		int  decoder_get_page_count(int idx);
+		int  decoder_get_width(int idx);
+		int  decoder_get_height(int idx);
+		double decoder_get_xresolution(int idx);
+		double decoder_get_yresolution(int idx);
+		PdfRasterReaderPixelFormat decoder_get_pixelformat(int idx);
+		PdfRasterReaderCompression decoder_get_compression(int idx);
+		array<Byte>^ decoder_read_strips(int idx);
+		void decoder_destroy(int idx);
 #pragma endregion Public Methods for PdfRasterReader
 	};
 }

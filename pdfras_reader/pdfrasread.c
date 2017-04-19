@@ -72,10 +72,17 @@ typedef struct t_xref_entry {
 	char		eol[2];                     // either <space>LF or CR,LF
 } t_xref_entry;
 
-typedef struct _ICCProfile ICCProfile;
+//typedef struct _ICCProfile ICCProfile;
+// Hmmm, above line refers to undefined struct _ICCProfile
+// So *ICCProfile is used as an opaque pointer
+// But when compiled as C++ code linker complains
+// so replaced it with line below
+typedef void ICCProfile;
+
+enum colorspace_style { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED };
 
 typedef struct t_colorspace {
-    enum { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED } style;
+    enum colorspace_style style;
     unsigned long		bitsPerComponent;   // bits per component (All styles)
     double				whitePoint[3];
     double				blackPoint[3];
@@ -2349,7 +2356,7 @@ size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p)
 // Read the raw (compressed) data of strip s on page p into buffer, not more than bufsize bytes.
 // Returns the actual number of bytes read.
 // A return value of 0 indicates an error.
-size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buffer, size_t bufsize)
+size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize)
 {
     t_pdfstripinfo strip;
     if (!get_strip_info(reader, p, s, &strip)) {

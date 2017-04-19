@@ -189,7 +189,7 @@ size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p);
 // Returns the actual number of bytes read.
 // Note that if the the strip is larger than bufsize, no data is read and
 // the return value will be 0.
-size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buffer, size_t bufsize);
+size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize);
 
 // Return the compression format of strip s on page p
 RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);

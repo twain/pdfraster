@@ -10,7 +10,7 @@
 #include "PdfRaster.h"
 #include "PdfRasterWriter.h"
 
-//#define PDF_RASTER_WRITER_LOG
+// #define PDF_RASTER_WRITER_LOG
 #if defined(PDF_RASTER_WRITER_LOG) || defined(PDF_RASTER_WRITER_LOG_VERBOSE) || defined(PDF_RASTER_WRITER_LOG_VERBOSE_VERY)
 #	define LOG(x) \
 	{ \
@@ -156,7 +156,7 @@ namespace PdfRasterWriter {
 			state[idx].os.writeoutcookie = nullptr;
 			state[idx].invalidate();
 			char buf[256]; buf[0] = 0; strerror_s(buf, sizeof(buf) - 1, err);
-			LOG(fprintf(fp, "- ERROR: _wfopen_s() returned 0 errno=%d \"%s\"", errno, buf));
+			LOG(fprintf(fp, "- ERROR: _wfopen_s() returned 0 errno=%d \"%s\"", err, buf));
 			throw(L"_wfopen_s() returned 0 ");
 		}
 
