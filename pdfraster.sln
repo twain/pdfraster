@@ -39,6 +39,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader_tests", "pdfr
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "security_sample", "security_sample\security_sample.vcxproj", "{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader_managed", "pdfras_reader_managed\pdfras_reader_managed.vcxproj", "{B37B7306-E288-4D83-A810-ADF3F53DB542}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -132,7 +134,17 @@ Global
 		{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}.Release|x64.ActiveCfg = Release|x64
 		{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}.Release|x64.Build.0 = Release|x64
 		{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}.Release|x86.ActiveCfg = Release|Win32
-		{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}.Release|x86.Build.0 = Release|Win32
+		{C4F273F5-8197-4CDF-9DE5-5CCE9986A3F4}.Release|x86.Build.0 = Release|Win32    
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Debug|Win32.ActiveCfg = Debug|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Debug|Win32.Build.0 = Debug|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Debug|x64.ActiveCfg = Debug|x64
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Debug|x64.Build.0 = Debug|x64
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Release|Any CPU.ActiveCfg = Release|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Release|Win32.ActiveCfg = Release|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Release|Win32.Build.0 = Release|Win32
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Release|x64.ActiveCfg = Release|x64
+		{B37B7306-E288-4D83-A810-ADF3F53DB542}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

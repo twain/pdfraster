@@ -26,7 +26,7 @@ typedef enum {
 	RASREAD_GRAY16,				// 16-bit per pixel, 0=black (under discussion)
 	RASREAD_RGB24,				// 24-bit per pixel, sRGB
 	RASREAD_RGB48,				// 48-bit per pixel, sRGB (under discussion)
-} RasterPixelFormat;
+} RasterReaderPixelFormat;
 
 // Compression Modes
 typedef enum {
@@ -34,7 +34,7 @@ typedef enum {
 	RASREAD_UNCOMPRESSED,		// uncompressed (/Filter null)
 	RASREAD_JPEG,				// JPEG baseline (DCTDecode)
 	RASREAD_CCITTG4,			// CCITT Group 4 (CCITTFaxDecode)
-} RasterCompression;
+} RasterReaderCompression;
 
 // Error categories
 // All levels except INFO and WARNING indicate that the current API call will fail.
@@ -156,7 +156,7 @@ int pdfrasread_page_count(t_pdfrasreader* reader);
 
 // Return the pixel format of the raster image of page n (indexed from 0)
 // Similar restrictions as pdfrasread_page_count.
-RasterPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n);
+RasterReaderPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n);
 
 // Return the bits per component of page n.
 // This is 1 for bitonal images, and either 8 or 16 for grayscale and color.
@@ -189,10 +189,10 @@ size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p);
 // Returns the actual number of bytes read.
 // Note that if the the strip is larger than bufsize, no data is read and
 // the return value will be 0.
-size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buffer, size_t bufsize);
+size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize);
 
 // Return the compression format of strip s on page p
-RasterCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);
+RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);
 
 // detailed error codes
 // TODO: assign hard codes to all, so they can't change accidentally

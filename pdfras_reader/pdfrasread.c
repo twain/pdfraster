@@ -72,10 +72,17 @@ typedef struct t_xref_entry {
 	char		eol[2];                     // either <space>LF or CR,LF
 } t_xref_entry;
 
-typedef struct _ICCProfile ICCProfile;
+//typedef struct _ICCProfile ICCProfile;
+// Hmmm, above line refers to undefined struct _ICCProfile
+// So *ICCProfile is used as an opaque pointer
+// But when compiled as C++ code linker complains
+// so replaced it with line below
+typedef void ICCProfile;
+
+enum colorspace_style { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED };
 
 typedef struct t_colorspace {
-    enum { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED } style;
+    enum colorspace_style style;
     unsigned long		bitsPerComponent;   // bits per component (All styles)
     double				whitePoint[3];
     double				blackPoint[3];
@@ -88,7 +95,7 @@ typedef struct t_colorspace {
 typedef struct {
 	pduint32			off;				// offset of page object in file
 	double				MediaBox[4];
-	RasterPixelFormat	format;
+	RasterReaderPixelFormat	format;
     t_colorspace        cs;                 // colorspace descriptor
 	unsigned long		width;
 	unsigned long		height;
@@ -103,8 +110,8 @@ typedef struct {
     pduint32            pos;                // position of the strip (stream/dict)
     pduint32            data_pos;           // start offset of actual strip data
     long                raw_size;           // size of actual (in-file) strip data
-    RasterCompression   compression;        // image compression
-    RasterPixelFormat   format;
+    RasterReaderCompression   compression;        // image compression
+    RasterReaderPixelFormat   format;
     t_colorspace        cs;                 // colorspace
     unsigned long       width;
     unsigned long       height;             // of this strip
@@ -1067,6 +1074,29 @@ static int parse_stream(t_pdfrasreader* reader, pduint32 *poff, pduint32 *pstrea
     return TRUE;
 }
 
+static int array_lookup(t_pdfrasreader* reader, pduint32 off, const char* key)
+{
+	pduint32 *poff = &off;
+	skip_whitespace(reader, poff);
+	if (peekch(reader, *poff) != '[') {
+		// not a valid array
+		return FALSE;
+	}
+	// step over the opening '['
+    nextch(reader, poff);
+	while (!token_eat(reader, poff, "]")) {
+		// does the key element match the key we're looking for?
+		if (token_eat(reader, poff, key)) {
+			return TRUE;
+		}
+		else if (!token_skip(reader, poff)) {
+			// only fails at EOF
+			return FALSE;
+		}
+	}
+	return FALSE;
+}
+
 static int parse_array(t_pdfrasreader* reader, pduint32 *poff)
 {
 	skip_whitespace(reader, poff);
@@ -1908,9 +1938,9 @@ static int find_strip(t_pdfrasreader* reader, int p, int s, pduint32* pstrip)
 
 // Given a colorspace and a bit depth (per component), infer and return the "pixel format".
 // Returns RASREAD_FORMAT_NULL on error - up to caller to report the problem.
-static RasterPixelFormat infer_pixel_format(t_colorspace cs)
+static RasterReaderPixelFormat infer_pixel_format(t_colorspace cs)
 {
-    RasterPixelFormat format = RASREAD_FORMAT_NULL;
+    RasterReaderPixelFormat format = RASREAD_FORMAT_NULL;
     //CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED
     int depth = cs.bitsPerComponent;
     switch (cs.style) {
@@ -1943,87 +1973,103 @@ static RasterPixelFormat infer_pixel_format(t_colorspace cs)
 // return all the info about strip s on page p of an open file
 static int get_strip_info(t_pdfrasreader* reader, int p, int s, t_pdfstripinfo* pinfo)
 {
-    // While this is not a public function, it is called by a bunch of
-    // shallow public functions - that's why it reports API errors.
-    if (!VALID(reader)) {
-        api_error(NULL, READ_API_BAD_READER, __LINE__);
-        return FALSE;
-    }
-    if (!pinfo) {
-        api_error(reader, READ_API_NULL_PARAM, __LINE__);
-        return FALSE;
-    }
-    if (!reader->bOpen) {
-        api_error(reader, READ_API_NOT_OPEN, __LINE__);
-        return FALSE;
-    }
-    // clear info to all 0's
-    memset(pinfo, 0, sizeof *pinfo);
-    // find the strip
-    if (!find_strip(reader, p, s, &pinfo->pos)) {
-        // no such strip - already reported appropriate error
-        return FALSE;
-    }
-    // Parse the strip stream and locate its data
-    // Among other things, this finds and checks the /Length key
-    pduint32 pos = pinfo->pos;
-    if (!parse_stream(reader, &pos, &pinfo->data_pos, &pinfo->raw_size)) {
-        // strip stream not found or invalid
-        // compliance errors have already been reported
-        return FALSE;
-    }
-    assert(pinfo->pos != 0);
-    assert(pinfo->raw_size > 0);
-    pduint32 val;
-    // /Type entry is optional, but if present value must be /XObject   [ISO 32000 8.9.5]
-    if (dictionary_lookup(reader, pinfo->pos, "/Type", &val) && !token_match(reader, val, "/XObject")) {
-        compliance(reader, READ_STRIP_TYPE_XOBJECT, pinfo->pos);
-        return FALSE;
-    }
-    // /Subtype is mandatory and must have value /Image
-    if (!dictionary_lookup(reader, pinfo->pos, "/Subtype", &val) || !token_eat(reader, &val, "/Image")) {
-        // strip isn't /Subtype /Image
-        compliance(reader, READ_STRIP_SUBTYPE, pinfo->pos);
-        return FALSE;
-    }
-    // /BitsPerComponent is required (for our kind of images) and must be 1,8 or 16
-    if (!dictionary_lookup(reader, pinfo->pos, "/BitsPerComponent", &val) ||
-        !token_ulong(reader, &val, &pinfo->cs.bitsPerComponent) ||
-        (pinfo->cs.bitsPerComponent != 1 && pinfo->cs.bitsPerComponent != 8 && pinfo->cs.bitsPerComponent != 16)) {
-        // strip doesn't have valid BitsPerComponent?
-        compliance(reader, READ_STRIP_BITSPERCOMPONENT, pinfo->pos);
-        return FALSE;
-    }
-    // /Width is mandatory
-    if (!dictionary_lookup(reader, pinfo->pos, "/Width", &val) || !token_ulong(reader, &val, &pinfo->width)) {
-        // strip doesn't have Width?
-        compliance(reader, READ_STRIP_WIDTH, pinfo->pos);
-        return FALSE;
-    }
-    // /Height is mandatory
-    if (!dictionary_lookup(reader, pinfo->pos, "/Height", &val) || !token_ulong(reader, &val, &pinfo->height)) {
-        // strip doesn't have /Height with non-negative integer value
-        compliance(reader, READ_STRIP_HEIGHT, pinfo->pos);
-        return FALSE;
-    }
-    if (!dictionary_lookup(reader, pinfo->pos, "/ColorSpace", &val)) {
-        // PDF/raster: image object, each strip must have a named ColorSpace
-        compliance(reader, READ_STRIP_COLORSPACE, pinfo->pos);
-        return FALSE;
-    }
-    // That's all the mandatory entries!
-    if (!parse_color_space(reader, &val, &pinfo->cs)) {
-        // PDF/raster: invalid color space in strip
-        compliance(reader, READ_VALID_COLORSPACE, val);
-        return FALSE;
-    }
-    pinfo->format = infer_pixel_format(pinfo->cs);
-    if (pinfo->format == RASREAD_FORMAT_NULL) {
-        // oops.
-        compliance(reader, READ_STRIP_CS_BPC, pinfo->pos);
-        return FALSE;
-    }
-
+	// While this is not a public function, it is called by a bunch of
+	// shallow public functions - that's why it reports API errors.
+	if (!VALID(reader)) {
+		api_error(NULL, READ_API_BAD_READER, __LINE__);
+		return FALSE;
+	}
+	if (!pinfo) {
+		api_error(reader, READ_API_NULL_PARAM, __LINE__);
+		return FALSE;
+	}
+	if (!reader->bOpen) {
+		api_error(reader, READ_API_NOT_OPEN, __LINE__);
+		return FALSE;
+	}
+	// clear info to all 0's
+	memset(pinfo, 0, sizeof *pinfo);
+	// find the strip
+	if (!find_strip(reader, p, s, &pinfo->pos)) {
+		// no such strip - already reported appropriate error
+		return FALSE;
+	}
+	// Parse the strip stream and locate its data
+	// Among other things, this finds and checks the /Length key
+	pduint32 pos = pinfo->pos;
+	if (!parse_stream(reader, &pos, &pinfo->data_pos, &pinfo->raw_size)) {
+		// strip stream not found or invalid
+		// compliance errors have already been reported
+		return FALSE;
+	}
+	assert(pinfo->pos != 0);
+	assert(pinfo->raw_size > 0);
+	pduint32 val;
+	// /Type entry is optional, but if present value must be /XObject   [ISO 32000 8.9.5]
+	if (dictionary_lookup(reader, pinfo->pos, "/Type", &val) && !token_match(reader, val, "/XObject")) {
+		compliance(reader, READ_STRIP_TYPE_XOBJECT, pinfo->pos);
+		return FALSE;
+	}
+	// /Subtype is mandatory and must have value /Image
+	if (!dictionary_lookup(reader, pinfo->pos, "/Subtype", &val) || !token_eat(reader, &val, "/Image")) {
+		// strip isn't /Subtype /Image
+		compliance(reader, READ_STRIP_SUBTYPE, pinfo->pos);
+		return FALSE;
+	}
+	// /BitsPerComponent is required (for our kind of images) and must be 1,8 or 16
+	if (!dictionary_lookup(reader, pinfo->pos, "/BitsPerComponent", &val) ||
+		!token_ulong(reader, &val, &pinfo->cs.bitsPerComponent) ||
+		(pinfo->cs.bitsPerComponent != 1 && pinfo->cs.bitsPerComponent != 8 && pinfo->cs.bitsPerComponent != 16)) {
+		// strip doesn't have valid BitsPerComponent?
+		compliance(reader, READ_STRIP_BITSPERCOMPONENT, pinfo->pos);
+		return FALSE;
+	}
+	// /Width is mandatory
+	if (!dictionary_lookup(reader, pinfo->pos, "/Width", &val) || !token_ulong(reader, &val, &pinfo->width)) {
+		// strip doesn't have Width?
+		compliance(reader, READ_STRIP_WIDTH, pinfo->pos);
+		return FALSE;
+	}
+	// /Height is mandatory
+	if (!dictionary_lookup(reader, pinfo->pos, "/Height", &val) || !token_ulong(reader, &val, &pinfo->height)) {
+		// strip doesn't have /Height with non-negative integer value
+		compliance(reader, READ_STRIP_HEIGHT, pinfo->pos);
+		return FALSE;
+	}
+	if (!dictionary_lookup(reader, pinfo->pos, "/ColorSpace", &val)) {
+		// PDF/raster: image object, each strip must have a named ColorSpace
+		compliance(reader, READ_STRIP_COLORSPACE, pinfo->pos);
+		return FALSE;
+	}
+	// That's all the mandatory entries!
+	if (!parse_color_space(reader, &val, &pinfo->cs)) {
+		// PDF/raster: invalid color space in strip
+		compliance(reader, READ_VALID_COLORSPACE, val);
+		return FALSE;
+	}
+	pinfo->format = infer_pixel_format(pinfo->cs);
+	if (pinfo->format == RASREAD_FORMAT_NULL) {
+		// oops.
+		compliance(reader, READ_STRIP_CS_BPC, pinfo->pos);
+		return FALSE;
+	}
+	// Check if image strip is JPEG or G4 compressed
+	if (dictionary_lookup(reader, pinfo->pos, "/Filter", &val)) {
+		if (array_lookup(reader, val, "/CCITTFaxDecode")) {
+			pinfo->compression = RASREAD_CCITTG4;
+			if (pinfo->cs.bitsPerComponent != 1) {
+				compliance(reader, READ_STRIP_BITSPERCOMPONENT, pinfo->pos);
+				return FALSE;
+			}
+		}
+		else if (array_lookup(reader, val, "/DCTDecode")) {
+			pinfo->compression = RASREAD_JPEG;
+			if (pinfo->cs.bitsPerComponent != 8) {
+				compliance(reader, READ_STRIP_BITSPERCOMPONENT, pinfo->pos);
+				return FALSE;
+			}
+		}
+	}
     return TRUE;
 } // get_strip_info
 
@@ -2258,7 +2304,7 @@ int pdfrasread_page_count(t_pdfrasreader* reader)
 }
 
 // Return the pixel format of the raster image of page n (indexed from 0)
-RasterPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n)
+RasterReaderPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n)
 {
     t_pdfpageinfo info;
     if (!get_page_info(reader, n, &info)) {
@@ -2349,7 +2395,7 @@ size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p)
 // Read the raw (compressed) data of strip s on page p into buffer, not more than bufsize bytes.
 // Returns the actual number of bytes read.
 // A return value of 0 indicates an error.
-size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buffer, size_t bufsize)
+size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize)
 {
     t_pdfstripinfo strip;
     if (!get_strip_info(reader, p, s, &strip)) {
@@ -2370,7 +2416,7 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, void* buf
     return length;
 }
 
-RasterCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s)
+RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s)
 {
     t_pdfstripinfo strip;
     if (!get_strip_info(reader, p, s, &strip)) {

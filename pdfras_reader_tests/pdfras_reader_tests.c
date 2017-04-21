@@ -249,7 +249,7 @@ void strip_data_tests()
 	int strips = pdfrasread_strip_count(reader, p);
 	// get the maximum buffer size needed for any strip on this page
 	size_t max_size = pdfrasread_max_strip_size(reader, p);
-	pduint8* rawstrip = (pduint8*)malloc(max_size);
+	pdint8* rawstrip = (pdint8*)malloc(max_size);
 	ASSERT(rawstrip != NULL);
 	for (int s = 0; s < strips; s++) {
 		//int h = pdfrasread_strip_height(reader, p, s);
@@ -304,7 +304,7 @@ void error_tests()
     reader = pdfrasread_open_filename(RASREAD_API_LEVEL, "bitonal badgamma.pdf");
     ASSERT(reader);
     if (reader) {
-        RasterPixelFormat format = pdfrasread_page_format(reader, 0);
+        RasterReaderPixelFormat format = pdfrasread_page_format(reader, 0);
         ASSERT(format == RASREAD_BITONAL);
         pdfrasread_destroy(reader);
     }
