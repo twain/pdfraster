@@ -1,2 +1,2 @@
 *.exe -crlf -diff -merge
-*.pdf -cflf -diff -merge
+*.pdf -crlf -diff -merge
