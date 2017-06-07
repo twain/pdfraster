@@ -295,7 +295,7 @@ typedef enum {
     READ_ICC_PROFILE,               // not a valid ICC Profile stream
     READ_ICCPROFILE_READ,           // read error while reading ICC Profile data
     READ_COLORSPACE_ARRAY,          // colorspace array syntax error - missing closing ']'?
-    READ_ERROR_CODE_COUNT
+    READ_pdfrt_error_code_COUNT
 } ReadErrorCode;
 
 #ifdef __cplusplus

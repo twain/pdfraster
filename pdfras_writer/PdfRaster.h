@@ -67,7 +67,7 @@ typedef struct t_pdfrasencoder t_pdfrasencoder;
 // The following encoder properties are set to their default values:
 // pixelformat		PDFRAS_BITONAL
 // compression		PDFRAS_UNCOMPRESSED
-// xdpi, ydpi		300
+// x_dpi, y_dpi		300
 // rotation			0
 //
 t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os);
@@ -101,7 +101,7 @@ void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata);
 void pdfr_encoder_set_rotation(t_pdfrasencoder* enc, int degCW);
 
 // Set the resolution for subsequent pages
-void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double xdpi, double ydpi);
+void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double x_dpi, double y_dpi);
 
 // Set the pixel format for subsequent pages
 void pdfr_encoder_set_pixelformat(t_pdfrasencoder* enc, RasterPixelFormat format);

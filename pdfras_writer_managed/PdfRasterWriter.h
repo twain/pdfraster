@@ -45,7 +45,7 @@ namespace PdfRasterWriter {
 	public:
 		int  encoder_create(int apiLevel, String^ pdfFileName);
 		void encoder_set_creator(int enc, String^ creator);
-		void encoder_set_resolution(int enc, double xdpi, double ydpi);
+		void encoder_set_resolution(int enc, double x_dpi, double y_dpi);
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);
 		void encoder_set_compression(int enc, PdfRasterCompression compression);
 		void encoder_start_page(int enc, int width);
