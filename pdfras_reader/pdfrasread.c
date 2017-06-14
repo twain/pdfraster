@@ -2425,7 +2425,7 @@ RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int
     return strip.compression;
 }
 
-static const char* error_code_description(int code)
+const char* error_code_description(int code)
 {
     switch (code) {
     case READ_OK:                   return "OK";
@@ -2481,6 +2481,50 @@ static const char* error_code_description(int code)
     case READ_ICC_PROFILE:          return "not a valid ICC Profile stream";
     case READ_ICCPROFILE_READ:      return "read error while reading ICC Profile data";
     case READ_COLORSPACE_ARRAY:     return "colorspace array syntax error - missing closing ']'?";
+	case READ_BLACKPOINT:           return "expected a blackpoint array [ X Y Z ]";
+	case READ_CAT_PAGES:            return "catalog must have a /Pages entry";
+	case READ_CAT_TYPE:             return "catalog must have /Type /Catalog";
+	case READ_FILE_BAD_TAG:         return "%PDF-raster- not followed by valid <int>.<int><eol>";
+	case READ_FILE_PDFRASTER_TAG:   return "%PDF-raster tag not found near end of file";
+	case READ_FILE_TAG_SOL:         return "%PDF-raster tag not at start-of-line";
+	case READ_FILE_TOO_MAJOR:       return "file's PDF-raster major version is above what this library supports";
+	case READ_FILE_TOO_MINOR:       return "this file's PDF-raster minor version is above what this library understands";
+	case READ_GAMMA_22:             return "in a bitonal image, /CalGray /Gamma must be 2.2";
+	case READ_GAMMA_NUMBER:         return "/CalGray or /CalRGB dictionary: /Gamma not followed by number";
+	case READ_GEN_ZERO:             return "indirect object with generation not 0";
+	case READ_HEXSTR_CHAR:          return "invalid char encountered in hex string";
+	case READ_LITSTR_EOF:           return "end-of-file encountered in literal string (xyz)";
+	case READ_MEDIABOX_ARRAY:       return "MediaBox value must be an array";
+	case READ_MEDIABOX_ELEMENTS:    return "MediaBox must contain 4 numbers: [0 0 w h]";
+	case READ_NO_SUCH_XREF:         return "indirect object not found in xref table";
+	case READ_OBJ_DEF:              return "xref entry doesn't point to valid, matching obj definition";
+	case READ_PAGE_COUNTS:          return "page tree /Count value differs from number of pages found";
+	case READ_PAGE_KIDS:            return "invalid page node or it lacks a /Kids entry";
+	case READ_PAGE_KIDS_ARRAY:      return "page /Kids array doesn't start with '['";
+	case READ_PAGE_KIDS_END:        return "/Kids array - ']' expected here.";
+	case READ_PAGE_MEDIABOX:		return "each page dict must have a /MediaBox entry";
+	case READ_PAGE_ROTATION:		return "page rotation if present must be an inline non-negative multiple of 90";
+	case READ_PAGE_TYPE:            return "page node is not a dictionary or lacks a /Type entry";
+	case READ_PAGE_TYPE2:           return "page node /Type isn't /Page or /Pages";
+	case READ_PAGES_COUNT:          return "Page tree node doesn't have /Count <integer> where n >= 0";
+	case READ_PAGES_EXTRA:          return "more page objects than /Count said in page tree";
+	case READ_RESOURCES:			return "each page dictionary must have a /Resources entry (that is a dictionary)";
+	case READ_ROOT:                 return "/Root entry not found in trailer dictionary";
+	case READ_STRIP_READ:           return "reading a strip's data returned less than the expected number of bytes";
+	case READ_TRAILER:              return "'trailer' keyword not found where expected (after xref table)";
+	case READ_TRAILER_DICT:         return "trailer dictionary missing or invalid";
+	case READ_WHITEPOINT:           return "expected a whitepoint array [ X Y Z ]";
+	case READ_XOBJECT:				return "page resource dictionary must have /XObject entry";
+	case READ_XOBJECT_DICT:			return "XObject has to be a dictionary";
+	case READ_XOBJECT_ENTRY:		return "all entries in xobject dict must be /strip<n>";
+	case READ_XREF:                 return "'xref' keyword not found where expected";
+	case READ_XREF_ENTRY:           return "invalid entry in xref table";
+	case READ_XREF_ENTRY_ZERO:      return "xref table entry 0 must be marked free ('f') with generation 65535";
+	case READ_XREF_GEN0:            return "xref table entry - in-use object must have generation=0";
+	case READ_XREF_HEADER:          return "xref keyword not followed by two unsigned integers";
+	case READ_XREF_NUMREFS:         return "number of claimed entries in xref table is  < 1 or > 8388607";
+	case READ_XREF_OBJECT_ZERO:     return "first object in xref table is not object 0";
+	case READ_XREF_TABLE:           return "failed reading xref table - invalid file (or file read error?)";
     default:
         return "<no details>";
     }

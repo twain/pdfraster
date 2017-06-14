@@ -143,7 +143,7 @@ void application::pdfr_close() {
 }
 
 void application::pdfr_parse_details() {
-	LOG(dbg, "<");
+	LOG(dbg, ">");
 	string str;
 
 	page_count = pdfrasread_page_count(handle.get_reader());
@@ -266,7 +266,7 @@ void application::pdfr_parse_details() {
 		cout << "page " << config.get_page() << " compression = " << str << endl;
 	}
 
-	LOG(dbg, ">");
+	LOG(dbg, "<");
 }
 
 void application::run() {
@@ -283,7 +283,9 @@ void application::run() {
 	pdfr_open();
 	pdfr_parse_details();
 
-	handle.ofile.open("wb");
+	if (config.op.get_extract_image()) {
+		handle.ofile.open("wb");
+	}
 
 	pdfr_close();
 
