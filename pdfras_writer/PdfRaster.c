@@ -31,8 +31,8 @@ typedef struct t_pdfrasencoder {
 	pdbool				bitonalUncal;		// use uncalibrated /DeviceGray for bitonal images
 	// page parameters, apply to subsequently started pages
     int                 next_page_rotation;
-    double              next_page_x_dpi;
-    double              next_page_y_dpi;
+    double              next_page_xdpi;
+    double              next_page_ydpi;
 	RasterPixelFormat	next_page_pixelFormat;		// how pixels are represented
 	RasterCompression	next_page_compression;		// compression setting for next page
 
@@ -45,8 +45,8 @@ typedef struct t_pdfrasencoder {
     // is written
 	int					rotation;			// page rotation (degrees clockwise)
 	int					width;				// image width in pixels
-    double				x_dpi;				// horizontal resolution, pixels/inch
-    double				y_dpi;				// vertical resolution, pixels/inch
+    double				xdpi;				// horizontal resolution, pixels/inch
+    double				ydpi;				// vertical resolution, pixels/inch
     RasterPixelFormat   pixelFormat;        // format of pixels
     RasterCompression   compression;        // compression algorithm
     t_pdvalue           colorspace;         // colorspace
@@ -82,7 +82,7 @@ t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os)
 		enc->stm = pd_outstream_new(pool, os);	// our PDF-output stream abstraction
 
 		enc->next_page_rotation = 0;						// default page rotation
-		enc->next_page_x_dpi = enc->next_page_y_dpi = 300;    // default resolution
+		enc->next_page_xdpi = enc->next_page_ydpi = 300;    // default resolution
 		enc->next_page_compression = PDFRAS_UNCOMPRESSED;	// default compression for next page
 		enc->next_page_pixelFormat = PDFRAS_BITONAL;		// default pixel format
         enc->phys_pageno = -1;			    // unspecified
@@ -167,10 +167,10 @@ void pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 	pd_dict_put(enc->currentPage, PDA_Metadata, xmpstm);
 }
 
-void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double x_dpi, double y_dpi)
+void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double xdpi, double ydpi)
 {
-	enc->next_page_x_dpi = x_dpi;
-	enc->next_page_y_dpi = y_dpi;
+	enc->next_page_xdpi = xdpi;
+	enc->next_page_ydpi = ydpi;
 }
 
 // Set the rotation for subsequent pages.
@@ -231,14 +231,14 @@ int pdfr_encoder_start_page(t_pdfrasencoder* enc, int width)
     assert(IS_NULL(enc->currentPage));
 	enc->width = width;
     // put the 'next page' settings into effect for this page
-    enc->x_dpi = enc->next_page_x_dpi;
-    enc->y_dpi = enc->next_page_y_dpi;
+    enc->xdpi = enc->next_page_xdpi;
+    enc->ydpi = enc->next_page_ydpi;
     enc->rotation = enc->next_page_rotation;
     // reset strip count and row count
 	enc->strips = 0;				// number of strips written to current page
 	enc->height = 0;				// height of current page so far
 
-	double W = width / enc->x_dpi * 72.0;
+	double W = width / enc->xdpi * 72.0;
 	// Start a new page (of unknown height)
 	enc->currentPage = pd_page_new_simple(enc->pool, enc->xref, enc->catalog, W, 0);
 	assert(IS_REFERENCE(enc->currentPage));
@@ -396,8 +396,8 @@ static void content_generator(t_pdcontents_gen *gen, void *cookie)
 {
 	t_pdfrasencoder* enc = (t_pdfrasencoder*)cookie;
 	// compute width & height of page in PDF points
-	double W = enc->width / enc->x_dpi * 72.0;
-	double H = enc->height / enc->y_dpi * 72.0;
+	double W = enc->width / enc->xdpi * 72.0;
+	double H = enc->height / enc->ydpi * 72.0;
 	// horizontal (x) offset is always 0 - flush to left edge.
 	double tx = 0;
 	// vertical offset starts at top of page
@@ -415,7 +415,7 @@ static void content_generator(t_pdcontents_gen *gen, void *cookie)
 		// get its /Height
 		t_pdvalue striph = pd_dict_get(img, PDA_Height, &succ);
 		// calculate height in Points
-		double SH = striph.value.intvalue * 72.0 / enc->y_dpi;
+		double SH = striph.value.intvalue * 72.0 / enc->ydpi;
 		pd_gen_gsave(gen);
 		pd_gen_concatmatrix(gen, W, 0, 0, SH, tx, ty-SH);
 		pd_gen_xobject(gen, stripNatom);
@@ -430,8 +430,8 @@ static void update_media_box(t_pdfrasencoder* enc, t_pdvalue page)
 	t_pdvalue box = pd_dict_get(page, PDA_MediaBox, &success);
 	assert(success);
 	assert(IS_ARRAY(box));
-	double W = enc->width / enc->x_dpi * 72.0;
-	double H = enc->height / enc->y_dpi * 72.0;
+	double W = enc->width / enc->xdpi * 72.0;
+	double H = enc->height / enc->ydpi * 72.0;
 	pd_array_set(box.value.arrvalue, 2, pdfloatvalue(W));
 	pd_array_set(box.value.arrvalue, 3, pdfloatvalue(H));
 }

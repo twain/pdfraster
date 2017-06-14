@@ -16,10 +16,7 @@
 ///////////////////////////////////////////////////////////////////////
 // Internal Constants
 
-#define PDFRASREAD_VERSION "0.7.9.3"
-// 0.7.9.3  gus     2017.06.06  fix check for ICCprofiles ref same object in all strips
-// 0.7.9.2  gus     2017.04.20  fix check of image compression JPEG/G4 from /Filter array
-// 0.7.9.1  gus     2017.03.23  merge differences in some enums with pdfraster.[ch]
+#define PDFRASREAD_VERSION "0.7.9.0"
 // 0.7.9.0  spike   2016.09.23  look for PDF-raster marker in last TAILSIZE bytes
 // 0.7.8.0  spike   2016.09.23  handle PDF comments! (treat as whitespace)
 // 0.7.7.0  spike   2016.09.05  slighly improved & simplified dict & stream parsing.
@@ -75,11 +72,12 @@ typedef struct t_xref_entry {
 	char		eol[2];                     // either <space>LF or CR,LF
 } t_xref_entry;
 
-typedef struct {
-	pduint32 data_pos;
-	long data_len;
-	char *data_ptr;
-} ICCProfile;
+//typedef struct _ICCProfile ICCProfile;
+// Hmmm, above line refers to undefined struct _ICCProfile
+// So *ICCProfile is used as an opaque pointer
+// But when compiled as C++ code linker complains
+// so replaced it with line below
+typedef void ICCProfile;
 
 enum colorspace_style { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED };
 
@@ -90,7 +88,7 @@ typedef struct t_colorspace {
     double				blackPoint[3];
     double              gamma;              // Gamma exponent (all?)
     double              matrix[9];          // 3x3 matrix (CALRGB only)
-    ICCProfile          iccProfile;         // ICC profile (ICCBASED only)
+    ICCProfile*         piccProfile;        // pointer to ICC profile (ICCBASED only)
 } t_colorspace;
 
 // All the information about a single page and the image it contains
@@ -102,7 +100,7 @@ typedef struct {
 	unsigned long		width;
 	unsigned long		height;
 	unsigned long		rotation;
-	double				x_dpi, y_dpi;
+	double				xdpi, ydpi;
 	int					strip_count;		// number of strips in this page
 	size_t				max_strip_size;		// largest (raw) strip size
 } t_pdfpageinfo;
@@ -201,11 +199,8 @@ int colorspace_equal(t_colorspace c, t_colorspace d)
             return FALSE;
         }
     }
-	if (c.iccProfile.data_pos != d.iccProfile.data_pos) {
-		return FALSE;
-	}
-	if (c.iccProfile.data_len != d.iccProfile.data_len) {
-		return FALSE;
+    if (c.piccProfile != d.piccProfile) {
+        return FALSE;
     }
     return TRUE;
 }
@@ -1294,23 +1289,25 @@ static int parse_calrgb_dictionary(t_pdfrasreader* reader, t_colorspace* pcs, pd
 // advance *poff past the stream and return TRUE.
 // Otherwise, report an appropriate compliance error
 // and return FALSE leaving *poff unmoved.
-static int parse_icc_profile(t_pdfrasreader* reader, pduint32 *poff, ICCProfile *iccProfile)
+static int parse_icc_profile(t_pdfrasreader* reader, pduint32 *poff, ICCProfile** ppiccProfile)
 {
     pduint32 off = *poff;
-    iccProfile->data_ptr = NULL;
-    if (!parse_stream(reader, &off, &iccProfile->data_pos, &iccProfile->data_len)) {
+    *ppiccProfile = NULL;
+    pduint32 datapos;
+    long datalen;
+    if (!parse_stream(reader, &off, &datapos, &datalen)) {
         // compliance error already reported
         return FALSE;
     }
-    iccProfile->data_ptr = (char *)malloc((size_t)iccProfile->data_len);
-    if (!iccProfile->data_ptr) {
+    *ppiccProfile = (ICCProfile*)malloc((size_t)datalen);
+    if (!*ppiccProfile) {
         memory_error(reader, __LINE__);
         return FALSE;
     }
     // TODO: handle decompress/decrypt of Profile!
-    if (reader->fread(reader->source, iccProfile->data_pos, iccProfile->data_len, iccProfile->data_ptr) != iccProfile->data_len) {
+    if (reader->fread(reader->source, datapos, datalen, (char*)*ppiccProfile) != datalen) {
         io_error(reader, READ_ICCPROFILE_READ, __LINE__);
-        free(iccProfile->data_ptr); iccProfile->data_ptr = NULL;
+        free(*ppiccProfile); *ppiccProfile = NULL;
         return FALSE;
     }
     // TODO: validate that the data we read is actually an ICC Profile!
@@ -1358,11 +1355,11 @@ static int parse_color_space(t_pdfrasreader* reader, pduint32 *poff, t_colorspac
             pduint32 dict = *poff;
             // could be an indirect reference
             if (parse_indirect_reference(reader, poff, &dict)) {
-                if (!parse_icc_profile(reader, &dict, &pcs->iccProfile)) {
+                if (!parse_icc_profile(reader, &dict, &pcs->piccProfile)) {
                     return FALSE;
                 }
             }
-            else if (!parse_icc_profile(reader, poff, &pcs->iccProfile)) {
+            else if (!parse_icc_profile(reader, poff, &pcs->piccProfile)) {
                 return FALSE;
             }
         }
@@ -2219,8 +2216,8 @@ static int get_page_info(t_pdfrasreader* reader, int p, t_pdfpageinfo* pinfo)
 		pinfo->strip_count++;
 	} // for each strip
 	// we have MediaBox and pixel dimensions, we can calculate DPI
-	pinfo->x_dpi = tweak_dpi(pinfo->width * 72.0 / (pinfo->MediaBox[2] - pinfo->MediaBox[0]));
-	pinfo->y_dpi = tweak_dpi(pinfo->height * 72.0 / (pinfo->MediaBox[3] - pinfo->MediaBox[1]));
+	pinfo->xdpi = tweak_dpi(pinfo->width * 72.0 / (pinfo->MediaBox[2] - pinfo->MediaBox[0]));
+	pinfo->ydpi = tweak_dpi(pinfo->height * 72.0 / (pinfo->MediaBox[3] - pinfo->MediaBox[1]));
 	return TRUE;
 }
 
@@ -2362,7 +2359,7 @@ double pdfrasread_page_horizontal_dpi(t_pdfrasreader* reader, int n)
     if (!get_page_info(reader, n, &info)) {
         return 0.0;
     }
-    return info.x_dpi;
+    return info.xdpi;
 }
 
 double pdfrasread_page_vertical_dpi(t_pdfrasreader* reader, int n)
@@ -2371,7 +2368,7 @@ double pdfrasread_page_vertical_dpi(t_pdfrasreader* reader, int n)
     if (!get_page_info(reader, n, &info)) {
         return 0.0;
     }
-    return info.y_dpi;
+    return info.ydpi;
 }
 
 // Strip reading functions

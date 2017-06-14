@@ -14,7 +14,6 @@
 
 #include "journal.h"
 #include "error.h"
-#include "page.h"
 #include "handles.h"
 #include "configuration.h"
 #include "application.h"
@@ -143,10 +142,9 @@ void application::pdfr_close() {
 	LOG(dbg, "<");
 }
 
-// always test the input PDF/raster image, so even if no -d or -o options
-// on the command line we still parse the details of the PDF/raster file
 void application::pdfr_parse_details() {
 	LOG(dbg, "<");
+	string str;
 
 	page_count = pdfrasread_page_count(handle.get_reader());
 	if (-1 == page_count) {
@@ -163,105 +161,112 @@ void application::pdfr_parse_details() {
 		ERR(PDFRAS_READER_PAGE_OPTION_TOO_BIG);
 	}
 
-	RasterReaderPixelFormat rrpf = pdfrasread_page_format(handle.get_reader(), config.get_page() - 1);
-	page.set_pixel_format(rrpf);
-	LOG(dbg, "| page_pixel_format = %d", page.get_pixel_format());
-	LOG(msg, "| page_pixel_format = \"%s\"", page.get_pixel_format_string());
+	page_pixel_format = pdfrasread_page_format(handle.get_reader(), config.get_page()-1);
+	LOG(dbg, "| page_pixel_format = %d", page_pixel_format);
+	switch (page_pixel_format) {
+	case RASREAD_BITONAL: str = "bitonal"; break;	// 1-bit per pixel, 0=black
+	case RASREAD_GRAY8  : str = "gray8";   break;	// 8-bit per pixel, 0=black
+	case RASREAD_GRAY16 : str = "gray16" ; break;	// 16-bit per pixel, 0=black
+	case RASREAD_RGB24  : str = "rgb24"  ; break;	// 24-bit per pixel, sRGB
+	case RASREAD_RGB48  : str = "rgb48  "; break;	// 48-bit per pixel, sRGB
+	default:
+		LOG(err, "| failed getting page_pixel_format for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
+		ERR(PDFRAS_READER_PAGE_PIXEL_FORMAT_FAIL);
+	}
+	LOG(msg, "| page_pixel_format = \"%s\"", str.c_str());
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " pixel format = " << page.get_pixel_format_string() << endl;
+		cout << "page " << config.get_page() << " pixel format = " << str << endl;
 	}
 
-	int bpc = pdfrasread_page_bits_per_component(handle.get_reader(), config.get_page() - 1);
-	page.set_bits_per_component(bpc);
-	LOG(msg, "| page_bits_per_component = %d", page.get_bits_per_component());
+	page_bit_per_component = pdfrasread_page_bits_per_component(handle.get_reader(), config.get_page()-1);
+	LOG(msg, "| page_bit_per_component = %d", page_bit_per_component);
+	switch (page_bit_per_component) {
+	case  1: break;
+	case  8: break;
+	case 16: break;
+	default:
+		LOG(err, "| page_bit_per_component (%d) not 1,8,16 for filename=\"%s\" page=%d", page_bit_per_component, handle.ifile.get_name().c_str(), config.get_page());
+		ERR(PDFRAS_READER_PAGE_BITS_PER_COMPONENT_FAIL);
+	}
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " bits per component = " << page.get_bits_per_component() << endl;
+		cout << "page " << config.get_page() << " bits per component = " << page_bit_per_component << endl;
 	}
 
-	int pw = pdfrasread_page_width(handle.get_reader(), config.get_page() - 1);
-	page.set_width(pw);
-	LOG(msg, "| page_width = %d", page.get_width());
-	if (page.get_width() <= 0) {
+	page_width = pdfrasread_page_width(handle.get_reader(), config.get_page() - 1);
+	LOG(msg, "| page_width = %d", page_width);
+	if (page_width <= 0) {
 		LOG(err, "| failed getting page width for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_WIDTH_FAIL);
 	}
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " width (pixels) = " << page.get_width() << endl;
+		cout << "page " << config.get_page() << " width (pixels) = " << page_width << endl;
 	}
 
-	int ph = pdfrasread_page_height(handle.get_reader(), config.get_page() - 1);
-	page.set_height(ph);
-	LOG(msg, "| page_width = %d", page.get_height());
-	if (page.get_height() <= 0) {
+	page_height = pdfrasread_page_height(handle.get_reader(), config.get_page() - 1);
+	LOG(msg, "| page_width = %d", page_height);
+	if (page_height <= 0) {
 		LOG(err, "| failed getting page height for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_HEIGHT_FAIL);
 	}
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " height (pixels) = " << page.get_height() << endl;
+		cout << "page " << config.get_page() << " height (pixels) = " << page_height << endl;
 	}
 
-	int pr = pdfrasread_page_rotation(handle.get_reader(), config.get_page() - 1);
-	page.set_rotation(pr);
-	LOG(msg, "| page_rotation = %d", page.get_rotation());
+	page_rotation = pdfrasread_page_rotation(handle.get_reader(), config.get_page() - 1);
+	LOG(msg, "| page_rotation = %d", page_rotation);
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " rotation (degrees clockwise when displayed) = " << page.get_rotation() << endl;
+		cout << "page " << config.get_page() << " rotation (degrees clockwise when displayed) = " << page_rotation << endl;
 	}
 
-	double xdpi = pdfrasread_page_horizontal_dpi(handle.get_reader(), config.get_page() - 1);
-	page.set_x_dpi(xdpi);
-	LOG(msg, "| page_x_dpi = %f", page.get_x_dpi());
+	page_xdpi = pdfrasread_page_horizontal_dpi(handle.get_reader(), config.get_page() - 1);
+	LOG(msg, "| page_xdpi = %f", page_xdpi);
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " horizontal resolution (DPI) = " << page.get_x_dpi() << endl;
+		cout << "page " << config.get_page() << " horizontal resolution (DPI) = " << page_xdpi << endl;
 	}
 
-	double ydpi = pdfrasread_page_vertical_dpi(handle.get_reader(), config.get_page() - 1);
-	page.set_y_dpi(ydpi);
-	LOG(msg, "| page_y_dpi = %f", page.get_y_dpi());
+	page_ydpi = pdfrasread_page_vertical_dpi(handle.get_reader(), config.get_page() - 1);
+	LOG(msg, "| page_ydpi = %f", page_ydpi);
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " vertical resolution (DPI) = " << page.get_y_dpi() << endl;
+		cout << "page " << config.get_page() << " vertical resolution (DPI) = " << page_ydpi << endl;
 	}
 
-	int ps = pdfrasread_strip_count(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
-	page.set_strips(ps);
-	LOG(msg, "| page_strips = %d", page.get_strips());
-	if (page.get_strips() <= 0) {
+	page_strips = pdfrasread_strip_count(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
+	LOG(msg, "| page_strips = %d", page_strips);
+	if (page_strips <= 0) {
 		LOG(err, "| failed getting page strip count for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_STRIP_COUNT_FAIL);
 	}
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " strip count = " << page.get_strips() << endl;
+		cout << "page " << config.get_page() << " strip count = " << page_strips << endl;
 	}
 
-	size_t mss = pdfrasread_max_strip_size(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
-	page.set_max_strip_size(mss);
-	LOG(msg, "| page_max_strip_size = %zu", page.get_max_strip_size());
-	if (page.get_max_strip_size() == 0) {
+	page_max_strip_size = pdfrasread_max_strip_size(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
+	LOG(msg, "| page_max_strip_size = %zu", page_max_strip_size);
+	if (page_max_strip_size == 0) {
 		LOG(err, "| failed getting maximum page strip size for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_MAX_STRIP_SIZE_FAIL);
 	}
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " maximum (raw) strip size = " << page.get_max_strip_size() << endl;
+		cout << "page " << config.get_page() << " maximum (raw) strip size = " << page_max_strip_size << endl;
 	}
 
-	RasterReaderCompression pc = pdfrasread_strip_compression(handle.get_reader(), config.get_page() - 1, 0); // doc says call with page number but it's wrong
-	page.set_compression(pc);
-	LOG(dbg, "| page_compression = %d", page.get_compression());
-	LOG(msg, "| page_compression = \"%s\"", page.get_compression_string());
+	page_compression = pdfrasread_strip_compression(handle.get_reader(), config.get_page() - 1, 0); // doc says call with page number but it's wrong
+	LOG(dbg, "| page_compression = %d", page_compression);
+	switch (page_compression) {
+	case RASREAD_COMPRESSION_NULL:
+	case RASREAD_UNCOMPRESSED: str = "uncompressed"; break;
+	case RASREAD_JPEG: str = "JPEG";   break;
+	case RASREAD_CCITTG4: str = "CCIT Group 4 Facsimile"; break;
+	default:
+		LOG(err, "| failed getting page_compression for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
+		ERR(PDFRAS_READER_PAGE_COMPRESSION_FAIL);
+	}
+	LOG(msg, "| page_compression = \"%s\"", str.c_str());
 	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " compression = " << page.get_compression_string() << endl;
+		cout << "page " << config.get_page() << " compression = " << str << endl;
 	}
 
 	LOG(dbg, ">");
-}
-
-// always test the input PDF/raster image, so even if no -o option on the
-// command line we still go through the process of extracting the PDF/raster
-// file. We just don't actually write the image if no -o option specified.
-void application::pdfr_extract_image()
-{
-	if (config.op.get_extract_image()) {
-		handle.ofile.open("wb");
-	}
 }
 
 void application::run() {
@@ -277,7 +282,9 @@ void application::run() {
 
 	pdfr_open();
 	pdfr_parse_details();
-	pdfr_extract_image();
+
+	handle.ofile.open("wb");
+
 	pdfr_close();
 
 	LOG(dbg, "<");

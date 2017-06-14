@@ -53,6 +53,7 @@ char *error::get_error_string(void) const {
 	case PDFRAS_READER_PAGE_OPTION_TOO_BIG: str = "-p option greater than page count in PDF/raster file"; break;
 	case PDFRAS_READER_PAGE_PIXEL_FORMAT_FAIL: str = "fail to parse page pixel format in PDF/raster file"; break;
 	case FILE_OPEN_WRITE_FAIL: str = "failed to open file for writing"; break;
+	case PDFRAS_READER_PAGE_BITS_PER_COMPONENT_FAIL: str = "page bits per component invalid"; break;
 	case PDFRAS_READER_PAGE_WIDTH_FAIL: str = "page width invalid"; break;
 	case PDFRAS_READER_PAGE_HEIGHT_FAIL: str = "page height invalid"; break;
 	case PDFRAS_READER_PAGE_STRIP_COUNT_FAIL: str = "page strip count invalid"; break;

@@ -33,9 +33,6 @@
     <ClInclude Include="handles.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="page.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,9 +48,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="configuration.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="page.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

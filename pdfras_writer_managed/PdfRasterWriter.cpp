@@ -188,12 +188,12 @@ namespace PdfRasterWriter {
 		LOG(fprintf(fp, "<"));
 	}
 
-	void Writer::encoder_set_resolution(int idx, double x_dpi, double y_dpi)
+	void Writer::encoder_set_resolution(int idx, double xdpi, double ydpi)
 	{
-		LOG(fprintf(fp, "> idx=%d x_dpi=%f y_dpi=%f", idx, x_dpi, y_dpi));
+		LOG(fprintf(fp, "> idx=%d xdpi=%f ydpi=%f", idx, xdpi, ydpi));
 		checkStateValid(idx);
 
-		pdfr_encoder_set_resolution(state[idx].enc, x_dpi, y_dpi);
+		pdfr_encoder_set_resolution(state[idx].enc, xdpi, ydpi);
 		LOG(fprintf(fp, "<"));
 	}
 

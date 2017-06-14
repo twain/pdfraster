@@ -14,7 +14,6 @@
 #include "os_specific.h"
 #include "journal.h"
 #include "error.h"
-#include "page.h"
 #include "handles.h"
 #include "configuration.h"
 #include "application.h"
