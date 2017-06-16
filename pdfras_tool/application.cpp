@@ -25,7 +25,7 @@ void application::usage() {
 	cout << "usage: pdfras_tool arg1 [argN ...]" << endl;
 	cout << " -d          : print details about PDFraster file" << endl;
 	cout << " -i=<file>   : the PDFraster input file (required)" << endl;
-	cout << " -o=<file>   : extract PDFraster image to output file" << endl;
+	cout << " -o=<file>   : extract PDFraster image to output file (omit file extension)" << endl;
 	cout << " -p=<number> : page number (default is 1)" << endl;
 	ERR(CLI_ARGS_INVALID);
 }
@@ -157,18 +157,18 @@ void application::pdfr_parse_details() {
 	}
 
 	if (config.get_page() > page_count) {
-		LOG(err, "| -p=%d option greater than page count for filename=\"%s\"", config.get_page(), page_count, handle.ifile.get_name().c_str());
+		LOG(err, "| -p=%d option greater than pages=%d in filename=\"%s\"", config.get_page(), page_count, handle.ifile.get_name().c_str());
 		ERR(PDFRAS_READER_PAGE_OPTION_TOO_BIG);
 	}
 
-	page_pixel_format = pdfrasread_page_format(handle.get_reader(), config.get_page()-1);
+	page_pixel_format = pdfrasread_page_format(handle.get_reader(), config.get_page() - 1);
 	LOG(dbg, "| page_pixel_format = %d", page_pixel_format);
 	switch (page_pixel_format) {
 	case RASREAD_BITONAL: str = "bitonal"; break;	// 1-bit per pixel, 0=black
-	case RASREAD_GRAY8  : str = "gray8";   break;	// 8-bit per pixel, 0=black
-	case RASREAD_GRAY16 : str = "gray16" ; break;	// 16-bit per pixel, 0=black
-	case RASREAD_RGB24  : str = "rgb24"  ; break;	// 24-bit per pixel, sRGB
-	case RASREAD_RGB48  : str = "rgb48  "; break;	// 48-bit per pixel, sRGB
+	case RASREAD_GRAY8: str = "gray8";   break;	// 8-bit per pixel, 0=black
+	case RASREAD_GRAY16: str = "gray16"; break;	// 16-bit per pixel, 0=black
+	case RASREAD_RGB24: str = "rgb24"; break;	// 24-bit per pixel, sRGB
+	case RASREAD_RGB48: str = "rgb48  "; break;	// 48-bit per pixel, sRGB
 	default:
 		LOG(err, "| failed getting page_pixel_format for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_PIXEL_FORMAT_FAIL);
@@ -178,7 +178,7 @@ void application::pdfr_parse_details() {
 		cout << "page " << config.get_page() << " pixel format = " << str << endl;
 	}
 
-	page_bit_per_component = pdfrasread_page_bits_per_component(handle.get_reader(), config.get_page()-1);
+	page_bit_per_component = pdfrasread_page_bits_per_component(handle.get_reader(), config.get_page() - 1);
 	LOG(msg, "| page_bit_per_component = %d", page_bit_per_component);
 	switch (page_bit_per_component) {
 	case  1: break;
@@ -269,6 +269,82 @@ void application::pdfr_parse_details() {
 	LOG(dbg, "<");
 }
 
+enum tiff_ifd_type { ImageWidth, ImageLength, BitsPerSample, Compression, PhotometricInterpretation, StripOffsets, SamplesPerPixel, RowsPerStrip, StripByteCounts, XResolution, YResolution, ResolutionUnit };
+
+void application::write_tiff_header() {
+	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
+
+	tiff_offset = 0;
+	// TIFF little endian order, version number, offset to 1st IFD
+	char tiff_header[8] = { 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00 };
+	unsigned sz = sizeof(tiff_header);
+	unsigned wc = fwrite(tiff_header, 1, sz, handle.ofile.get_fp());
+	if (wc != sz) {
+		LOG(err, "| failed writing tiff header for wc=%u sz=%u filename=\"%s\"", wc, sz, handle.ofile.get_name().c_str());
+		ERR(FILE_WRITE_FAIL);
+	}
+	tiff_offset += sz;
+
+	ERR(FILE_WRITE_FAIL);
+
+	LOG(dbg, "<");
+}
+
+void application::write_image_header() {
+	LOG(dbg, ">");
+
+	string str = handle.ofile.get_name() + '.' + ((page_compression == RASREAD_JPEG) ? "jpg" : "tif");
+	handle.ofile.set_name(str.c_str());
+
+	LOG(dbg, "> opening for writing filename=\"%s\"", handle.ofile.get_name().c_str());
+	handle.ofile.open("wb");
+
+	if (page_compression != RASREAD_JPEG) {
+		write_tiff_header();
+	}
+
+	LOG(dbg, "<");
+}
+
+void application::write_image_trailer() {
+	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
+
+	handle.ofile.close();
+
+	LOG(dbg, "<");
+}
+
+void application::write_image_body() {
+	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
+
+	char *rawstrip = new char[page_max_strip_size];
+
+	for (int s = 0; s < page_strips; s++) {
+		size_t rcvd = pdfrasread_read_raw_strip(handle.get_reader(), config.get_page()-1, s, rawstrip, page_max_strip_size);
+
+		LOG(dbg, "| writing strip=%d size=%zu page=%d max_strip_size=%zu", s, rcvd, config.get_page(), page_max_strip_size);
+
+		size_t wrtc = fwrite(rawstrip, rcvd, 1, handle.ofile.get_fp());
+		if (wrtc != 1) {
+			LOG(err, "| failed writing strip=%d size=%zu page=%d max_strip_size=%zu filename=\"%s\"", s, rcvd, config.get_page(), page_max_strip_size, handle.ofile.get_name().c_str());
+			ERR(FILE_WRITE_FAIL);
+		}
+	}
+
+	delete[] rawstrip;
+	LOG(dbg, "<");
+}
+
+void application::pdfr_parse_image() {
+	LOG(dbg, "> extract_image=%s", B2PC(config.op.get_extract_image()));
+
+	write_image_header();
+	write_image_body();
+	write_image_trailer();
+
+	LOG(dbg, "<");
+}
+
 void application::run() {
 	LOG(dbg, "> page=%d", config.get_page());
 	LOG(dbg, "| test_pdfr=%s print_details=%s extract_image=%s", B2PC(config.op.get_test_pdfr()), B2PC(config.op.get_print_details()), B2PC(config.op.get_extract_image()));
@@ -282,9 +358,8 @@ void application::run() {
 
 	pdfr_open();
 	pdfr_parse_details();
-
 	if (config.op.get_extract_image()) {
-		handle.ofile.open("wb");
+		pdfr_parse_image();
 	}
 
 	pdfr_close();

@@ -16,7 +16,10 @@
 ///////////////////////////////////////////////////////////////////////
 // Internal Constants
 
-#define PDFRASREAD_VERSION "0.7.9.0"
+#define PDFRASREAD_VERSION "0.7.9.3"
+// 0.7.9.3  gus     2017.06.06  fix check for ICCprofiles ref same object in all strips
+// 0.7.9.2  gus     2017.04.20  fix check of image compression JPEG/G4 from /Filter array
+// 0.7.9.1  gus     2017.03.23  merge differences in some enums with pdfraster.[ch]
 // 0.7.9.0  spike   2016.09.23  look for PDF-raster marker in last TAILSIZE bytes
 // 0.7.8.0  spike   2016.09.23  handle PDF comments! (treat as whitespace)
 // 0.7.7.0  spike   2016.09.05  slighly improved & simplified dict & stream parsing.
@@ -72,12 +75,11 @@ typedef struct t_xref_entry {
 	char		eol[2];                     // either <space>LF or CR,LF
 } t_xref_entry;
 
-//typedef struct _ICCProfile ICCProfile;
-// Hmmm, above line refers to undefined struct _ICCProfile
-// So *ICCProfile is used as an opaque pointer
-// But when compiled as C++ code linker complains
-// so replaced it with line below
-typedef void ICCProfile;
+typedef struct {
+	pduint32 data_pos;
+	long data_len;
+	char *data_ptr;
+} ICCProfile;
 
 enum colorspace_style { CS_CALGRAY, CS_DEVICEGRAY, CS_CALRGB, CS_DEVICERGB, CS_ICCBASED };
 
@@ -88,7 +90,7 @@ typedef struct t_colorspace {
     double				blackPoint[3];
     double              gamma;              // Gamma exponent (all?)
     double              matrix[9];          // 3x3 matrix (CALRGB only)
-    ICCProfile*         piccProfile;        // pointer to ICC profile (ICCBASED only)
+    ICCProfile          iccProfile;         // ICC profile (ICCBASED only)
 } t_colorspace;
 
 // All the information about a single page and the image it contains
@@ -199,8 +201,11 @@ int colorspace_equal(t_colorspace c, t_colorspace d)
             return FALSE;
         }
     }
-    if (c.piccProfile != d.piccProfile) {
-        return FALSE;
+	if (c.iccProfile.data_pos != d.iccProfile.data_pos) {
+		return FALSE;
+	}
+	if (c.iccProfile.data_len != d.iccProfile.data_len) {
+		return FALSE;
     }
     return TRUE;
 }
@@ -1285,29 +1290,27 @@ static int parse_calrgb_dictionary(t_pdfrasreader* reader, t_colorspace* pcs, pd
 }
 
 // Parse an ICC Profile stream.
-// If successful, set *ppiccProfile to point to the loaded/decompressed profile,
+// If successful, set iccProfile->data_ptr to point to the loaded/decompressed profile,
 // advance *poff past the stream and return TRUE.
 // Otherwise, report an appropriate compliance error
 // and return FALSE leaving *poff unmoved.
-static int parse_icc_profile(t_pdfrasreader* reader, pduint32 *poff, ICCProfile** ppiccProfile)
+static int parse_icc_profile(t_pdfrasreader* reader, pduint32 *poff, ICCProfile *iccProfile)
 {
     pduint32 off = *poff;
-    *ppiccProfile = NULL;
-    pduint32 datapos;
-    long datalen;
-    if (!parse_stream(reader, &off, &datapos, &datalen)) {
+    iccProfile->data_ptr = NULL;
+    if (!parse_stream(reader, &off, &iccProfile->data_pos, &iccProfile->data_len)) {
         // compliance error already reported
         return FALSE;
     }
-    *ppiccProfile = (ICCProfile*)malloc((size_t)datalen);
-    if (!*ppiccProfile) {
+    iccProfile->data_ptr = (char *)malloc((size_t)iccProfile->data_len);
+    if (!iccProfile->data_ptr) {
         memory_error(reader, __LINE__);
         return FALSE;
     }
     // TODO: handle decompress/decrypt of Profile!
-    if (reader->fread(reader->source, datapos, datalen, (char*)*ppiccProfile) != datalen) {
+    if (reader->fread(reader->source, iccProfile->data_pos, iccProfile->data_len, iccProfile->data_ptr) != iccProfile->data_len) {
         io_error(reader, READ_ICCPROFILE_READ, __LINE__);
-        free(*ppiccProfile); *ppiccProfile = NULL;
+        free(iccProfile->data_ptr); iccProfile->data_ptr = NULL;
         return FALSE;
     }
     // TODO: validate that the data we read is actually an ICC Profile!
@@ -1355,11 +1358,11 @@ static int parse_color_space(t_pdfrasreader* reader, pduint32 *poff, t_colorspac
             pduint32 dict = *poff;
             // could be an indirect reference
             if (parse_indirect_reference(reader, poff, &dict)) {
-                if (!parse_icc_profile(reader, &dict, &pcs->piccProfile)) {
+                if (!parse_icc_profile(reader, &dict, &pcs->iccProfile)) {
                     return FALSE;
                 }
             }
-            else if (!parse_icc_profile(reader, poff, &pcs->piccProfile)) {
+            else if (!parse_icc_profile(reader, poff, &pcs->iccProfile)) {
                 return FALSE;
             }
         }
@@ -2425,7 +2428,7 @@ RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int
     return strip.compression;
 }
 
-const char* error_code_description(int code)
+static const char* error_code_description(int code)
 {
     switch (code) {
     case READ_OK:                   return "OK";

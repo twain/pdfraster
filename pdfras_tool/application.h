@@ -29,5 +29,14 @@ private:
 	void pdfr_lib_info();
 	void pdfr_open();
 	void pdfr_parse_details();
+	void pdfr_parse_image();
 	void pdfr_close();
+
+	unsigned tiff_offset;
+	unsigned tiff_image_size;
+	void write_tiff_header();
+
+	void write_image_header();
+	void write_image_body();
+	void write_image_trailer();
 };
