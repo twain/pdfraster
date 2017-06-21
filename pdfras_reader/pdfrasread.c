@@ -16,7 +16,8 @@
 ///////////////////////////////////////////////////////////////////////
 // Internal Constants
 
-#define PDFRASREAD_VERSION "0.7.9.3"
+#define PDFRASREAD_VERSION "0.7.9.4"
+// 0.7.9.4  gus     2017.06.16  if buffer NULL pdfrasread_read_raw_strip just returns strip len
 // 0.7.9.3  gus     2017.06.06  fix check for ICCprofiles ref same object in all strips
 // 0.7.9.2  gus     2017.04.20  fix check of image compression JPEG/G4 from /Filter array
 // 0.7.9.1  gus     2017.03.23  merge differences in some enums with pdfraster.[ch]
@@ -2411,6 +2412,9 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buf
         api_error(reader, READ_STRIP_BUFFER_SIZE, length);
         return 0;
     }
+	if (buffer == NULL) {
+		return length;
+	}
     if (reader->fread(reader->source, strip.data_pos, length, buffer) != length) {
         // read error, unable to read all of strip data
         io_error(reader, READ_STRIP_READ, s);

@@ -1,4 +1,4 @@
-// os_specific.h
+// pdfras_tool   os_specific.h
 
 #if defined(WIN32) || defined(WIN64) || defined (_WINDOWS)
 #  define COMPILING_FOR_WIN_MSVC

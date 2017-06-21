@@ -2,7 +2,8 @@
 
 #pragma once
 
-const char PROG_NAME[] = "pdfras_tool";
+const string app_version("0.1");
+const string app_name("pdfras_tool");
 
 class application {
 public:
@@ -31,12 +32,4 @@ private:
 	void pdfr_parse_details();
 	void pdfr_parse_image();
 	void pdfr_close();
-
-	unsigned tiff_offset;
-	unsigned tiff_image_size;
-	void write_tiff_header();
-
-	void write_image_header();
-	void write_image_body();
-	void write_image_trailer();
 };

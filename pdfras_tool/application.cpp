@@ -17,6 +17,8 @@
 #include "handles.h"
 #include "configuration.h"
 #include "application.h"
+#include "jpeg.h"
+#include "tiff.h"
 
 using std::cout;
 using std::endl;
@@ -269,78 +271,19 @@ void application::pdfr_parse_details() {
 	LOG(dbg, "<");
 }
 
-enum tiff_ifd_type { ImageWidth, ImageLength, BitsPerSample, Compression, PhotometricInterpretation, StripOffsets, SamplesPerPixel, RowsPerStrip, StripByteCounts, XResolution, YResolution, ResolutionUnit };
-
-void application::write_tiff_header() {
-	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
-
-	tiff_offset = 0;
-	// TIFF little endian order, version number, offset to 1st IFD
-	char tiff_header[8] = { 0x49, 0x49, 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00 };
-	unsigned sz = sizeof(tiff_header);
-	unsigned wc = fwrite(tiff_header, 1, sz, handle.ofile.get_fp());
-	if (wc != sz) {
-		LOG(err, "| failed writing tiff header for wc=%u sz=%u filename=\"%s\"", wc, sz, handle.ofile.get_name().c_str());
-		ERR(FILE_WRITE_FAIL);
-	}
-	tiff_offset += sz;
-
-	ERR(FILE_WRITE_FAIL);
-
-	LOG(dbg, "<");
-}
-
-void application::write_image_header() {
-	LOG(dbg, ">");
-
-	string str = handle.ofile.get_name() + '.' + ((page_compression == RASREAD_JPEG) ? "jpg" : "tif");
-	handle.ofile.set_name(str.c_str());
-
-	LOG(dbg, "> opening for writing filename=\"%s\"", handle.ofile.get_name().c_str());
-	handle.ofile.open("wb");
-
-	if (page_compression != RASREAD_JPEG) {
-		write_tiff_header();
-	}
-
-	LOG(dbg, "<");
-}
-
-void application::write_image_trailer() {
-	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
-
-	handle.ofile.close();
-
-	LOG(dbg, "<");
-}
-
-void application::write_image_body() {
-	LOG(dbg, "> filename=\"%s\"", handle.ofile.get_name().c_str());
-
-	char *rawstrip = new char[page_max_strip_size];
-
-	for (int s = 0; s < page_strips; s++) {
-		size_t rcvd = pdfrasread_read_raw_strip(handle.get_reader(), config.get_page()-1, s, rawstrip, page_max_strip_size);
-
-		LOG(dbg, "| writing strip=%d size=%zu page=%d max_strip_size=%zu", s, rcvd, config.get_page(), page_max_strip_size);
-
-		size_t wrtc = fwrite(rawstrip, rcvd, 1, handle.ofile.get_fp());
-		if (wrtc != 1) {
-			LOG(err, "| failed writing strip=%d size=%zu page=%d max_strip_size=%zu filename=\"%s\"", s, rcvd, config.get_page(), page_max_strip_size, handle.ofile.get_name().c_str());
-			ERR(FILE_WRITE_FAIL);
-		}
-	}
-
-	delete[] rawstrip;
-	LOG(dbg, "<");
-}
-
 void application::pdfr_parse_image() {
-	LOG(dbg, "> extract_image=%s", B2PC(config.op.get_extract_image()));
+	LOG(dbg, "> extract_image=\"%s\"", B2PC(config.op.get_extract_image()));
 
-	write_image_header();
-	write_image_body();
-	write_image_trailer();
+	if (page_compression == RASREAD_JPEG) {
+		jpeg jpg(handle.ofile.get_name());
+		jpg.write_body(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size);
+	}
+	else {
+		tiff tif(handle.ofile.get_name());
+		tif.write_header(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size, page_pixel_format);
+		tif.write_body(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size, page_pixel_format, page_xdpi, page_ydpi);
+		tif.write_trailer(page_pixel_format, page_width, page_height, page_compression, page_rotation);
+	}
 
 	LOG(dbg, "<");
 }

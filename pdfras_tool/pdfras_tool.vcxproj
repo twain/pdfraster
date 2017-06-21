@@ -160,14 +160,18 @@
     <ClInclude Include="configuration.h" />
     <ClInclude Include="error.h" />
     <ClInclude Include="journal.h" />
+    <ClInclude Include="jpeg.h" />
     <ClInclude Include="os_specific.h" />
+    <ClInclude Include="tiff.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="application.cpp" />
     <ClCompile Include="configuration.cpp" />
     <ClCompile Include="error.cpp" />
     <ClCompile Include="journal.cpp" />
+    <ClCompile Include="jpeg.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="tiff.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

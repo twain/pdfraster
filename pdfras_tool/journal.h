@@ -1,4 +1,4 @@
-// journal.h
+// pdfras_tool   journal.h
 
 #pragma once
 
