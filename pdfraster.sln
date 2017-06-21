@@ -149,7 +149,6 @@ Global
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Debug|x86.Build.0 = Debug|Win32
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|Any CPU.ActiveCfg = Release|Win32
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x64.ActiveCfg = Release|x64
-		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x64.Build.0 = Release|x64
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x86.ActiveCfg = Release|Win32
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
