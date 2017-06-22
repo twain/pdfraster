@@ -1,5 +1,27 @@
 // pdfras_tool  tiff.cpp
 
+///////////////////////////////////////////////////////////////////////////////////////
+//  Copyright (C) 2017 TWAIN Working Group
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a
+//  copy of this software and associated documentation files (the "Software"),
+//  to deal in the Software without restriction, including without limitation
+//  the rights to use, copy, modify, merge, publish, distribute, sublicense,
+//  and/or sell copies of the Software, and to permit persons to whom the
+//  Software is furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+//  THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+//  DEALINGS IN THE SOFTWARE.
+///////////////////////////////////////////////////////////////////////////////////////
+
 #include <string>
 #include <iostream>
 
@@ -67,10 +89,10 @@ void tiff::tiff_write_byte(int val) {
 	LOG(dbg, "> val=%d (0x%X)", val, val);
 	unsigned char buf[1];
 	tiff_byte_to_char_buf(val, buf);
-	unsigned sz = sizeof(buf);
-	unsigned wc = fwrite(buf, 1, sz, ofile.get_fp());
+	size_t sz = sizeof(buf);
+	size_t wc = fwrite(buf, 1, sz, ofile.get_fp());
 	if (wc != sz) {
-		LOG(err, "| failed writing tiff 1 byte wc=%u sz=%u filename=\"%s\"", wc, sz, ofile.get_name().c_str());
+		LOG(err, "| failed writing tiff 1 byte wc=%zu sz=%zu filename=\"%s\"", wc, sz, ofile.get_name().c_str());
 		ERR(FILE_WRITE_FAIL);
 	}
 	LOG(dbg, "<");
@@ -80,10 +102,10 @@ void tiff::tiff_write_short(int val) {
 	LOG(dbg, "> val=%d (0x%X)", val, val);
 	unsigned char buf[2];
 	tiff_short_to_char_buf(val, buf);
-	unsigned sz = sizeof(buf);
-	unsigned wc = fwrite(buf, 1, sz, ofile.get_fp());
+	size_t sz = sizeof(buf);
+	size_t wc = fwrite(buf, 1, sz, ofile.get_fp());
 	if (wc != sz) {
-		LOG(err, "| failed writing tiff 2 byte short wc=%u sz=%u filename=\"%s\"", wc, sz, ofile.get_name().c_str());
+		LOG(err, "| failed writing tiff 2 byte short wc=%zu sz=%zu filename=\"%s\"", wc, sz, ofile.get_name().c_str());
 		ERR(FILE_WRITE_FAIL);
 	}
 	LOG(dbg, "<");
@@ -93,10 +115,10 @@ void tiff::tiff_write_long(int val) {
 	LOG(dbg, "> val=%d (0x%X)", val, val);
 	unsigned char buf[4];
 	tiff_long_to_char_buf(val, buf);
-	unsigned sz = sizeof(buf);
-	unsigned wc = fwrite(buf, 1, sz, ofile.get_fp());
+	size_t sz = sizeof(buf);
+	size_t wc = fwrite(buf, 1, sz, ofile.get_fp());
 	if (wc != sz) {
-		LOG(err, "| failed writing tiff 4 byte long wc=%u sz=%u filename=\"%s\"", wc, sz, ofile.get_name().c_str());
+		LOG(err, "| failed writing tiff 4 byte long wc=%zu sz=%zu filename=\"%s\"", wc, sz, ofile.get_name().c_str());
 		ERR(FILE_WRITE_FAIL);
 	}
 	LOG(dbg, "<");
@@ -104,10 +126,10 @@ void tiff::tiff_write_long(int val) {
 
 void tiff::tiff_write_ascii(string str) {
 	LOG(dbg, "> str=\"%s\"", str.c_str());
-	unsigned sz = str.length();
-	unsigned wc = fwrite(str.c_str(), 1, sz, ofile.get_fp());
+	size_t sz = str.length();
+	size_t wc = fwrite(str.c_str(), 1, sz, ofile.get_fp());
 	if (wc != sz) {
-		LOG(err, "| failed writing tiff ascii wc=%u sz=%u filename=\"%s\"", wc, sz, ofile.get_name().c_str());
+		LOG(err, "| failed writing tiff ascii wc=%zu sz=%zu filename=\"%s\"", wc, sz, ofile.get_name().c_str());
 		ERR(FILE_WRITE_FAIL);
 	}
 	if ((str.length() + 1) & 1) {
@@ -154,7 +176,7 @@ void tiff::write_header(t_pdfrasreader* reader, int page, int strips, size_t max
 	LOG(dbg, "| tiff offset_image_data = %u", offset_image_data);
 
 	// calculate TIFF header variable part: byte offset to IFD = header + image_data + xres + yres + BPS + software + datetime;
-	tiff_offset += image_data_size; // size of image data
+	tiff_offset += (unsigned) image_data_size; // size of image data
 
 	offset_xresolution = tiff_offset;
 	LOG(dbg, "| tiff offset_xresolution = %u (0x%X)", offset_xresolution, offset_xresolution);
@@ -249,7 +271,7 @@ void tiff::write_dir_preamble(int tag, int type, int len) {
 
 void tiff::write_dir_entry_ascii(int tag, unsigned offset, string str) {
 	LOG(dbg, "> write tiff directory entry, ascii, tag=%d (0x%X)", tag, tag);
-	int len = str.length() + 1; // add trailing 0, don't include pad byte if any
+	int len = (int) str.length() + 1; // add trailing 0, don't include pad byte if any
 
 	write_dir_preamble(tag, TIFF_TYPE_ASCII, len);
 
