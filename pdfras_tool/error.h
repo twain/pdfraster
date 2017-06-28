@@ -28,10 +28,9 @@ static const int err_base = 0x1000;
 
 typedef enum {
 	OK = 0,
-	MIN_ERROR_CODE = err_base + 0,
 	CLI_ARGS_INVALID = err_base + 1,
 	FILE_NOT_READABLE = err_base + 2,
-	FILE_OPEN_FAIL = err_base + 3,
+	FILE_OPEN_APPEND_FAIL = err_base + 3,
 	PDFRAS_READER_CREATE_FAIL = err_base + 4,
 	FILE_NOT_PDF_RASTER = err_base + 5,
 	PDFRAS_READER_OPEN_FAIL = err_base + 6,
@@ -47,7 +46,8 @@ typedef enum {
 	PDFRAS_READER_PAGE_MAX_STRIP_SIZE_FAIL = err_base + 16,
 	PDFRAS_READER_PAGE_COMPRESSION_FAIL = err_base + 17,
 	FILE_WRITE_FAIL = err_base + 18,
-	MAX_ERROR_CODE = err_base + 19,
+	FILE_OPEN_READ_FAIL = err_base + 19,
+	FILE_OPEN_WRITE_FAIL = err_base + 20,
 } pdfrt_error_code;
 
 #define ERR(x) { \

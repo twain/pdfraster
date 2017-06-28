@@ -51,8 +51,18 @@ public:
 		LOG(dbg, "> file=\"%s\" mode=\"%s\"", name.c_str(), mode);
 		fp = fopen(name.c_str(), mode);
 		if (nullptr == fp) {
-			LOG(err, "| unable to fopen file \"%s\"", name.c_str());
-			ERR(FILE_OPEN_FAIL);
+			char *mode_desc = "";
+			switch (mode[0]) {
+			case 'a': mode_desc = "for appending"; break;
+			case 'r': mode_desc = "for reading"; break;
+			case 'w': mode_desc = "for writing"; break;
+			}
+			LOG(err, "| unable to fopen \"%s\" %s", name.c_str(), mode_desc);
+			switch (mode[0]) {
+			case 'a': ERR(FILE_OPEN_APPEND_FAIL); break;
+			case 'r': ERR(FILE_OPEN_READ_FAIL); break;
+			case 'w': ERR(FILE_OPEN_WRITE_FAIL); break;
+			}
 		}
 		LOG(dbg, "<");
 	}

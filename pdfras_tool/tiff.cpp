@@ -46,7 +46,8 @@ tiff::tiff(string filename)
 	LOG(dbg, ">");
 
 	string ext(".tif");
-	bool no_ext = filename.substr(filename.length() - ext.length(), ext.length()) != ext;
+	bool no_ext = filename.length() < ext.length() 
+		|| (filename.substr(filename.length() - ext.length(), ext.length()) != ext);
 	ofile.set_name((filename + (no_ext ? ext : "")).c_str());
 
 	LOG(dbg, "> opening for writing TIFF filename=\"%s\"", ofile.get_name().c_str());
