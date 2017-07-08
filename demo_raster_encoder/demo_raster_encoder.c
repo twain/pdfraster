@@ -343,6 +343,38 @@ void write_gray8_uncomp_page(t_pdfrasencoder* enc)
 	pdfr_encoder_end_page(enc);
 }
 
+void write_gray8_uncomp_multistrip_page(t_pdfrasencoder* enc)
+{
+	int stripheight = 4;
+	pduint8* data = (pduint8*)_imdata;
+	size_t stripsize = 8 * stripheight;
+
+	// 8-bit grayscale, uncompressed, 4" x 5.5" at 2.0 DPI
+	pdfr_encoder_set_resolution(enc, 2.0, 2.0);
+	pdfr_encoder_set_rotation(enc, 90);
+	// start a new page:
+	pdfr_encoder_start_page(enc, 8);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_GRAY8);
+	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
+	// write 2 strips of 4 rows high raster data to the current page
+	for (int r = 0; r < 2; ++r) {
+		pdfr_encoder_write_strip(enc, stripheight, data, stripsize);
+		data += stripsize;
+	}
+	// write 1 strip of 3 rows high raster data to the current page
+	stripheight = 3;
+	stripsize = 8 * stripheight;
+	pdfr_encoder_write_strip(enc, stripheight, data, stripsize);
+	data += stripsize;
+
+	if (pdfr_encoder_get_page_height(enc) != 11) {
+		fprintf(stderr, "wrong page height at end of write_gray8_uncomp_multistrip_page");
+		exit(1);
+	}
+	// the page is done
+	pdfr_encoder_end_page(enc);
+}
+
 int write_gray8_uncompressed_file(t_OS os, const char *filename)
 {
 	FILE *fp = fopen(filename, "wb");
@@ -366,8 +398,35 @@ int write_gray8_uncompressed_file(t_OS os, const char *filename)
 	// clean up
 	fclose(fp);
 	pdfr_encoder_destroy(enc);
-    printf("  %s\n", filename);
-    return 0;
+	printf("  %s\n", filename);
+	return 0;
+}
+
+int write_gray8_uncompressed_multistrip_file(t_OS os, const char *filename)
+{
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "GRAY8 Uncompressed multi-strip sample output");
+
+	pdfr_encoder_write_page_xmp(enc, XMP_metadata);
+
+	write_gray8_uncomp_multistrip_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
 }
 
 void write_gray8_jpeg_page(t_pdfrasencoder* enc)
@@ -674,6 +733,9 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 8);
 	write_bitonal_uncomp_multistrip_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 9);
+	write_gray8_uncomp_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
@@ -756,7 +818,9 @@ int main(int argc, char** argv)
 
     write_bitonal_ccitt_file(os, "sample bitonal uncal.pdf", 1);
 
-    write_gray8_uncompressed_file(os, "sample gray8 uncompressed.pdf");
+	write_gray8_uncompressed_file(os, "sample gray8 uncompressed.pdf");
+
+	write_gray8_uncompressed_multistrip_file(os, "sample gray8 uncompressed multistrip.pdf");
 
 	write_gray8_jpeg_file(os, "sample gray8 jpeg.pdf");
 

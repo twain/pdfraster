@@ -280,7 +280,7 @@ void application::pdfr_parse_details() {
 	case RASREAD_COMPRESSION_NULL:
 	case RASREAD_UNCOMPRESSED: str = "uncompressed"; break;
 	case RASREAD_JPEG: str = "JPEG";   break;
-	case RASREAD_CCITTG4: str = "CCIT Group 4 Facsimile"; break;
+	case RASREAD_CCITTG4: str = "CCITT Group 4 Facsimile"; break;
 	default:
 		LOG(err, "| failed getting page_compression for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_COMPRESSION_FAIL);
