@@ -212,8 +212,31 @@ void write_bitonal_uncomp_page(t_pdfrasencoder* enc)
 	pdfr_encoder_end_page(enc);
 }
 
-int write_bitonal_uncompressed_file(t_OS os, const char *filename)
+// write 8.5 x 11 bitonal page 100 DPI with a light dotted grid
+// multi-strip, rotate 90 degrees for viewing
+void write_bitonal_uncomp_multistrip_page(t_pdfrasencoder* enc)
+{
+	int stripheight = 100;
+	pduint8* data = (pduint8*)bitonalData;
+	size_t stripsize = (850+7)/8 * stripheight;
 
+	pdfr_encoder_set_resolution(enc, 100.0, 100.0);
+	pdfr_encoder_set_rotation(enc, 90);
+	pdfr_encoder_start_page(enc, 850);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_BITONAL);
+	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
+	for (int r = 0; r < 1100; r += stripheight) {
+		pdfr_encoder_write_strip(enc, stripheight, data, stripsize);
+		data += stripsize;
+	}
+	if (pdfr_encoder_get_page_height(enc) != 1100) {
+		fprintf(stderr, "wrong page height at end of write_bitonal_uncomp_multistrip_page");
+		exit(1);
+	}
+	pdfr_encoder_end_page(enc);
+}
+
+int write_bitonal_uncompressed_file(t_OS os, const char *filename)
 {
 	FILE *fp = fopen(filename, "wb");
 	if (fp == 0) {
@@ -237,6 +260,32 @@ int write_bitonal_uncompressed_file(t_OS os, const char *filename)
 	pdfr_encoder_destroy(enc);
     printf("  %s\n", filename);
     return 0;
+}
+
+int write_bitonal_uncompressed_multistrip_file(t_OS os, const char *filename)
+{
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	// Construct a raster PDF encoder
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "BW 1-bit Uncompressed multi-strip sample output");
+
+	write_bitonal_uncomp_multistrip_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
 }
 
 void write_bitonal_ccitt_page(t_pdfrasencoder* enc)
@@ -383,10 +432,11 @@ void write_rgb48_uncomp_page(t_pdfrasencoder* enc)
 {
 	// 48-bit RGB!
 	pdfr_encoder_set_resolution(enc, 10.0, 10.0);
+	pdfr_encoder_set_rotation(enc, 270);
 	pdfr_encoder_start_page(enc, 85);
 	pdfr_encoder_set_pixelformat(enc, PDFRAS_RGB48);
 	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
-	pdfr_encoder_set_physical_page_number(enc, 7);			// physical page 7
+	pdfr_encoder_set_physical_page_number(enc, 1);			// physical page 1
 															// write a strip of raster data to the current page
 	pdfr_encoder_write_strip(enc, 110, (const pduint8*)deepColorData, sizeof deepColorData);
 	pdfr_encoder_end_page(enc);
@@ -421,6 +471,7 @@ int write_gray16_uncompressed_file(t_OS os, const char *filename)
 int write_rgb48_uncompressed_file(t_OS os, const char *filename)
 {
 	// Write a file: 8.5" x 11" at 10.0 DPI, uncompressed 48-bit color
+	// single strip, rotate for display by 270 degrees
 	FILE *fp = fopen(filename, "wb");
 	if (fp == 0) {
 		fprintf(stderr, "unable to open %s for writing\n", filename);
@@ -617,6 +668,12 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 6);
 	write_rgb24_uncomp_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 7);
+	write_rgb48_uncomp_page(enc);
+
+	pdfr_encoder_set_physical_page_number(enc, 8);
+	write_bitonal_uncomp_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
@@ -692,6 +749,8 @@ int main(int argc, char** argv)
 	write_0page_file(os, "sample empty.pdf");
 
 	write_bitonal_uncompressed_file(os, "sample bw1 uncompressed.pdf");
+
+	write_bitonal_uncompressed_multistrip_file(os, "sample bw1 uncompressed multistrip.pdf");
 
 	write_bitonal_ccitt_file(os, "sample bw1 ccitt.pdf", 0);
 
