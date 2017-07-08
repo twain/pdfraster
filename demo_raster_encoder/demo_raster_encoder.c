@@ -526,6 +526,31 @@ void write_rgb48_uncomp_page(t_pdfrasencoder* enc)
 	pdfr_encoder_end_page(enc);
 }
 
+void write_rgb48_uncomp_multistrip_page(t_pdfrasencoder* enc)
+{
+	int stripheight = 10;
+	pduint8* data = (pduint8*)deepColorData;
+	size_t stripsize = 85 * 2 * 3 * stripheight;
+
+	// 48-bit RGB!
+	pdfr_encoder_set_resolution(enc, 10.0, 10.0);
+	pdfr_encoder_set_rotation(enc, 90);
+	pdfr_encoder_start_page(enc, 85);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_RGB48);
+	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
+	pdfr_encoder_set_physical_page_number(enc, 1);			// physical page 1
+	// write 11 strips of 10 rows high raster data to the current page
+	for (int r = 0; r < 110; r += stripheight) {
+		pdfr_encoder_write_strip(enc, stripheight, data, stripsize);
+		data += stripsize;
+	}
+	if (pdfr_encoder_get_page_height(enc) != 110) {
+		fprintf(stderr, "wrong page height at end of write_rgb48_uncomp_multistrip_page");
+		exit(1);
+	}
+	pdfr_encoder_end_page(enc);
+}
+
 int write_gray16_uncompressed_file(t_OS os, const char *filename)
 {
 	// Write a file: 4" x 5.5" at 2.0 DPI, uncompressed 16-bit grayscale
@@ -595,6 +620,33 @@ int write_rgb48_uncompressed_file(t_OS os, const char *filename)
 	pdfr_encoder_set_subject(enc, "RGB48 Uncompressed sample output");
 
 	write_rgb48_uncomp_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
+}
+
+int write_rgb48_uncompressed_multistrip_file(t_OS os, const char *filename)
+{
+	// Write a file: 8.5" x 11" at 10.0 DPI, uncompressed 48-bit color
+	// multi-strip, rotate for display by 90 degrees
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "RGB48 Uncompressed multi-strip sample output");
+
+	write_rgb48_uncomp_multistrip_page(enc);
 
 	// the document is complete
 	pdfr_encoder_end_document(enc);
@@ -790,6 +842,9 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 10);
 	write_gray16_uncomp_multistrip_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 11);
+	write_rgb48_uncomp_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
@@ -891,6 +946,8 @@ int main(int argc, char** argv)
 	write_rgb24_jpeg_multistrip_file(os, "sample rgb24 jpeg multistrip.pdf");
 
 	write_rgb48_uncompressed_file(os, "sample rgb48 uncompressed.pdf");
+
+	write_rgb48_uncompressed_multistrip_file(os, "sample rgb48 uncompressed multistrip.pdf");
 
 	write_allformat_multipage_file(os, "sample all formats.pdf");
 
