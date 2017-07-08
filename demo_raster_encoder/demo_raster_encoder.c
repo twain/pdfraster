@@ -56,6 +56,9 @@ static pduint8 _imdata[] = {
 // slightly larger gray16 image:
 static pduint16 deepGrayData[64 * 512];
 
+// 48-bit RGB image data
+static struct { pduint16 R, G, B; } deepColorData[85 * 110];
+
 static pduint8 bitonalData[((850 + 7) / 8) * 1100];
 
 // 24-bit RGB image data
@@ -137,6 +140,30 @@ void generate_image_data()
 		pduint8* pb = (pduint8*)(deepGrayData + i);
 		pb[0] = value / 256;
 		pb[1] = value % 256;
+	}
+	// generate 48-bit RGB data
+	// 85 columns, 110 rows
+	memset(deepColorData, 0, sizeof(deepColorData));
+	for (int y = 0; y < 110; y++) {
+		int sv = (65535 / 110) * y;
+		pduint16 v = (pduint16)(((sv << 8)&0xFF00) | ((sv >> 8) & 0xFF));
+		for (int x = 0; x < 85; x++) {
+			int i = y * 85 + x;
+			if (x < (85 / 4)) {
+				deepColorData[i].R = v;
+			}
+			else if (x < (85 / 4) * 2) {
+				deepColorData[i].G = v;
+			}
+			else if (x < (85 / 4) * 3) {
+				deepColorData[i].B = v;
+			}
+			else {
+				deepColorData[i].R = v;
+				deepColorData[i].G = v;
+				deepColorData[i].B = v;
+			}
+		}
 	}
 
 	// generate RGB data
@@ -347,14 +374,27 @@ void write_gray16_uncomp_page(t_pdfrasencoder* enc)
 	pdfr_encoder_set_pixelformat(enc, PDFRAS_GRAY16);
 	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
 	pdfr_encoder_set_physical_page_number(enc, 2);			// physical page 2
-	// write a strip of raster data to the current page
+															// write a strip of raster data to the current page
 	pdfr_encoder_write_strip(enc, 512, (const pduint8*)deepGrayData, sizeof deepGrayData);
+	pdfr_encoder_end_page(enc);
+}
+
+void write_rgb48_uncomp_page(t_pdfrasencoder* enc)
+{
+	// 48-bit RGB!
+	pdfr_encoder_set_resolution(enc, 10.0, 10.0);
+	pdfr_encoder_start_page(enc, 85);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_RGB48);
+	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
+	pdfr_encoder_set_physical_page_number(enc, 7);			// physical page 7
+															// write a strip of raster data to the current page
+	pdfr_encoder_write_strip(enc, 110, (const pduint8*)deepColorData, sizeof deepColorData);
 	pdfr_encoder_end_page(enc);
 }
 
 int write_gray16_uncompressed_file(t_OS os, const char *filename)
 {
-	// Write a file: 4" x 5.5" at 2.0 DPI, uncompressed 8-bit grayscale
+	// Write a file: 4" x 5.5" at 2.0 DPI, uncompressed 16-bit grayscale
 	FILE *fp = fopen(filename, "wb");
 	if (fp == 0) {
 		fprintf(stderr, "unable to open %s for writing\n", filename);
@@ -374,8 +414,34 @@ int write_gray16_uncompressed_file(t_OS os, const char *filename)
 	// clean up
 	fclose(fp);
 	pdfr_encoder_destroy(enc);
-    printf("  %s\n", filename);
-    return 0;
+	printf("  %s\n", filename);
+	return 0;
+}
+
+int write_rgb48_uncompressed_file(t_OS os, const char *filename)
+{
+	// Write a file: 8.5" x 11" at 10.0 DPI, uncompressed 48-bit color
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "RGB48 Uncompressed sample output");
+
+	write_rgb48_uncomp_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
 }
 
 void write_rgb24_uncomp_page(t_pdfrasencoder* enc)
@@ -644,6 +710,8 @@ int main(int argc, char** argv)
 	write_rgb24_jpeg_file(os, "sample rgb24 jpeg.pdf");
 
 	write_rgb24_jpeg_multistrip_file(os, "sample rgb24 jpeg multistrip.pdf");
+
+	write_rgb48_uncompressed_file(os, "sample rgb48 uncompressed.pdf");
 
 	write_allformat_multipage_file(os, "sample all formats.pdf");
 
