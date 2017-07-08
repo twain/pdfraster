@@ -487,6 +487,31 @@ void write_gray16_uncomp_page(t_pdfrasencoder* enc)
 	pdfr_encoder_end_page(enc);
 }
 
+void write_gray16_uncomp_multistrip_page(t_pdfrasencoder* enc)
+{
+	int stripheight = 32;
+	pduint8* data = (pduint8*)deepGrayData;
+	size_t stripsize = 64 * 2 * stripheight;
+
+	// 16-bit grayscale!
+	pdfr_encoder_set_resolution(enc, 16.0, 128.0);
+	pdfr_encoder_set_rotation(enc, 90);
+	pdfr_encoder_start_page(enc, 64);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_GRAY16);
+	pdfr_encoder_set_compression(enc, PDFRAS_UNCOMPRESSED);
+	pdfr_encoder_set_physical_page_number(enc, 2);			// physical page 2
+	// write 16 strips of 32 rows high raster data to the current page
+	for (int r = 0; r < 512; r+=stripheight) {
+		pdfr_encoder_write_strip(enc, stripheight, data, stripsize);
+		data += stripsize;
+	}
+	if (pdfr_encoder_get_page_height(enc) != 512) {
+		fprintf(stderr, "wrong page height at end of write_gray16_uncomp_multistrip_page");
+		exit(1);
+	}
+	pdfr_encoder_end_page(enc);
+}
+
 void write_rgb48_uncomp_page(t_pdfrasencoder* enc)
 {
 	// 48-bit RGB!
@@ -517,6 +542,32 @@ int write_gray16_uncompressed_file(t_OS os, const char *filename)
 	pdfr_encoder_set_subject(enc, "GRAY16 Uncompressed sample output");
 
 	write_gray16_uncomp_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
+}
+
+int write_gray16_uncompressed_multistrip_file(t_OS os, const char *filename)
+{
+	// Write a file: 4" x 5.5" at 2.0 DPI, uncompressed 16-bit multi-strip grayscale
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "GRAY16 Uncompressed multi-strip output");
+
+	write_gray16_uncomp_multistrip_page(enc);
 
 	// the document is complete
 	pdfr_encoder_end_document(enc);
@@ -736,6 +787,9 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 9);
 	write_gray8_uncomp_multistrip_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 10);
+	write_gray16_uncomp_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
@@ -825,6 +879,8 @@ int main(int argc, char** argv)
 	write_gray8_jpeg_file(os, "sample gray8 jpeg.pdf");
 
 	write_gray16_uncompressed_file(os, "sample gray16 uncompressed.pdf");
+
+	write_gray16_uncompressed_multistrip_file(os, "sample gray16 uncompressed multistrip.pdf");
 
 	write_rgb24_uncompressed_file(os, "sample rgb24 uncompressed.pdf");
 
