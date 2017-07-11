@@ -330,6 +330,50 @@ int write_bitonal_ccitt_file(t_OS os, const char *filename, int uncal)
     return 0;
 }
 
+void write_bitonal_ccitt_multistrip_page(t_pdfrasencoder* enc)
+{
+	// Next page: CCITT-compressed B&W 300 DPI US Letter (scanned)
+	pdfr_encoder_set_resolution(enc, 300.0, 300.0);
+	pdfr_encoder_set_rotation(enc, 270);
+	pdfr_encoder_start_page(enc, 2521);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_BITONAL);
+	pdfr_encoder_set_compression(enc, PDFRAS_CCITTG4);
+	pdfr_encoder_write_strip(enc, 1000, bw1_ccitt_2521x1000_0_bin, sizeof bw1_ccitt_2521x1000_0_bin);
+	pdfr_encoder_write_strip(enc, 1000, bw1_ccitt_2521x1000_1_bin, sizeof bw1_ccitt_2521x1000_1_bin);
+	pdfr_encoder_write_strip(enc, 1000, bw1_ccitt_2521x1000_2_bin, sizeof bw1_ccitt_2521x1000_2_bin);
+	pdfr_encoder_write_strip(enc,  279, bw1_ccitt_2521x0279_3_bin, sizeof bw1_ccitt_2521x0279_3_bin);
+	pdfr_encoder_end_page(enc);
+}
+
+int write_bitonal_ccitt_multistrip_file(t_OS os, const char *filename, int uncal)
+{
+	// Write a file: CCITT-compressed B&W 300 DPI US Letter (scanned) multistrip
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_author(enc, "Willy Codewell");
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_keywords(enc, "raster bitonal CCITT");
+	pdfr_encoder_set_subject(enc, "BW 1-bit CCITT-G4 compressed multistrip sample output");
+	pdfr_encoder_set_bitonal_uncalibrated(enc, uncal);
+
+	write_bitonal_ccitt_multistrip_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
+}
+
 void write_gray8_uncomp_page(t_pdfrasencoder* enc)
 {
 	// 8-bit grayscale, uncompressed, 4" x 5.5" at 2.0 DPI
@@ -950,6 +994,9 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 13);
 	write_gray8_jpeg_multistrip_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 14);
+	write_bitonal_ccitt_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
@@ -981,6 +1028,8 @@ int main(int argc, char** argv)
 	write_bitonal_ccitt_file(os, "sample bw1 ccitt.pdf", 0);
 
     write_bitonal_ccitt_file(os, "sample bitonal uncal.pdf", 1);
+
+	write_bitonal_ccitt_multistrip_file(os, "sample bw1 ccitt multistrip.pdf", 0);
 
 	write_gray8_uncompressed_file(os, "sample gray8 uncompressed.pdf");
 
