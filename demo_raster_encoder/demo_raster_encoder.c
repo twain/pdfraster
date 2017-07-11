@@ -15,6 +15,8 @@
 #include "color_strip1.h"
 #include "color_strip2.h"
 #include "color_strip3.h"
+#include "gray8_page_strip.h"
+#include "bw1_ccitt_strip_data.h"
 
 #define OUTPUT_FILENAME "raster.pdf"
 
@@ -789,6 +791,103 @@ int write_rgb24_jpeg_file(t_OS os, const char *filename)
     return 0;
 }
 
+void write_gray8_jpeg_multistrip_page(t_pdfrasencoder* enc)
+{
+	pdfr_encoder_set_resolution(enc, 100.0, 100.0);
+	pdfr_encoder_set_rotation(enc, 90);
+	pdfr_encoder_start_page(enc, 850);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_GRAY8);
+	pdfr_encoder_set_compression(enc, PDFRAS_JPEG);
+	// write image as 6 separately compressed strips.
+	// yeah, brute force.
+	pdfr_encoder_write_strip(enc, 200, gray8_page_850x200_0_jpg, sizeof gray8_page_850x200_0_jpg);
+	pdfr_encoder_write_strip(enc, 200, gray8_page_850x200_1_jpg, sizeof gray8_page_850x200_1_jpg);
+	pdfr_encoder_write_strip(enc, 200, gray8_page_850x200_2_jpg, sizeof gray8_page_850x200_2_jpg);
+	pdfr_encoder_write_strip(enc, 200, gray8_page_850x200_3_jpg, sizeof gray8_page_850x200_3_jpg);
+	pdfr_encoder_write_strip(enc, 200, gray8_page_850x200_4_jpg, sizeof gray8_page_850x200_4_jpg);
+	pdfr_encoder_write_strip(enc, 100, gray8_page_850x100_5_jpg, sizeof gray8_page_850x100_5_jpg);
+
+	if (pdfr_encoder_get_page_height(enc) != 1100) {
+		fprintf(stderr, "wrong page height at end of write_gray8_jpeg_multistrip_page");
+		exit(1);
+	}
+	pdfr_encoder_end_page(enc);
+}
+
+int write_gray8_jpeg_multistrip_file(t_OS os, const char* filename)
+{
+	// Write a file: 8-bit Gray 8.5x11" page in six JPEG strips
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "Gray8 JPEG multi-strip sample output");
+
+	write_gray8_jpeg_multistrip_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
+}
+
+void write_rgb24_jpeg_multistrip_page(t_pdfrasencoder* enc)
+{
+	pdfr_encoder_set_resolution(enc, 100.0, 100.0);
+	pdfr_encoder_set_rotation(enc, 0);
+	pdfr_encoder_start_page(enc, 850);
+	pdfr_encoder_set_pixelformat(enc, PDFRAS_RGB24);
+	pdfr_encoder_set_compression(enc, PDFRAS_JPEG);
+	// write image as 4 separately compressed strips.
+	// yeah, brute force.
+	pdfr_encoder_write_strip(enc, 275, color_strip0_jpg, sizeof color_strip0_jpg);
+	pdfr_encoder_write_strip(enc, 275, color_strip1_jpg, sizeof color_strip1_jpg);
+	pdfr_encoder_write_strip(enc, 275, color_strip2_jpg, sizeof color_strip2_jpg);
+	pdfr_encoder_write_strip(enc, 275, color_strip3_jpg, sizeof color_strip3_jpg);
+	// All the same height, but that's in no way required.
+
+	if (pdfr_encoder_get_page_height(enc) != 1100) {
+		fprintf(stderr, "wrong page height at end of write_rgb24_jpeg_multistrip_page");
+		exit(1);
+	}
+	pdfr_encoder_end_page(enc);
+}
+
+int write_rgb24_jpeg_multistrip_file(t_OS os, const char* filename)
+{
+	// Write a file: 24-bit RGB color 8.5x11" page in four JPEG strips
+	FILE *fp = fopen(filename, "wb");
+	if (fp == 0) {
+		fprintf(stderr, "unable to open %s for writing\n", filename);
+		return 1;
+	}
+	os.writeoutcookie = fp;
+	os.allocsys = pd_alloc_new_pool(&os);
+
+	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
+	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+	pdfr_encoder_set_subject(enc, "RGB24 JPEG multi-strip sample output");
+
+	write_rgb24_jpeg_multistrip_page(enc);
+
+	// the document is complete
+	pdfr_encoder_end_document(enc);
+	// clean up
+	fclose(fp);
+	pdfr_encoder_destroy(enc);
+	printf("  %s\n", filename);
+	return 0;
+}
+
 int write_allformat_multipage_file(t_OS os, const char *filename)
 {
 	// Write a multipage file containing all the supported pixel formats
@@ -845,65 +944,21 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	pdfr_encoder_set_physical_page_number(enc, 11);
 	write_rgb48_uncomp_multistrip_page(enc);
 
-	// the document is complete
-	pdfr_encoder_end_document(enc);
-	// clean up
-	fclose(fp);
-	pdfr_encoder_destroy(enc);
-
-    printf("  %s\n", filename);
-    return 0;
-}
-
-void write_rgb24_jpeg_multistrip_page(t_pdfrasencoder* enc)
-{
-
-	pdfr_encoder_set_resolution(enc, 100.0, 100.0);
-	pdfr_encoder_set_rotation(enc, 0);
-	pdfr_encoder_start_page(enc, 850);
-	pdfr_encoder_set_pixelformat(enc, PDFRAS_RGB24);
-	pdfr_encoder_set_compression(enc, PDFRAS_JPEG);
-	// write image as 4 separately compressed strips.
-	// yeah, brute force.
-	pdfr_encoder_write_strip(enc, 275, color_strip0_jpg, sizeof color_strip0_jpg);
-	pdfr_encoder_write_strip(enc, 275, color_strip1_jpg, sizeof color_strip1_jpg);
-	pdfr_encoder_write_strip(enc, 275, color_strip2_jpg, sizeof color_strip2_jpg);
-	pdfr_encoder_write_strip(enc, 275, color_strip3_jpg, sizeof color_strip3_jpg);
-	// All the same height, but that's in no way required.
-
-	if (pdfr_encoder_get_page_height(enc) != 1100) {
-		fprintf(stderr, "wrong page height at end of write_rgb24_jpeg_multistrip_page");
-		exit(1);
-	}
-	pdfr_encoder_end_page(enc);
-}
-
-int write_rgb24_jpeg_multistrip_file(t_OS os, const char* filename)
-{
-	// Write a file: 24-bit RGB color 8.5x11" page in three JPEG strips
-	FILE *fp = fopen(filename, "wb");
-	if (fp == 0) {
-		fprintf(stderr, "unable to open %s for writing\n", filename);
-		return 1;
-	}
-	os.writeoutcookie = fp;
-	os.allocsys = pd_alloc_new_pool(&os);
-
-	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
-	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
-	pdfr_encoder_set_subject(enc, "RGB24 JPEG multi-strip sample output");
-
+	pdfr_encoder_set_physical_page_number(enc, 12);
 	write_rgb24_jpeg_multistrip_page(enc);
 
+	pdfr_encoder_set_physical_page_number(enc, 13);
+	write_gray8_jpeg_multistrip_page(enc);
+
 	// the document is complete
 	pdfr_encoder_end_document(enc);
 	// clean up
 	fclose(fp);
 	pdfr_encoder_destroy(enc);
+
     printf("  %s\n", filename);
     return 0;
 }
-
 
 int main(int argc, char** argv)
 {
@@ -932,6 +987,8 @@ int main(int argc, char** argv)
 	write_gray8_uncompressed_multistrip_file(os, "sample gray8 uncompressed multistrip.pdf");
 
 	write_gray8_jpeg_file(os, "sample gray8 jpeg.pdf");
+
+	write_gray8_jpeg_multistrip_file(os, "sample gray8 jpeg multistrip.pdf");
 
 	write_gray16_uncompressed_file(os, "sample gray16 uncompressed.pdf");
 
