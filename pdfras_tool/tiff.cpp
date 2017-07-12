@@ -142,9 +142,9 @@ void tiff::tiff_write_ascii(string str) {
 	LOG(dbg, "<");
 }
 
-void tiff::write_header(t_pdfrasreader* reader, int page, int strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format)
+void tiff::write_header(t_pdfrasreader* reader, int page, int start_strip, int num_strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format)
 {
-	LOG(dbg, "> page=%d strips=%d max_strip_size=%zu filename=\"%s\"", page, strips, max_strip_size, ofile.get_name().c_str());
+	LOG(dbg, "> page=%d start_strip=%d num_strips=%d max_strip_size=%zu filename=\"%s\"", page, start_strip, num_strips, max_strip_size, ofile.get_name().c_str());
 	unsigned tiff_offset = 0;
 
 	// write TIFF header fixed part: byte order
@@ -160,10 +160,11 @@ void tiff::write_header(t_pdfrasreader* reader, int page, int strips, size_t max
 
 	// calculate image data size
 	size_t image_data_size = 0;
-	for (int s = 0; s < strips; s++) {
-		size_t rcvd = pdfrasread_read_raw_strip(reader, page - 1, s, NULL, max_strip_size);
+	for (int s = 0; s < num_strips; s++) {
+		int strip = start_strip + s;
+		size_t rcvd = pdfrasread_read_raw_strip(reader, page - 1, strip, NULL, max_strip_size);
 		image_data_size += rcvd;
-		LOG(dbg, "| strip=%d rcvd=%d image_data_size=%zu", s, rcvd, image_data_size);
+		LOG(dbg, "| strip=%d rcvd=%d image_data_size=%zu", strip, rcvd, image_data_size);
 	}
 
 	// TIFF standard says image data size must be even number
@@ -215,20 +216,21 @@ void tiff::write_header(t_pdfrasreader* reader, int page, int strips, size_t max
 	LOG(dbg, "<");
 }
 
-void tiff::write_body(t_pdfrasreader* reader, int page, int strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format, double xdpi, double ydpi)
+void tiff::write_body(t_pdfrasreader* reader, int page, int start_strip, int num_strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format, double xdpi, double ydpi)
 {
 	LOG(dbg, "> filename=\"%s\"", ofile.get_name().c_str());
 
 	char *rawstrip = new char[max_strip_size];
 
-	for (int s = 0; s < strips; s++) {
-		size_t rcvd = pdfrasread_read_raw_strip(reader, page - 1, s, rawstrip, max_strip_size);
+	for (int s = 0; s < num_strips; s++) {
+		int strip = start_strip + s;
+		size_t rcvd = pdfrasread_read_raw_strip(reader, page - 1, strip, rawstrip, max_strip_size);
 
-		LOG(dbg, "| writing strip=%d size=%zu page=%d max_strip_size=%zu", s, rcvd, page, max_strip_size);
+		LOG(dbg, "| writing strip=%d size=%zu page=%d max_strip_size=%zu", strip, rcvd, page, max_strip_size);
 
 		size_t wrtc = fwrite(rawstrip, rcvd, 1, ofile.get_fp());
 		if (wrtc != 1) {
-			LOG(err, "| failed writing strip=%d size=%zu page=%d max_strip_size=%zu filename=\"%s\"", s, rcvd, page, max_strip_size, ofile.get_name().c_str());
+			LOG(err, "| failed writing strip=%d size=%zu page=%d max_strip_size=%zu filename=\"%s\"", strip, rcvd, page, max_strip_size, ofile.get_name().c_str());
 			ERR(FILE_WRITE_FAIL);
 		}
 	}
@@ -320,10 +322,10 @@ void tiff::write_dir_entry_long(int tag, int val, int len) {
 }
 
 //  write the IFD and DEs
-void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int length, RasterReaderCompression cmprs, int rotation)
+void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int length, long raw_size, RasterReaderCompression cmprs, int rotation)
 {
 	LOG(dbg, ">");
-	
+
 	int num_de = TIFF_TAG_NUM_COLOR;
 	// if ((pixel_format != RASREAD_RGB24) && (pixel_format != RASREAD_RGB48)) {
 	//	num_de -= 1; //gray and bitonal don't use TIFF_TAG_SAMPLESPERPIXEL
@@ -345,7 +347,7 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 	write_dir_entry_long(TIFF_TAG_IMAGELENGTH, length);
 
 	int bps_len;
-    unsigned bps_val;
+	unsigned bps_val;
 	if (pixel_format == RASREAD_BITONAL) {
 		bps_len = 1;
 		bps_val = 1;
@@ -362,11 +364,11 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 		bps_len = 3;
 		bps_val = offset_bits_per_sample;
 	}
-	LOG(dbg, "| write tiff BitsPerSample Directory Entry len=%d val=%u(0x%X)",bps_len, bps_val);
+	LOG(dbg, "| write tiff BitsPerSample Directory Entry len=%d val=%u(0x%X)", bps_len, bps_val);
 	write_dir_entry_short(TIFF_TAG_BITSPERSAMPLE, bps_val, bps_len);
 
 	int tiff_cmprs = (cmprs == RASREAD_CCITTG4) ? TIFF_COMPRESSION_CCITT_G4_FAX : TIFF_COMPRESSION_UNCOMPRESSED;
-	LOG(dbg, "| write tiff Compression Directory Entry %d",tiff_cmprs);
+	LOG(dbg, "| write tiff Compression Directory Entry %d", tiff_cmprs);
 	write_dir_entry_short(TIFF_TAG_COMPRESSION, tiff_cmprs);
 
 	int pmi_val;
@@ -377,7 +379,7 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 		pmi_val = TIFF_PHOTOMETRICINTERPRETATION_WHITEISZERO;
 	}
 	else
-		{
+	{
 		pmi_val = TIFF_PHOTOMETRICINTERPRETATION_BLACKISZERO;
 	}
 	LOG(dbg, "| write tiff PhotometricInterpretation Directory Entry %d", pmi_val);
@@ -392,7 +394,8 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 		rot += 360;
 	if (rot < (45 + 0)) {
 		orientation = 1;
-	} else if (rot < (45 + 90)) {
+	}
+	else if (rot < (45 + 90)) {
 		orientation = 6;
 	}
 	else if (rot < (45 + 180)) {
@@ -421,24 +424,29 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 	write_dir_entry_long(TIFF_TAG_ROWSPERSTRIP, length);
 
 	unsigned sbc_val;
-	switch(pixel_format) {
-	case RASREAD_BITONAL:
-		sbc_val = length * ((width + 7) / 8);
-		break;
-	case RASREAD_GRAY8:
-		sbc_val = length * width;
-		break;
-	case RASREAD_GRAY16:
-		sbc_val = length * width * 2;
-		break;
-	case RASREAD_RGB24:
-		sbc_val = length * width * 3;
-		break;
-	case RASREAD_RGB48:
-		sbc_val = length * width * 3 * 2;
-		break;
+	if (raw_size > 0) {
+		sbc_val = (unsigned) raw_size;
 	}
-	LOG(dbg, "| write tiff StripByteCounts Directory Entry %u 0x%X", sbc_val, sbc_val);
+	else {
+		switch (pixel_format) {
+		case RASREAD_BITONAL:
+			sbc_val = length * ((width + 7) / 8);
+			break;
+		case RASREAD_GRAY8:
+			sbc_val = length * width;
+			break;
+		case RASREAD_GRAY16:
+			sbc_val = length * width * 2;
+			break;
+		case RASREAD_RGB24:
+			sbc_val = length * width * 3;
+			break;
+		case RASREAD_RGB48:
+			sbc_val = length * width * 3 * 2;
+			break;
+		}
+	}
+	LOG(dbg, "| write tiff StripByteCounts Directory Entry %ld 0x%X", sbc_val, sbc_val);
 	write_dir_entry_long(TIFF_TAG_STRIPBYTECOUNTS, sbc_val);
 
 	LOG(dbg, "| write tiff XResolution Directory Entry");

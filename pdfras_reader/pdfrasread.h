@@ -194,6 +194,12 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buf
 // Return the compression format of strip s on page p
 RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);
 
+// Return the height of strip s on page p
+unsigned long pdfrasread_strip_height(t_pdfrasreader* reader, int p, int s);
+
+// Return the raw size of strip s on page p
+long pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s);
+
 // detailed error codes
 // TODO: assign hard codes to all, so they can't change accidentally
 // and so people can look 'em up.

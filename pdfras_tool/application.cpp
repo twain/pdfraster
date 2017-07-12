@@ -185,6 +185,26 @@ void application::pdfr_parse_details() {
 		ERR(PDFRAS_READER_PAGE_OPTION_TOO_BIG);
 	}
 
+	page_strips = pdfrasread_strip_count(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
+	LOG(msg, "| page_strips = %d", page_strips);
+	if (page_strips <= 0) {
+		LOG(err, "| failed getting page strip count for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
+		ERR(PDFRAS_READER_PAGE_STRIP_COUNT_FAIL);
+	}
+	if (config.op.get_print_details()) {
+		cout << "page " << config.get_page() << " strip count = " << page_strips << endl;
+	}
+
+	page_max_strip_size = pdfrasread_max_strip_size(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
+	LOG(msg, "| page_max_strip_size = %zu", page_max_strip_size);
+	if (page_max_strip_size == 0) {
+		LOG(err, "| failed getting maximum page strip size for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
+		ERR(PDFRAS_READER_PAGE_MAX_STRIP_SIZE_FAIL);
+	}
+	if (config.op.get_print_details()) {
+		cout << "page " << config.get_page() << " maximum (raw) strip size = " << page_max_strip_size << endl;
+	}
+
 	page_pixel_format = pdfrasread_page_format(handle.get_reader(), config.get_page() - 1);
 	LOG(dbg, "| page_pixel_format = %d", page_pixel_format);
 	switch (page_pixel_format) {
@@ -226,8 +246,18 @@ void application::pdfr_parse_details() {
 		cout << "page " << config.get_page() << " width (pixels) = " << page_width << endl;
 	}
 
-	page_height = pdfrasread_page_height(handle.get_reader(), config.get_page() - 1);
-	LOG(msg, "| page_width = %d", page_height);
+	int s;
+	page_height = 0;
+	for (s = 0; s < page_strips; ++s) {
+		unsigned long ph = pdfrasread_strip_height(handle.get_reader(), config.get_page() - 1, s);
+		LOG(dbg, "| height of strip %d = %d", s, ph);
+		if (ph == 0) {
+			page_height = 0;
+			break;
+		}
+		page_height += ph;
+	}
+	LOG(msg, "| page_height = %d", page_height);
 	if (page_height <= 0) {
 		LOG(err, "| failed getting page height for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
 		ERR(PDFRAS_READER_PAGE_HEIGHT_FAIL);
@@ -254,26 +284,6 @@ void application::pdfr_parse_details() {
 		cout << "page " << config.get_page() << " vertical resolution (DPI) = " << page_ydpi << endl;
 	}
 
-	page_strips = pdfrasread_strip_count(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
-	LOG(msg, "| page_strips = %d", page_strips);
-	if (page_strips <= 0) {
-		LOG(err, "| failed getting page strip count for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
-		ERR(PDFRAS_READER_PAGE_STRIP_COUNT_FAIL);
-	}
-	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " strip count = " << page_strips << endl;
-	}
-
-	page_max_strip_size = pdfrasread_max_strip_size(handle.get_reader(), config.get_page() - 1); // doc says call with page number but it's wrong
-	LOG(msg, "| page_max_strip_size = %zu", page_max_strip_size);
-	if (page_max_strip_size == 0) {
-		LOG(err, "| failed getting maximum page strip size for filename=\"%s\" page=%d", handle.ifile.get_name().c_str(), config.get_page());
-		ERR(PDFRAS_READER_PAGE_MAX_STRIP_SIZE_FAIL);
-	}
-	if (config.op.get_print_details()) {
-		cout << "page " << config.get_page() << " maximum (raw) strip size = " << page_max_strip_size << endl;
-	}
-
 	page_compression = pdfrasread_strip_compression(handle.get_reader(), config.get_page() - 1, 0); // doc says call with page number but it's wrong
 	LOG(dbg, "| page_compression = %d", page_compression);
 	switch (page_compression) {
@@ -297,14 +307,40 @@ void application::pdfr_parse_image() {
 	LOG(dbg, "> extract_image=\"%s\"", B2PC(config.op.get_extract_image()));
 
 	if (page_compression == RASREAD_JPEG) {
-		jpeg jpg(handle.ofile.get_name());
-		jpg.write_body(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size);
+		if (page_strips != 1) {
+			for (int s = 0; s < page_strips; ++s) {
+				string ofn = handle.ofile.get_name() + "-strip" + std::to_string(s);
+				jpeg jpg(ofn);
+				jpg.write_body(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size);
+			}
+		}
+		else {
+			jpeg jpg(handle.ofile.get_name());
+			jpg.write_body(handle.get_reader(), config.get_page(), 0, page_strips, page_max_strip_size);
+		}
 	}
 	else {
-		tiff tif(handle.ofile.get_name());
-		tif.write_header(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size, page_pixel_format);
-		tif.write_body(handle.get_reader(), config.get_page(), page_strips, page_max_strip_size, page_pixel_format, page_xdpi, page_ydpi);
-		tif.write_trailer(page_pixel_format, page_width, page_height, page_compression, page_rotation);
+		if ((page_compression == RASREAD_CCITTG4) && (page_strips != 1)) {
+			for (int s = 0; s < page_strips; ++s) {
+				string ofn = handle.ofile.get_name() + "-strip" + std::to_string(s);
+				tiff tif(ofn);
+				tif.write_header(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size, page_pixel_format);
+				tif.write_body(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size, page_pixel_format, page_xdpi, page_ydpi);
+				unsigned long strip_height = pdfrasread_strip_height(handle.get_reader(), config.get_page() - 1, s);
+				long raw_size = pdfrasread_strip_raw_size(handle.get_reader(), config.get_page() - 1, s);
+				tif.write_trailer(page_pixel_format, page_width, (int)strip_height, raw_size, page_compression, page_rotation);
+			}
+		}
+		else {
+			tiff tif(handle.ofile.get_name());
+			tif.write_header(handle.get_reader(), config.get_page(), 0, page_strips, page_max_strip_size, page_pixel_format);
+			tif.write_body(handle.get_reader(), config.get_page(), 0, page_strips, page_max_strip_size, page_pixel_format, page_xdpi, page_ydpi);
+			long raw_size = 0;
+			if (page_compression == RASREAD_CCITTG4) {
+				raw_size = pdfrasread_strip_raw_size(handle.get_reader(), config.get_page() - 1, 0);
+			}
+			tif.write_trailer(page_pixel_format, page_width, page_height, raw_size, page_compression, page_rotation);
+		}
 	}
 
 	LOG(dbg, "<");

@@ -24,7 +24,7 @@
 
 #pragma once
 
-const string app_version("0.1");
+const string app_version("1.0");
 const string app_name("pdfras_tool");
 
 class application {

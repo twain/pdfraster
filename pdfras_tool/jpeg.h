@@ -28,7 +28,7 @@ class jpeg {
 public:
 	jpeg(string filename);
 	~jpeg();
-	void write_body(t_pdfrasreader*reader, int page, int strips, size_t max_strip_size);
+	void write_body(t_pdfrasreader*reader, int page, int start_strip, int num_strips, size_t max_strip_size);
 private:
 	file ofile;
 };

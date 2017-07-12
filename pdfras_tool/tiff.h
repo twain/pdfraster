@@ -65,9 +65,9 @@ class tiff {
 public:
 	tiff(string filename);
 	~tiff();
-	void write_header(t_pdfrasreader* reader, int page, int strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format);
-	void write_body(t_pdfrasreader*reader, int page, int strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format, double xdpi, double ydpi);
-	void write_trailer(RasterReaderPixelFormat pixel_format, int width, int length, RasterReaderCompression cmprs, int rotation);
+	void write_header(t_pdfrasreader* reader, int page, int start_strip, int num_strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format);
+	void write_body(t_pdfrasreader*reader, int page, int start_strip, int num_strips, size_t max_strip_size, RasterReaderPixelFormat pixel_format, double xdpi, double ydpi);
+	void write_trailer(RasterReaderPixelFormat pixel_format, int width, int length, long raw_size, RasterReaderCompression cmprs, int rotation);
 private:
 	file ofile;
 	bool image_data_size_odd;

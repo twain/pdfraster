@@ -16,7 +16,10 @@
 ///////////////////////////////////////////////////////////////////////
 // Internal Constants
 
-#define PDFRASREAD_VERSION "0.7.9.4"
+#define PDFRASREAD_VERSION "0.7.9.5"
+
+// 0.7.9.5  gus     2017.07.11  added pdfrasread_strip_height() - use for multistrip pages
+//                              added pdfrasread_strip_raw_size() - use for compressed strips
 // 0.7.9.4  gus     2017.06.16  if buffer NULL pdfrasread_read_raw_strip just returns strip len
 // 0.7.9.3  gus     2017.06.06  fix check for ICCprofiles ref same object in all strips
 // 0.7.9.2  gus     2017.04.20  fix check of image compression JPEG/G4 from /Filter array
@@ -2425,11 +2428,29 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buf
 
 RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s)
 {
-    t_pdfstripinfo strip;
-    if (!get_strip_info(reader, p, s, &strip)) {
-        return RASREAD_COMPRESSION_NULL;
-    }
-    return strip.compression;
+	t_pdfstripinfo strip;
+	if (!get_strip_info(reader, p, s, &strip)) {
+		return RASREAD_COMPRESSION_NULL;
+	}
+	return strip.compression;
+}
+
+unsigned long pdfrasread_strip_height(t_pdfrasreader* reader, int p, int s)
+{
+	t_pdfstripinfo strip;
+	if (!get_strip_info(reader, p, s, &strip)) {
+		return 0;
+	}
+	return strip.height;
+}
+
+long pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s)
+{
+	t_pdfstripinfo strip;
+	if (!get_strip_info(reader, p, s, &strip)) {
+		return 0;
+	}
+	return strip.raw_size;
 }
 
 static const char* error_code_description(int code)
