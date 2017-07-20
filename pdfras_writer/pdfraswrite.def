@@ -1,0 +1,262 @@
+LIBRARY							pdfras_writer
+EXPORTS
+
+	pdfr_encoder_create				@1
+	pdfr_encoder_set_creator			@2
+	pdfr_encoder_set_author				@3
+	pdfr_encoder_set_title				@4
+	pdfr_encoder_set_subject			@5
+	pdfr_encoder_set_keywords			@6
+	pdfr_encoder_get_creation_date			@7
+	pdfr_encoder_write_page_xmp			@8
+	pdfr_encoder_write_document_xmp			@9
+	pdfr_encoder_set_rotation			@10
+	pdfr_encoder_set_resolution			@11
+	pdfr_encoder_set_pixelformat			@12
+	pdfr_encoder_set_compression			@13
+	pdfr_encoder_set_bitonal_uncalibrated		@14
+	pdfr_encoder_define_rgb_icc_colorspace		@15
+	pdfr_encoder_define_calrgb_colorspace		@16
+	pdfr_encoder_start_page				@17
+	pdfr_encoder_set_physical_page_number		@18
+	pdfr_encoder_set_page_front			@19
+	pdfr_encoder_write_strip			@20
+	pdfr_encoder_get_page_height			@21
+	pdfr_encoder_end_page				@22
+	pdfr_encoder_page_count				@23
+	pdfr_encoder_end_document			@24
+	pdfr_encoder_bytes_written			@25
+	pdfr_encoder_destroy				@26
+
+	pd_outstream_new				@100
+	pd_outstream_free				@101
+	pd_outstream_set_encrypter			@102
+	pd_outstream_get_encrypter			@103
+	pd_putc						@104
+	pd_puts						@105
+	pd_puthex					@106
+	pd_putn						@107
+	pd_putint					@108
+	pd_putfloat					@109
+	pd_outstream_pos				@110
+	pd_write_value					@111
+	pd_write_reference_declaration			@112
+	pd_write_pdf_header				@113
+	pd_write_endofdocument				@114
+	pd_outstream_set_event_handler			@115
+	pd_outstream_fire_event				@116
+
+	pd_alloc_new_pool				@200
+	pd_free						@201
+	pd_get_block_count				@202
+	pd_get_bytes_in_use				@203
+	pd_get_block_size				@204
+	pd_pool_clean					@205
+	__pd_alloc					@206
+	pd_get_pool					@207
+	__pd_free					@208
+	pd_alloc_free_pool				@209
+
+	pd_string_new					@300
+	pd_string_new_binary				@301
+	pd_string_free					@302
+	pd_string_length				@303
+	pd_string_set_length				@304
+	pd_string_data					@305
+	pdstring_char_at				@306
+	pd_string_set					@307
+	pd_string_is_binary				@308
+	pd_string_equal					@310
+	pd_string_compare				@311
+	pd_string_foreach				@312
+
+	pdnullvalue					@400
+	pderrvalue					@401
+	pdatomvalue					@402
+	pdintvalue					@403
+	pdboolvalue					@404
+	pdfloatvalue					@405
+	pdarrayvalue					@406
+	pdstringvalue					@407
+	pdcstrvalue					@408
+	pd_value_eq					@409
+	pd_value_free					@410
+
+	pd_datasink_new					@500
+	pd_datasink_free				@501
+	pd_datasink_put					@502
+
+	pd_dict_new					@600
+	pd_dict_free					@601
+	pd_dict_contains				@602
+	pd_dict_get					@603
+	pd_dict_put					@604
+	pd_dict_is_stream				@605
+	pd_dict_count					@606
+	pd_dict_foreach					@607
+	__pd_dict_capacity				@608
+	stream_new					@609
+	stream_free					@610
+	stream_write_data				@611
+
+	pdstrlen					@700
+	pditoa						@701
+
+	pd_array_new					@800
+	pd_array_free					@801
+	pd_array_destroy				@802
+	pd_array_count					@803
+	pd_array_capacity				@804
+	pd_array_get					@805
+	pd_array_set					@806
+	pd_array_insert					@807
+	pd_array_add					@808
+	pd_array_remove					@809
+	pd_array_foreach				@810
+	pd_array_build					@811
+	pd_array_buildints				@812
+	pd_array_buildfloats				@813
+
+	pd_atom_name					@900
+	pd_atom_intern					@901
+	pd_atom_table_new				@902
+	pd_atom_table_free				@903
+	pd_atom_table_count				@904
+
+	pd_reference_object_number			@1000
+	pd_reference_is_written				@1001
+	pd_reference_mark_written			@1002
+	pd_reference_get_value				@1003
+	pd_reference_resolve				@1004
+	pd_reference_get_position			@1005
+	pd_reference_set_position			@1006
+	pd_xref_new					@1007
+	pd_xref_free					@1008
+	pd_xref_makereference				@1009
+	pd_xref_create_forward_reference		@1010
+	pd_xref_size					@1011
+	pd_xref_writeallpendingreferences		@1012
+	pd_xref_writetable				@1013
+
+	pd_contents_gen_new				@1100
+	pd_contents_gen_free				@1101
+	pd_contents_generate				@1102
+	pd_gen_moveto					@1103
+	pd_gen_lineto					@1104
+	pd_gen_closepath				@1105
+	pd_gen_stroke					@1106
+	pd_gen_fill					@1107
+	pd_gen_gsave					@1108
+	pd_gen_grestore					@1109
+	pd_gen_concatmatrix				@1110
+	pd_gen_xobject					@1111
+
+	pd_strdup					@1200
+	pd_strcpy					@1201
+	pd_strcmp					@1202
+
+	pd_make_calgray_colorspace			@1300
+	pd_make_calrgb_colorspace			@1301
+	pd_make_srgb_colorspace				@1302
+	pd_make_iccbased_rgb_colorspace			@1303
+	pd_image_new					@1304
+	pd_image_new_simple				@1305
+
+	pd_hashatomtovalue_new				@1400
+	pd_hashatomtovalue_free				@1401
+	pd_hashatomtovalue_count			@1402
+	pd_hashatomtovalue_put				@1403
+	pd_hashatomtovalue_get				@1404
+	pd_hashatomtovalue_contains			@1405
+	pd_hashatomtovalue_foreach			@1406
+	__pd_hashatomtovalue_capacity			@1407
+
+	pd_catalog_new					@1500
+	pd_info_new					@1501
+	pd_trailer_new					@1502
+	pd_generate_file_id				@1503
+	pd_page_new_simple				@1504
+	pd_catalog_add_page				@1505
+	pd_contents_new					@1506
+	pd_page_add_image				@1507
+	pd_format_time					@1508
+	pd_format_xmp_time				@1509
+	pd_make_now_string				@1510
+	pd_make_time_string				@1511
+	pd_metadata_new					@1512
+
+	__ATOM_UNDEFINED_ATOM				@1600
+	__ATOM_Type					@1601
+	__ATOM_Pages					@1602
+	__ATOM_Size					@1603
+	__ATOM_Root					@1604
+	__ATOM_Info					@1605
+	__ATOM_ID					@1606
+	__ATOM_Catalog					@1607
+	__ATOM_Parent					@1608
+	__ATOM_Kids					@1609
+	__ATOM_Count					@1610
+	__ATOM_Page					@1611
+	__ATOM_Resources				@1612
+	__ATOM_MediaBox					@1613
+	__ATOM_CropBox					@1614
+	__ATOM_Contents					@1615
+	__ATOM_Rotate					@1616
+	__ATOM_Length					@1617
+	__ATOM_Filter					@1618
+	__ATOM_DecodeParms				@1619
+	__ATOM_Subtype					@1620
+	__ATOM_Width					@1621
+	__ATOM_Height					@1622
+	__ATOM_BitsPerComponent				@1623
+	__ATOM_ColorSpace				@1624
+	__ATOM_Image					@1625
+	__ATOM_XObject					@1626
+	__ATOM_Title					@1627
+	__ATOM_Subject					@1628
+	__ATOM_Author					@1629
+	__ATOM_Keywords					@1630
+	__ATOM_Creator					@1631
+	__ATOM_Producer					@1632
+	__ATOM_None					@1633
+	__ATOM_FlateDecode				@1634
+	__ATOM_CCITTFaxDecode				@1635
+	__ATOM_DCTDecode				@1636
+	__ATOM_JBIG2Decode				@1637
+	__ATOM_JPXDecode				@1638
+	__ATOM_K					@1639
+	__ATOM_Columns					@1640
+	__ATOM_Rows					@1641
+	__ATOM_BlackIs1					@1642
+	__ATOM_DeviceGray				@1643
+	__ATOM_DeviceRGB				@1644
+	__ATOM_DeviceCMYK				@1645
+	__ATOM_Indexed					@1646
+	__ATOM_ICCBased					@1647
+	__ATOM_PieceInfo				@1648
+	__ATOM_LastModified				@1649
+	__ATOM_Private					@1650
+	__ATOM_PDFRaster				@1651
+	__ATOM_PhysicalPageNumber			@1652
+	__ATOM_FrontSide				@1653
+	__ATOM_CreationDate				@1654
+	__ATOM_ModDate					@1655
+	__ATOM_Metadata					@1656
+	__ATOM_XML					@1657
+	__ATOM_CalGray					@1658
+	__ATOM_BlackPoint				@1659
+	__ATOM_WhitePoint				@1660
+	__ATOM_Gamma					@1661
+	__ATOM_N					@1662
+	__ATOM_ASCIIHexDecode				@1663
+	__ATOM_CalRGB					@1664
+	__ATOM_Matrix					@1665
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,37 @@
+LIBRARY							pdfras_reader
+EXPORTS
+
+	pdfrasread_create				@1
+	pdfrasread_destroy				@2
+	pdfrasread_lib_version				@3
+	pdfrasread_set_global_error_handler		@4
+	pdfrasread_get_global_error_handler		@5
+	pdfrasread_set_error_handler			@6
+	pdfrasread_default_error_handler		@7
+	pdfrasread_get_highest_pdfr_version		@8
+	pdfrasread_open					@9
+	pdfrasread_recognize_source			@10
+	pdfrasread_is_open				@11
+	pdfrasread_source				@12
+	pdfrasread_close				@13
+	pdfrasread_page_count				@14
+	pdfrasread_page_format				@15
+	pdfrasread_page_bits_per_component		@16
+	pdfrasread_page_width				@17
+	pdfrasread_page_height				@18
+	pdfrasread_page_horizontal_dpi			@19
+	pdfrasread_page_vertical_dpi			@20
+	pdfrasread_page_rotation			@21
+	pdfrasread_strip_count				@22
+	pdfrasread_max_strip_size			@23
+	pdfrasread_read_raw_strip			@24
+	pdfrasread_strip_compression			@25
+	pdfrasread_strip_height				@26
+	pdfrasread_strip_raw_size			@27
+
+	pdfrasread_recognize_file			@28
+	pdfrasread_recognize_filename			@29
+	pdfrasread_page_count_file			@30
+	pdfrasread_page_count_filename			@31
+	pdfrasread_open_file				@32
+	pdfrasread_open_filename			@33
