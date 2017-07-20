@@ -31,3 +31,4 @@ reader_test/reader_test
 demo_raster_encoder/*.pdf
 *.VC.db
 *.ipch
+*.vs
