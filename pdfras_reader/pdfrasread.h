@@ -67,18 +67,21 @@ typedef int(*pdfras_err_handler)(t_pdfrasreader* reader, int level, int code, pd
 
 // Create a PDF/raster reader in the closed state.
 // Return NULL if a reader can't be constructed - typically that can only be a malloc failure.
-t_pdfrasreader* pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fsizer sizefn, pdfras_fcloser closefn);
+t_pdfrasreader* PDFRASAPICALL pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fsizer sizefn, pdfras_fcloser closefn);
+typedef t_pdfrasreader* (PDFRASAPICALL *pfn_pdfrasread_create)(int apiLevel, pdfras_freader readfn, pdfras_fsizer sizefn, pdfras_fcloser closefn);
 
 // Destroy the reader and release all associated resources.
 // If open, closes it (and calls the closefn (and ignores any error)).
-void pdfrasread_destroy(t_pdfrasreader* reader);
+void PDFRASAPICALL pdfrasread_destroy(t_pdfrasreader* reader);
+typedef void (PDFRASAPICALL *pfn_pdfrasread_destroy)(t_pdfrasreader* reader);
 
 // Return the version of this library, as a string
 // of the form a.b.c.d (config)
 // where a.b.c.d is a conventional 4-field version number,
 // and config is the word DEBUG or RELEASE, possibly followed by
 // some kind of platform description like WIN32/x86
-const char* pdfrasread_lib_version(void);
+const char* PDFRASAPICALL pdfrasread_lib_version(void);
+typedef const char* (PDFRASAPICALL *pfn_pdfrasread_lib_version)(void);
 
 // Set the global error handler for this library.
 // There is just one shared global error handler for each instance of the library.
@@ -90,11 +93,13 @@ const char* pdfrasread_lib_version(void);
 // If an error is associated with a valid t_pdfrasread* reader, that reader
 // will be passed to the handler, otherwise NULL is passed.
 // See pdfrasread_set_error_handler to override error handling for individual readers.
-void pdfrasread_set_global_error_handler(pdfras_err_handler errhandler);
+void PDFRASAPICALL pdfrasread_set_global_error_handler(pdfras_err_handler errhandler);
+typedef void (PDFRASAPICALL *pfn_pdfrasread_set_global_error_handler)(pdfras_err_handler errhandler);
 
 // Return the current global error handler for this library.
 // Cannot fail and always returns a valid function pointer, never NULL.
-pdfras_err_handler pdfrasread_get_global_error_handler(void);
+pdfras_err_handler PDFRASAPICALL pdfrasread_get_global_error_handler(void);
+typedef pdfras_err_handler (PDFRASAPICALL *pfn_pdfrasread_get_global_error_handler)(void);
 
 // Attach an error-handler to a PDF/raster reader.
 // Note the first parameter is a t_pdfrasreader*, not a void* source like the readfn and closefn.
@@ -102,17 +107,20 @@ pdfras_err_handler pdfrasread_get_global_error_handler(void);
 // Passing errhandler = NULL is valid, and restores the default error handler.
 //
 // The handler SHOULD RETURN 0 even though the return value is currently ignored.
-void pdfrasread_set_error_handler(t_pdfrasreader* reader, pdfras_err_handler errhandler);
+void PDFRASAPICALL pdfrasread_set_error_handler(t_pdfrasreader* reader, pdfras_err_handler errhandler);
+typedef void (PDFRASAPICALL *pfn_pdfrasread_set_error_handler)(t_pdfrasreader* reader, pdfras_err_handler errhandler);
 
 // The default error-handler, used if you do not specify another handler.
 // It prints to stderr a somewhat descriptive 1-line message that starts with 
-int pdfrasread_default_error_handler(t_pdfrasreader* reader, int level, int code, pdfpos_t offset);
+int PDFRASAPICALL pdfrasread_default_error_handler(t_pdfrasreader* reader, int level, int code, pdfpos_t offset);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_default_error_handler)(t_pdfrasreader* reader, int level, int code, pdfpos_t offset);
 
 // Set *pmajor and *pminor to the highest PDF/raster version this library supports/understands.
 // Note: The library will refuse to process a file with a higher major version.
 // Note: The library will try to read any file with an equal or lower major version.
 //       (but it will call the error handler with a warning.)
-void pdfrasread_get_highest_pdfr_version(t_pdfrasreader* reader, int* pmajor, int* pminor);
+void PDFRASAPICALL pdfrasread_get_highest_pdfr_version(t_pdfrasreader* reader, int* pmajor, int* pminor);
+typedef void (PDFRASAPICALL *pfn_pdfrasread_get_highest_pdfr_version)(t_pdfrasreader* reader, int* pmajor, int* pminor);
 
 // Open a PDF/raster source for reading.
 // If successful, records the source, sets the state to open and returns TRUE.
@@ -121,7 +129,8 @@ void pdfrasread_get_highest_pdfr_version(t_pdfrasreader* reader, int* pmajor, in
 // It also fails if the source does not pass initial parsing/tests for PDF/raster.
 // No assumptions are made about the source parameter, it is only stored,
 // and passed to the readfn and closefn of the reader.
-int pdfrasread_open(t_pdfrasreader* reader, void* source);
+int PDFRASAPICALL pdfrasread_open(t_pdfrasreader* reader, void* source);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_open)(t_pdfrasreader* reader, void* source);
 
 // Check if a source passes a quick validation as a PDF/raster stream.
 // Returns TRUE if the source looks like something this library can parse.
@@ -134,74 +143,92 @@ int pdfrasread_open(t_pdfrasreader* reader, void* source);
 // Otherwise, *pmajor and *pminor are set to -1.
 // NOTE: Returns TRUE if the major version is acceptable, EVEN IF
 // the specific m.n is above what this library is compiled for.
-int pdfrasread_recognize_source(t_pdfrasreader* reader, void* source, int* pmajor, int* pminor);
+int PDFRASAPICALL pdfrasread_recognize_source(t_pdfrasreader* reader, void* source, int* pmajor, int* pminor);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_recognize_source)(t_pdfrasreader* reader, void* source, int* pmajor, int* pminor);
 
 // Return TRUE if reader has a PDF/raster stream open,
 // return FALSE otherwise.
-int pdfrasread_is_open(t_pdfrasreader* reader);
+int PDFRASAPICALL pdfrasread_is_open(t_pdfrasreader* reader);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_is_open)(t_pdfrasreader* reader);
 
 // Return the source parameter of the last successful open of this reader.
 // Returns NULL if reader is NULL or it has never been open.
 // To tell if reader is currently open use pdfrasread_is_open, not this.
-void* pdfrasread_source(t_pdfrasreader* reader);
+void* PDFRASAPICALL pdfrasread_source(t_pdfrasreader* reader);
+typedef void* (PDFRASAPICALL *pfn_pdfrasread_source)(t_pdfrasreader* reader);
 
 // Move a reader to the closed state and 'close' the associated source.
 // If reader is not open, does nothing and returns TRUE.
 // Otherwise, calls the closefn provided when the reader was created.
 // After this call succeeds, pdfrasread_is_open(reader) will return FALSE.
-int pdfrasread_close(t_pdfrasreader* reader);
+int PDFRASAPICALL pdfrasread_close(t_pdfrasreader* reader);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_close)(t_pdfrasreader* reader);
 
 // Return the number of pages in the associated PDF/raster file.
 // Only valid if reader is valid (was returned by pdfrasread_create and
 // not subsequently destroyed) and is open.
 // -1 in case of error.
-int pdfrasread_page_count(t_pdfrasreader* reader);
+int PDFRASAPICALL pdfrasread_page_count(t_pdfrasreader* reader);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_count)(t_pdfrasreader* reader);
 
 // Return the pixel format of the raster image of page n (indexed from 0)
 // Similar restrictions as pdfrasread_page_count.
-RasterReaderPixelFormat pdfrasread_page_format(t_pdfrasreader* reader, int n);
+RasterReaderPixelFormat PDFRASAPICALL pdfrasread_page_format(t_pdfrasreader* reader, int n);
+typedef RasterReaderPixelFormat (PDFRASAPICALL *pfn_pdfrasread_page_format)(t_pdfrasreader* reader, int n);
 
 // Return the bits per component of page n.
 // This is 1 for bitonal images, and either 8 or 16 for grayscale and color.
 // Returns 0 in case of error.
-int pdfrasread_page_bits_per_component(t_pdfrasreader* reader, int n);
+int PDFRASAPICALL pdfrasread_page_bits_per_component(t_pdfrasreader* reader, int n);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_bits_per_component)(t_pdfrasreader* reader, int n);
 
 // Return the pixel width of the raster image of page n
-int pdfrasread_page_width(t_pdfrasreader* reader, int n);
+int PDFRASAPICALL pdfrasread_page_width(t_pdfrasreader* reader, int n);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_width)(t_pdfrasreader* reader, int n);
 
 // Return the pixel height of the raster image of page n
 int pdfrasread_page_height(t_pdfrasreader* reader, int n);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_height)(t_pdfrasreader* reader, int n);
 
 // Return the resolution in dpi of the raster image of page n
-double pdfrasread_page_horizontal_dpi(t_pdfrasreader* reader, int n);
-double pdfrasread_page_vertical_dpi(t_pdfrasreader* reader, int n);
+double PDFRASAPICALL pdfrasread_page_horizontal_dpi(t_pdfrasreader* reader, int n);
+double PDFRASAPICALL pdfrasread_page_vertical_dpi(t_pdfrasreader* reader, int n);
+typedef double (PDFRASAPICALL *pfn_pdfrasread_page_horizontal_dpi)(t_pdfrasreader* reader, int n);
+typedef double (PDFRASAPICALL *pfn_pdfrasread_page_vertical_dpi)(t_pdfrasreader* reader, int n);
 
 // Return the clockwise rotation in degrees to be applied to page n.
 // Returns 0 in case of error.
-int pdfrasread_page_rotation(t_pdfrasreader* reader, int n);
+int PDFRASAPICALL pdfrasread_page_rotation(t_pdfrasreader* reader, int n);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_rotation)(t_pdfrasreader* reader, int n);
 
 // Strip-level access
 
 // Return the number of strips in page p
-int pdfrasread_strip_count(t_pdfrasreader* reader, int p);
+int PDFRASAPICALL pdfrasread_strip_count(t_pdfrasreader* reader, int p);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_strip_count)(t_pdfrasreader* reader, int p);
 
 // Return the maximum raw (compressed) strip size on page p
-size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p);
+size_t PDFRASAPICALL pdfrasread_max_strip_size(t_pdfrasreader* reader, int p);
+typedef size_t (PDFRASAPICALL *pfn_pdfrasread_max_strip_size)(t_pdfrasreader* reader, int p);
 
 // Read the raw (compressed) data of strip s on page p into buffer
 // Returns the actual number of bytes read.
 // Note that if the the strip is larger than bufsize, no data is read and
 // the return value will be 0.
-size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize);
+size_t PDFRASAPICALL pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize);
+typedef size_t (PDFRASAPICALL *pfn_pdfrasread_read_raw_strip)(t_pdfrasreader* reader, int p, int s, char* buffer, size_t bufsize);
 
 // Return the compression format of strip s on page p
-RasterReaderCompression pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);
+RasterReaderCompression PDFRASAPICALL pdfrasread_strip_compression(t_pdfrasreader* reader, int p, int s);
+typedef RasterReaderCompression (PDFRASAPICALL *pfn_pdfrasread_strip_compression)(t_pdfrasreader* reader, int p, int s);
 
 // Return the height of strip s on page p
-unsigned long pdfrasread_strip_height(t_pdfrasreader* reader, int p, int s);
+unsigned long PDFRASAPICALL pdfrasread_strip_height(t_pdfrasreader* reader, int p, int s);
+typedef unsigned long (PDFRASAPICALL *pfn_pdfrasread_strip_height)(t_pdfrasreader* reader, int p, int s);
 
 // Return the raw size of strip s on page p
-long pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s);
+long PDFRASAPICALL pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s);
+typedef long (PDFRASAPICALL *pfn_pdfrasread_strip_raw_size)(t_pdfrasreader* reader, int p, int s);
 
 // detailed error codes
 // TODO: assign hard codes to all, so they can't change accidentally

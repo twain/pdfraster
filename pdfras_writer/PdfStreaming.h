@@ -44,7 +44,7 @@ extern void pd_outstream_free(t_pdoutstream *stm);
 extern void pd_outstream_set_encrypter(t_pdoutstream *stm, t_pdencrypter *crypt);
 
 // Return the encrypter currently associated with a stream - or NULL if none.
-extern t_pdencrypter* p_outstream_get_encrypter(t_pdoutstream *stm);
+extern t_pdencrypter* pd_outstream_get_encrypter(t_pdoutstream *stm);
 
 // Write one character to a stream.
 extern void pd_putc(t_pdoutstream *stm, char c);

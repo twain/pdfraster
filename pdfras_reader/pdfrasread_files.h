@@ -11,20 +11,26 @@ extern "C" {
 
 // Return TRUE if the file is marked as a PDF/raster file.
 // FALSE otherwise.
-int pdfrasread_recognize_file(FILE* f);
+int PDFRASAPICALL pdfrasread_recognize_file(FILE* f);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_recognize_file)(FILE* f);
 
 // Return TRUE if the file is marked as a PDF/raster file.
 // FALSE otherwise.
-int pdfrasread_recognize_filename(const char* fn);
+int PDFRASAPICALL pdfrasread_recognize_filename(const char* fn);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_recognize_filename)(const char* fn);
 
-int pdfrasread_page_count_file(FILE* f);
-int pdfrasread_page_count_filename(const char* fn);
+int PDFRASAPICALL pdfrasread_page_count_file(FILE* f);
+int PDFRASAPICALL pdfrasread_page_count_filename(const char* fn);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_count_file)(FILE* f);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_page_count_filename)(const char* fn);
 
 // create a PDF/raster reader and use it to access a FILE
-t_pdfrasreader* pdfrasread_open_file(int apiLevel, FILE* f);
+t_pdfrasreader* PDFRASAPICALL pdfrasread_open_file(int apiLevel, FILE* f);
+typedef t_pdfrasreader* (PDFRASAPICALL *pfn_pdfrasread_open_file)(int apiLevel, FILE* f);
 
 // create a PDF/raster reader and use it to open a named file
-t_pdfrasreader* pdfrasread_open_filename(int apiLevel, const char* fn);
+t_pdfrasreader* PDFRASAPICALL pdfrasread_open_filename(int apiLevel, const char* fn);
+typedef t_pdfrasreader* (PDFRASAPICALL *pfn_pdfrasread_open_filename)(int apiLevel, const char* fn);
 
 #ifdef __cplusplus
 }

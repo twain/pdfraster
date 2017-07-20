@@ -17,6 +17,7 @@ typedef unsigned long long int pduint64;
 typedef float pdfloat32;
 typedef double pddouble;
 typedef pduint32 pdbool;
+#define PDFRASAPICALL __cdecl
 
 #define PDDEBUG _DEBUG
 #define PD_FALSE ((pdbool)0)
@@ -42,6 +43,7 @@ typedef int16_t pdint16;
 typedef uint16_t pduint16;
 typedef int32_t pdint32;
 typedef uint32_t pduint32;
+#define PDFRASAPICALL
 
 typedef float pdfloat32;
 typedef double pddouble;

@@ -71,45 +71,58 @@ typedef struct t_pdfrasencoder t_pdfrasencoder;
 // xdpi, ydpi		300
 // rotation			0
 //
-t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os);
+t_pdfrasencoder* PDFRASAPICALL pdfr_encoder_create(int apiLevel, t_OS *os);
+typedef t_pdfrasencoder* (PDFRASAPICALL *pfn_pdfr_encoder_create)(int apiLevel, t_OS *os);
 
 // Set various document metadata, traditionally stored in the DID (Document
 // Information Dictionary) but from PDF 2.0 stored preferentially
 // in XMP document metadata.
 //
 // 'Creator' is customarily set to the name and version of the creating application.
-void pdfr_encoder_set_creator(t_pdfrasencoder *enc, const char* creator);
-void pdfr_encoder_set_author(t_pdfrasencoder *enc, const char* author);
-void pdfr_encoder_set_title(t_pdfrasencoder *enc, const char* title);
-void pdfr_encoder_set_subject(t_pdfrasencoder *enc, const char* subject);
-void pdfr_encoder_set_keywords(t_pdfrasencoder *enc, const char* keywords);
+void PDFRASAPICALL pdfr_encoder_set_creator(t_pdfrasencoder *enc, const char* creator);
+void PDFRASAPICALL pdfr_encoder_set_author(t_pdfrasencoder *enc, const char* author);
+void PDFRASAPICALL pdfr_encoder_set_title(t_pdfrasencoder *enc, const char* title);
+void PDFRASAPICALL pdfr_encoder_set_subject(t_pdfrasencoder *enc, const char* subject);
+void PDFRASAPICALL pdfr_encoder_set_keywords(t_pdfrasencoder *enc, const char* keywords);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_creator)(t_pdfrasencoder *enc, const char* creator);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_author)(t_pdfrasencoder *enc, const char* author);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_title)(t_pdfrasencoder *enc, const char* title);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_subject)(t_pdfrasencoder *enc, const char* subject);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_keywords)(t_pdfrasencoder *enc, const char* keywords);
 
 // get the creation time/date of this document.
 // By default this is written to the DID as /CreationDate
 // This can also be written to the XMP metadata as the xap:CreateDate
-void pdfr_encoder_get_creation_date(t_pdfrasencoder *enc, time_t *t);
+void PDFRASAPICALL pdfr_encoder_get_creation_date(t_pdfrasencoder *enc, time_t *t);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_get_creation_date)(t_pdfrasencoder *enc, time_t *t);
 
 // Attach XMP metadata to the current page.
 // The XMP data is a UTF-8 encoded, NUL-terminated string which is written verbatim.
-void pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata);
+void PDFRASAPICALL pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_page_xmp)(t_pdfrasencoder *enc, const char* xmpdata);
 
 // Attach XMP metadata to the document.
-void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata);
+void PDFRASAPICALL pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_document_xmp)(t_pdfrasencoder *enc, const char* xmpdata);
 
 // Set the viewing angle for subsequent pages.
 // The angle is a rotation clockwise in degrees and must be a multiple of 90.
 // The viewing angle is initially 0.
-void pdfr_encoder_set_rotation(t_pdfrasencoder* enc, int degCW);
+void PDFRASAPICALL pdfr_encoder_set_rotation(t_pdfrasencoder* enc, int degCW);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_rotation)(t_pdfrasencoder* enc, int degCW);
 
 // Set the resolution for subsequent pages
-void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double xdpi, double ydpi);
+void PDFRASAPICALL pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double xdpi, double ydpi);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_resolution)(t_pdfrasencoder *enc, double xdpi, double ydpi);
 
 // Set the pixel format for subsequent pages
-void pdfr_encoder_set_pixelformat(t_pdfrasencoder* enc, RasterPixelFormat format);
+void PDFRASAPICALL pdfr_encoder_set_pixelformat(t_pdfrasencoder* enc, RasterPixelFormat format);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_pixelformat)(t_pdfrasencoder* enc, RasterPixelFormat format);
 
 // Set the compression mode/algorithm to be used in writing subsequent pages.
 // Takes effect when first strip is written to a page.
-void pdfr_encoder_set_compression(t_pdfrasencoder* enc, RasterCompression comp);
+void PDFRASAPICALL pdfr_encoder_set_compression(t_pdfrasencoder* enc, RasterCompression comp);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_compression)(t_pdfrasencoder* enc, RasterCompression comp);
 
 // Turn on or off 'uncalibrated' (raw, device) colorspace for subsequent
 // bitonal images.  Only bitonal images are affected.
@@ -118,36 +131,42 @@ void pdfr_encoder_set_compression(t_pdfrasencoder* enc, RasterCompression comp);
 // uncal = 0 means use the calibrated /CalGray colorspace.
 // uncal <> 0 means use uncalibrated /DeviceGray colorspace.
 // Return value is the previous setting, either 1 or 0.
-int pdfr_encoder_set_bitonal_uncalibrated(t_pdfrasencoder* enc, int uncal);
+int PDFRASAPICALL pdfr_encoder_set_bitonal_uncalibrated(t_pdfrasencoder* enc, int uncal);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_set_bitonal_uncalibrated)(t_pdfrasencoder* enc, int uncal);
 
 // Specify an ICC-profile based colorspace for subsequent RGB images.
 // (By default, RGB images are assumed to be sRGB)
 // profile must point to a valid ICC color profile of len bytes.
 // (the profile is not validated but is used verbatim)
 // If profile is NULL, the standard sRGB profile is selected and the len value is ignored.
-void pdfr_encoder_define_rgb_icc_colorspace(t_pdfrasencoder* enc, const pduint8 *profile, size_t len);
+void PDFRASAPICALL pdfr_encoder_define_rgb_icc_colorspace(t_pdfrasencoder* enc, const pduint8 *profile, size_t len);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_define_rgb_icc_colorspace)(t_pdfrasencoder* enc, const pduint8 *profile, size_t len);
 
 // Define the colorspace for subsequent color images as a /CalRGB space, with
 // the given parameters (see PDF for details). Color images written after this
 // will be assigned the specified colorspace.  Gray and bitonal images are not affected.
 // Any of the array parameters can be NULL in which case the PDF default is used.
 // (For whitepoint, the default is taken to be [ 1 1 1 ].)
-void pdfr_encoder_define_calrgb_colorspace(t_pdfrasencoder* enc, double gamma[3], double black[3], double white[3], double matrix[9]);
+void PDFRASAPICALL pdfr_encoder_define_calrgb_colorspace(t_pdfrasencoder* enc, double gamma[3], double black[3], double white[3], double matrix[9]);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_define_calrgb_colorspace)(t_pdfrasencoder* enc, double gamma[3], double black[3], double white[3], double matrix[9]);
 
 // Start encoding a page in the current document.
 // If a page is currently open, that page is automatically ended before the new page is started.
-int pdfr_encoder_start_page(t_pdfrasencoder* enc, int width);
+int PDFRASAPICALL pdfr_encoder_start_page(t_pdfrasencoder* enc, int width);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_start_page)(t_pdfrasencoder* enc, int width);
 
 // Set the physical page number for the next or current page.
 // Applies to the current page if one is open, otherwise to the next page started.
 // If not set, this property defaults to -1, 'unspecified'.
-void pdfr_encoder_set_physical_page_number(t_pdfrasencoder* enc, int phpageno);
+void PDFRASAPICALL pdfr_encoder_set_physical_page_number(t_pdfrasencoder* enc, int phpageno);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_physical_page_number)(t_pdfrasencoder* enc, int phpageno);
 
 // Mark the next or current page as being a front or back side.
 // Applies to the current page if one is open, otherwise to the next page started.
 // frontness must be 1 (front side), 0 (back side), or -1 (unspecified)
 // If not set, this property defaults to -1, 'unspecified'.
-void pdfr_encoder_set_page_front(t_pdfrasencoder* enc, int frontness);
+void PDFRASAPICALL pdfr_encoder_set_page_front(t_pdfrasencoder* enc, int frontness);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_page_front)(t_pdfrasencoder* enc, int frontness);
 
 // Append a strip to the current page of the current document.
 // rows is the height (number of rows) in the strip.
@@ -165,30 +184,37 @@ void pdfr_encoder_set_page_front(t_pdfrasencoder* enc, int frontness);
 // CCITT compressed data must be compressed in accordance with the following PDF Optional parameters
 // for the CCITTFaxDecode filter:
 // K = -1, EndOfLine=false, EncodedByteAlign=false, BlackIs1=false
-int pdfr_encoder_write_strip(t_pdfrasencoder* enc, int rows, const pduint8 *buf, size_t len);
+int PDFRASAPICALL pdfr_encoder_write_strip(t_pdfrasencoder* enc, int rows, const pduint8 *buf, size_t len);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_write_strip)(t_pdfrasencoder* enc, int rows, const pduint8 *buf, size_t len);
 
 // get the height (so far) in rows(pixels) of the current page.
 // equals the sum of the row-counts of strips written to the current page.
-int pdfr_encoder_get_page_height(t_pdfrasencoder* enc);
+int PDFRASAPICALL pdfr_encoder_get_page_height(t_pdfrasencoder* enc);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_get_page_height)(t_pdfrasencoder* enc);
 
 // Finish writing the current page to the current document.
 // Invalid if no page is open.
 // After this call succeeds, no page is open.
-int pdfr_encoder_end_page(t_pdfrasencoder* enc);
+int PDFRASAPICALL pdfr_encoder_end_page(t_pdfrasencoder* enc);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_end_page)(t_pdfrasencoder* enc);
 
 // Returns the number of pages written to this document,
 // including the current page if one is open.
-int pdfr_encoder_page_count(t_pdfrasencoder* enc);
+int PDFRASAPICALL pdfr_encoder_page_count(t_pdfrasencoder* enc);
+typedef int (PDFRASAPICALL *pfn_pdfr_encoder_page_count)(t_pdfrasencoder* enc);
 
 // End the current PDF, finish writing all data to the output.
-void pdfr_encoder_end_document(t_pdfrasencoder* enc);
+void PDFRASAPICALL pdfr_encoder_end_document(t_pdfrasencoder* enc);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_end_document)(t_pdfrasencoder* enc);
 
 // Returns the number of bytes written to the document
-long pdfr_encoder_bytes_written(t_pdfrasencoder* enc);
+long PDFRASAPICALL pdfr_encoder_bytes_written(t_pdfrasencoder* enc);
+typedef long (PDFRASAPICALL *pfn_pdfr_encoder_bytes_written)(t_pdfrasencoder* enc);
 
 // Destroy a raster PDF encoder, releasing all associated resources.
 // Do not use the enc pointer after this, it is invalid.
-void pdfr_encoder_destroy(t_pdfrasencoder* enc);
+void PDFRASAPICALL pdfr_encoder_destroy(t_pdfrasencoder* enc);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_destroy)(t_pdfrasencoder* enc);
 
 #ifdef __cplusplus
 }

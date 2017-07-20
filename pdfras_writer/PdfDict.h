@@ -70,7 +70,6 @@ typedef void(*f_on_datasink_ready)(t_datasink *sink, void *eventcookie);
 extern t_pdvalue stream_new(t_pdmempool *pool, t_pdxref *xref, pdint32 initialsize, f_on_datasink_ready ready, void *eventcookie);
 
 extern void stream_free(t_pdvalue stream);
-extern void stream_set_on_datasink_ready(t_pdvalue stream, f_on_datasink_ready ready, void *eventcookie);
 extern void stream_write_data(t_pdvalue stream, t_datasink* sink);
 
 #ifdef __cplusplus
