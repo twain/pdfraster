@@ -47,11 +47,11 @@ void signature_tests()
 	printf("done\n");
 }
 
-static size_t freader(void *source, pduint32 offset, size_t length, char *buffer)
+static size_t freader(void *source, pdfpos_t offset, size_t length, char *buffer)
 {
 	FILE* f = (FILE*)source;
     if (offset != ftell(f)) {
-        if (0 != fseek(f, offset, SEEK_SET)) {
+        if (0 != _fseeki64(f, offset, SEEK_SET)) {
             // seek failed, so no read at all:
             return 0;
         }
@@ -124,7 +124,7 @@ void open_close_tests()
     printf("done\n");
 }
 
-static int ignore_compliance_errors(t_pdfrasreader* reader, int level, int code, pduint32 offset)
+static int ignore_compliance_errors(t_pdfrasreader* reader, int level, int code, pdfpos_t offset)
 {
     if (level == REPORTING_COMPLIANCE) {
         return 0;
@@ -264,7 +264,7 @@ void strip_data_tests()
 	printf("done\n");
 } // strip_data_tests
 
-static int error_test_handler(t_pdfrasreader* reader, int level, int code, pduint32 offset)
+static int error_test_handler(t_pdfrasreader* reader, int level, int code, pdfpos_t offset)
 {
     if (level == REPORTING_COMPLIANCE) {
         if (code == READ_OBJECT) {
@@ -281,7 +281,7 @@ static int error_test_handler(t_pdfrasreader* reader, int level, int code, pduin
     return pdfrasread_default_error_handler(reader, level, code, offset);
 }
 
-static int error_handler_bad_gamma(t_pdfrasreader* reader, int level, int code, pduint32 offset)
+static int error_handler_bad_gamma(t_pdfrasreader* reader, int level, int code, pdfpos_t offset)
 {
     ASSERT(code == READ_GAMMA_22);
     ASSERT(errmask == 0);               // should just be called once

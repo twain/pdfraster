@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 
 #include "PdfImage.h"
 #include "PdfStandardObjects.h"
@@ -192,7 +193,8 @@ t_pdvalue pd_make_iccbased_rgb_colorspace(t_pdmempool *alloc, t_pdxref *xref, co
 	// 3-channel colorspace:
 	pd_dict_put(profile, PDA_N, pdintvalue(3));
 	// Unlike many streams, we know the length of this one in advance:
-	pd_dict_put(profile, PDA_Length, pdintvalue(prof_size));
+	assert(prof_size < INT_MAX); // make sure cast below is OK
+	pd_dict_put(profile, PDA_Length, pdintvalue((pdint32)prof_size));
 	// Someday soon, this stream needs FlateDecode and ASCII85Decode filters
 	//pd_dict_put(profile, PDA_FILTER, pdatomvalue(PDA_ASCIIHEXDECODE));
 	// get a reference to the profile stream

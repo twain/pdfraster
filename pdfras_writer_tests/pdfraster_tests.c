@@ -77,7 +77,7 @@ void pdfraster_minimal_file()
 	ASSERT(strlen(output) < 1024);
 	unsigned mv;
 	unsigned char binsig[8];
-	ASSERT(2 == sscanf_s(output, "%%PDF-1.%u\n%%%4s\n", &mv, binsig, sizeof binsig));
+	ASSERT(2 == sscanf_s(output, "%%PDF-1.%u\n%%%4s\n", &mv, binsig, (unsigned int) (sizeof binsig)));
 	ASSERT(mv >= 4);
 	ASSERT(mv <= 8);
 	ASSERT(binsig[0] > 127);

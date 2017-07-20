@@ -15,6 +15,7 @@ extern "C" {
 #define PDFRASTER_SPEC_VERSION "1.0"
 
 #define PDFRAS_LIBRARY_VERSION "0.18"
+//      gus     2017.07.19  compiles 64-bit, added pdfpos_t type
 // 0.18 spike   2016.10.23  clarified/enforced image params that must be same for all strips on page.
 // 0.17 spike   2016.09.23  moved %PDF-raster marker to just before startxref
 // 0.16 spike   2016.09.06  fix: align allowed colorspaces with spec, support /CalRGB.

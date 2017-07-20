@@ -11,6 +11,9 @@ extern "C" {
 
 #include "PdfPlatform.h"
 
+// This could be pduint32 for resource constrained 32-bit system using PDF/raster files smaller than 4GB
+typedef unsigned long long int pdfpos_t;
+
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
@@ -51,7 +54,7 @@ typedef enum {
 typedef struct t_pdfrasreader t_pdfrasreader;
 
 // function template: read length bytes into buffer, starting at offset in source.
-typedef size_t (*pdfras_freader)(void *source, pduint32 offset, size_t length, char *buffer);
+typedef size_t (*pdfras_freader)(void *source, pdfpos_t offset, size_t length, char *buffer);
 
 // function template: return the size of a source
 typedef pduint32 (*pdfras_fsizer)(void* source);
@@ -60,7 +63,7 @@ typedef pduint32 (*pdfras_fsizer)(void* source);
 typedef void (*pdfras_fcloser)(void *source);
 
 // function template: error/warning handler
-typedef int(*pdfras_err_handler)(t_pdfrasreader* reader, int level, int code, pduint32 offset);
+typedef int(*pdfras_err_handler)(t_pdfrasreader* reader, int level, int code, pdfpos_t offset);
 
 // Create a PDF/raster reader in the closed state.
 // Return NULL if a reader can't be constructed - typically that can only be a malloc failure.
@@ -103,7 +106,7 @@ void pdfrasread_set_error_handler(t_pdfrasreader* reader, pdfras_err_handler err
 
 // The default error-handler, used if you do not specify another handler.
 // It prints to stderr a somewhat descriptive 1-line message that starts with 
-int pdfrasread_default_error_handler(t_pdfrasreader* reader, int level, int code, pduint32 offset);
+int pdfrasread_default_error_handler(t_pdfrasreader* reader, int level, int code, pdfpos_t offset);
 
 // Set *pmajor and *pminor to the highest PDF/raster version this library supports/understands.
 // Note: The library will refuse to process a file with a higher major version.

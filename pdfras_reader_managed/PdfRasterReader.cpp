@@ -224,7 +224,11 @@ namespace PdfRasterReader {
 		size_t max_strip_size = pdfrasread_max_strip_size(state[idx].decoder, 0);
 		LOG(fprintf(fp, "- max_strip_size=%zu", max_strip_size));
 
-		array<Byte>^ strip_data = gcnew array<Byte> (max_strip_size);
+		if (max_strip_size > INT_MAX) {
+			throw("max_strip_size  > INT_MAX");
+		}
+
+		array<Byte>^ strip_data = gcnew array<Byte> ((pduint32)max_strip_size);
 		pin_ptr <Byte> rawstrip = &strip_data[0];
 
 		char *ptr_rawstrip = (char *) rawstrip;

@@ -13,6 +13,7 @@ typedef short pdint16;
 typedef unsigned short pduint16;
 typedef long pdint32;
 typedef unsigned long pduint32;
+typedef unsigned long long int pduint64;
 typedef float pdfloat32;
 typedef double pddouble;
 typedef pduint32 pdbool;

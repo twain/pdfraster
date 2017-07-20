@@ -102,13 +102,13 @@ void application::pdfr_lib_info() {
 
 // Some private helper functions for using the pdfras_reader library
 
-static size_t file_reader(void *source, pduint32 offset, size_t length, char *buffer)
+static size_t file_reader(void *source, pdfpos_t offset, size_t length, char *buffer)
 {
 	if (!source)
 		return 0;
 
 	FILE* f = (FILE*)source;
-	if (0 != fseek(f, offset, SEEK_SET)) {
+	if (0 != _fseeki64(f, offset, SEEK_SET)) {
 		return 0;
 	}
 	return fread(buffer, sizeof(pduint8), length, f);

@@ -82,7 +82,9 @@ int __pd_hashatomtovalue_capacity(t_pdhashatomtovalue *table)
 static pdint32 hash(t_pdhashatomtovalue *table, t_pdatom key)
 {
 	pduint32 count;
-	pdint32 i = (pdint32)key % table->capacity;
+	// cast below is for 64-bit
+	// seems dangerous use of void * (t_pdatom) below
+	pdint32 i = (size_t)key % table->capacity;
 	for (count = 0; count < table->capacity; count++)
 	{
 		if (table->buckets[i].key == key) {

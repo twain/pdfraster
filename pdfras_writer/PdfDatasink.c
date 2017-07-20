@@ -1,3 +1,6 @@
+#include <assert.h>
+#include <limits.h>
+
 #include "PdfDatasink.h"
 
 typedef struct t_datasink {
@@ -35,5 +38,6 @@ void pd_datasink_free(t_datasink *sink)
 pdbool pd_datasink_put(t_datasink *sink, const void* data, pduint32 offset, size_t len)
 {
 	if (!sink || !data) return PD_FALSE;
-	return sink->put((const pduint8*)data, offset, len, sink->cookie);
+	assert(len < UINT_MAX); // make sure cast below is OK
+	return sink->put((const pduint8*)data, offset, (pduint32)len, sink->cookie);
 }
