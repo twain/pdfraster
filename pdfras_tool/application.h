@@ -31,7 +31,7 @@ class application {
 public:
 	application() { page_count = -1; }
 	void parse_args(int argc, char * argv[]);
-	void application::usage();
+	void usage();
 	void run();
 private:
 	handles handle;

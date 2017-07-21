@@ -3,12 +3,12 @@
 
 struct _t_heapelem;
 
-typedef struct t_pdmempool {
+struct t_pdmempool {
 	t_OS *os;
 	struct _t_heapelem	*first;		// ptr to first block in use by this pool (or NULL if none)
 	pduint32 alloc_count;			// count of allocated-and-not-yet-freed blocks in this pool
 	size_t	alloc_bytes;			// total bytes currently allocated to blocks in this pool (excluding overhead)
-} t_pdmempool;
+};
 
 typedef struct _t_heapelem
 {

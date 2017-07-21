@@ -3,11 +3,11 @@
 
 #include <string.h>
 
-typedef struct t_pdstring {
+struct t_pdstring {
 	pdbool isBinary;
 	pduint32 length;
 	pduint8 *strData;
-} t_pdstring;
+};
 
 t_pdstring *pd_string_new_binary(t_pdmempool *pool, pduint32 len, const void* data)
 {

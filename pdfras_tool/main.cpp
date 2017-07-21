@@ -52,7 +52,7 @@ static void main_exit(error err)
 	exit(err());
 }
 
-void main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
 	LOG(dbg, "> argc=%d argv[0]=\"%s\"", argc, argv[0]);
 

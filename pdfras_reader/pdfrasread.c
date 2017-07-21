@@ -125,7 +125,7 @@ typedef struct {
 } t_pdfstripinfo;
 
 // Structure that represents a PDF/raster byte-stream that is open for reading
-typedef struct t_pdfrasreader {
+struct t_pdfrasreader {
     int                 sig;                // safety/validity signature
 	int					apiLevel;			// caller's specified API level.
 	pdfras_freader		fread;				// function to read from source
@@ -147,7 +147,7 @@ typedef struct t_pdfrasreader {
 	// page table
 	long				page_count;			// actual page count, or -1 for 'unknown'
 	pdfpos_t*			page_table;			// table of page positions (freed at close)
-} t_pdfrasreader;
+};
 
 ///////////////////////////////////////////////////////////////////////
 // Global (gasp!) variables
@@ -319,6 +319,7 @@ static void api_error(t_pdfrasreader* reader, int code, pdfpos_t hint)
     }
 }
 
+/* not used anywhere in the code...
 static void informational(t_pdfrasreader* reader, int code, pduint32 offset)
 {
     if (VALID(reader)) {
@@ -328,6 +329,7 @@ static void informational(t_pdfrasreader* reader, int code, pduint32 offset)
         global_error_handler(NULL, REPORTING_INFO, code, offset);
     }
 }
+*/
 
 static void warning(t_pdfrasreader* reader, int code, pdfpos_t offset)
 {
@@ -678,6 +680,7 @@ static int token_match(t_pdfrasreader* reader, pdfpos_t off, const char* lit)
     return token_eat(reader, &off, lit);
 }
 
+/* Not used anywhere in the code...
 static int token_eol(t_pdfrasreader* reader, pdfpos_t *poff)
 {
 	int ch = peekch(reader, *poff);
@@ -698,6 +701,7 @@ static int token_eol(t_pdfrasreader* reader, pdfpos_t *poff)
 	}
 	return TRUE;
 }
+*/
 
 // Parse an unsigned long integer.
 // Skips leading and trailing whitespace
@@ -1313,7 +1317,7 @@ static int parse_icc_profile(t_pdfrasreader* reader, pdfpos_t *poff, ICCProfile 
         return FALSE;
     }
     // TODO: handle decompress/decrypt of Profile!
-    if (reader->fread(reader->source, iccProfile->data_pos, iccProfile->data_len, iccProfile->data_ptr) != iccProfile->data_len) {
+    if (reader->fread(reader->source, iccProfile->data_pos, iccProfile->data_len, iccProfile->data_ptr) != (size_t)iccProfile->data_len) {
         io_error(reader, READ_ICCPROFILE_READ, __LINE__);
         free(iccProfile->data_ptr); iccProfile->data_ptr = NULL;
         return FALSE;
@@ -1533,6 +1537,7 @@ static int dictionary_lookup(t_pdfrasreader* reader, pdfpos_t off, const char* k
 	return FALSE;
 }
 
+/* Not used anywhere in the code...
 // Parse the trailer dictionary.
 // TRUE if successful, FALSE otherwise
 static int read_trailer_dict(t_pdfrasreader* reader, pdfpos_t *poff)
@@ -1548,6 +1553,7 @@ static int read_trailer_dict(t_pdfrasreader* reader, pdfpos_t *poff)
     }
     return TRUE;
 }
+*/
 
 // check an xref table for anything invalid and report the problem.
 // 'off' is the offset in the file of the first entry.
@@ -1559,7 +1565,7 @@ static int validate_xref_table(t_pdfrasreader* reader, pdfpos_t off, t_xref_entr
 	// Sweep the xref table, validate entries.
 	for (e = 0; e < numxrefs; e++) {
 		char *offend, *genend;
-		pduint32 offset = strtoul(xrefs[e].offset, &offend, 10);
+		(void)strtoul(xrefs[e].offset, &offend, 10);
 		unsigned long gen = strtoul(xrefs[e].gen, &genend, 10);
 		// Note, we don't check for leading 0's on offset or gen.
 		if (offend != xrefs[e].gen ||
@@ -1826,7 +1832,7 @@ static int parse_trailer(t_pdfrasreader* reader)
     off = reader->filesize - tailsize;
 	// Calculate the file position of the "startxref" keyword
 	// and make a note of it for a bit later.
-	pdfpos_t startxref_off = off += (startxref - tail);
+	// pdfpos_t startxref_off = off += (startxref - tail); // not used, but left in case anybody wants it back...
 	unsigned long xref_off;
 	if (!token_eat(reader, &off, "startxref") || !token_ulong(reader, &off, &xref_off)) {
 		// startxref not followed by unsigned int
@@ -2084,6 +2090,8 @@ static int get_strip_info(t_pdfrasreader* reader, int p, int s, t_pdfstripinfo* 
 // return all the info about page p of the open file.
 static int get_page_info(t_pdfrasreader* reader, int p, t_pdfpageinfo* pinfo)
 {
+	int stripno;
+
     // While this is not a public function, it is called by a bunch of trivial
     // public functions - that's why it reports API errors.
     if (!VALID(reader)) {
@@ -2189,7 +2197,7 @@ static int get_page_info(t_pdfrasreader* reader, int p, t_pdfpageinfo* pinfo)
         }
     }
     // then look up strips 0..nstrips-1 to make sure they are all present
-    for (int stripno = 0; stripno < nstrips; stripno++) {
+    for (stripno = 0; stripno < nstrips; stripno++) {
         t_pdfstripinfo strip;
         if (!get_strip_info(reader, p, stripno, &strip)) {
             // errors already logged
@@ -2573,6 +2581,7 @@ int pdfrasread_default_error_handler(t_pdfrasreader* reader, int level, int code
         "OTHER FATAL"		    // none of the above, current API call fails.
     };
     char marker = '*';      // for errors
+	(void)reader;
     if (level == REPORTING_INFO) {
         marker = '-';
     }
@@ -2615,6 +2624,7 @@ pdfras_err_handler pdfrasread_get_global_error_handler(void)
 
 void pdfrasread_get_highest_pdfr_version(t_pdfrasreader* reader, int* pmajor, int* pminor)
 {
+	(void)reader;
     if (pmajor) *pmajor = RASREAD_MAX_MAJOR;
     if (pminor) *pminor = RASREAD_MAX_MINOR;
 }

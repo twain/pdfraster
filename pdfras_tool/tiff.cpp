@@ -153,7 +153,6 @@ void tiff::write_header(t_pdfrasreader* reader, int page, int start_strip, int n
 	tiff_offset += 2;
 
 	// write TIFF header fixed part: version number
-	const int tiff_version = 0x2A;
 	LOG(dbg, "| write tiff fixed header tiff version (0x%X)", TIFF_VERSION);
 	tiff_write_short(TIFF_VERSION);
 	tiff_offset += 2;
@@ -429,6 +428,9 @@ void tiff::write_trailer(RasterReaderPixelFormat pixel_format, int width, int le
 	}
 	else {
 		switch (pixel_format) {
+		default:
+			LOG(err, "| unsupported pixel_format %d", pixel_format);
+			return;
 		case RASREAD_BITONAL:
 			sbc_val = length * ((width + 7) / 8);
 			break;

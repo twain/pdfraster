@@ -49,7 +49,7 @@ public:
 	ostream  *get_ostream() const { return  os; }
 
 	// DO NOT call log_println() directly, ONLY use the macro LOG(level,fmt,...)
-	void println(char *path, const int line, const char *function, const log_level level, const char *fmt, ...);
+	void println(const char *path, const int line, const char *function, const log_level level, const char *fmt, ...);
 };
 
 extern journal g_journal;

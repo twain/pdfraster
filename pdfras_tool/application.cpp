@@ -30,6 +30,7 @@
 #	include "io.h"
 #else
 #	include "unistd.h"
+#	include <string.h>
 #endif
 
 #include <pdfrasread.h>
@@ -54,7 +55,6 @@ void application::usage() {
 	ERR(CLI_ARGS_INVALID);
 }
 
-using std::stoi;
 void application::parse_args(int argc, char * argv[]) {
 	LOG(dbg, "> argc=%d argv[0]=\"%s\"", argc, argv[0]);
 
@@ -73,7 +73,7 @@ void application::parse_args(int argc, char * argv[]) {
 			handle.ifile.set_name(argv[i] + (sizeof(opt_i) - 1));
 		}
 		else if (!strncmp(argv[i], opt_p, sizeof(opt_p) - 1)) {
-			config.set_page(stoi(argv[i]+ (sizeof(opt_p) - 1)));
+			config.set_page(atoi(argv[i]+ (sizeof(opt_p) - 1)));
 		}
 		else if (!strncmp(argv[i], opt_o, sizeof(opt_o) - 1)) {
 			config.op.add_extract_image();
@@ -108,9 +108,15 @@ static size_t file_reader(void *source, pdfpos_t offset, size_t length, char *bu
 		return 0;
 
 	FILE* f = (FILE*)source;
-	if (0 != _fseeki64(f, offset, SEEK_SET)) {
-		return 0;
-	}
+	#ifdef _WIN32
+		if (0 != _fseeki64(f, offset, SEEK_SET)) {
+			return 0;
+		}
+	#else
+		if (0 != fseek(f, offset, SEEK_SET)) {
+			return 0;
+		}
+	#endif
 	return fread(buffer, sizeof(pduint8), length, f);
 }
 
@@ -309,7 +315,13 @@ void application::pdfr_parse_image() {
 	if (page_compression == RASREAD_JPEG) {
 		if (page_strips != 1) {
 			for (int s = 0; s < page_strips; ++s) {
-				string ofn = handle.ofile.get_name() + "-strip" + std::to_string(s);
+				char szNum[32];
+				#ifdef _WIN32
+					sprintf_s(szNum, sizeof(szNum), "%d", s);
+				#else
+					snprintf(szNum, sizeof(szNum), "%d", s);
+				#endif
+				string ofn = handle.ofile.get_name() + "-strip" + szNum;
 				jpeg jpg(ofn);
 				jpg.write_body(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size);
 			}
@@ -322,7 +334,13 @@ void application::pdfr_parse_image() {
 	else {
 		if ((page_compression == RASREAD_CCITTG4) && (page_strips != 1)) {
 			for (int s = 0; s < page_strips; ++s) {
-				string ofn = handle.ofile.get_name() + "-strip" + std::to_string(s);
+				char szNum[32];
+				#ifdef _WIN32
+					sprintf_s(szNum, sizeof(szNum), "%d", s);
+				#else
+					snprintf(szNum, sizeof(szNum), "%d", s);
+				#endif
+				string ofn = handle.ofile.get_name() + "-strip" + szNum;
 				tiff tif(ofn);
 				tif.write_header(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size, page_pixel_format);
 				tif.write_body(handle.get_reader(), config.get_page(), s, 1, page_max_strip_size, page_pixel_format, page_xdpi, page_ydpi);

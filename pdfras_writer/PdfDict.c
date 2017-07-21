@@ -7,11 +7,11 @@
 #include "PdfStandardAtoms.h"
 
 // pseudo-inherits from hash table
-typedef struct t_pddict
+struct t_pddict
 {
 	t_pdhashatomtovalue *elems;
 	pdbool isStream;
-} t_pddict;
+};
 
 // pseudo-inherits from t_pddict
 typedef struct t_pdstream
@@ -34,7 +34,7 @@ t_pdvalue pd_dict_new(t_pdmempool *allocsys, pdint32 initialsize)
 			dict->elems = hash;
 			dict->isStream = PD_FALSE;
 			{
-				t_pdvalue dictvalue = { TPDDICT };
+				t_pdvalue dictvalue = { TPDDICT, { 0 } };
 				dictvalue.value.dictvalue = dict;
 				return dictvalue;
 			}
@@ -135,7 +135,7 @@ t_pdvalue stream_new(t_pdmempool *pool, t_pdxref *xref, pdint32 initialsize, f_o
 		// Allocate the Stream object, which is a 'derived class' of a t_pddict
 		t_pdstream *stream = (t_pdstream *)pd_alloc(pool, sizeof(t_pdstream));
 		if (stream) {
-			t_pdvalue dictvalue = { TPDDICT };
+			t_pdvalue dictvalue = { TPDDICT, { 0 } };
 			dictvalue.value.dictvalue = &stream->dict;
 			// plug in the dictionary hash table
 			stream->dict.elems = hash;

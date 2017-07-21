@@ -9,14 +9,14 @@ typedef struct {
 	t_pdatom key;
 } t_bucket;
 
-typedef struct t_pdhashatomtovalue {
+struct t_pdhashatomtovalue {
 	// number of elements this table can currently hold
 	pduint32 capacity;
 	// number of elements currently stored in this table
 	pduint32 elements;
 	// array of capacity (key,value) pairs. Unused entries have key=PDA_UNDEFINED_ATOM
 	t_bucket *buckets;
-} t_pdhashatomtovalue;
+};
 
 
 // Initialize hash table to have capacity for size entries

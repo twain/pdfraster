@@ -7,9 +7,15 @@
 static size_t file_reader(void *source, pdfpos_t offset, size_t length, char *buffer)
 {
     FILE* f = (FILE*)source;
-    if (0 != _fseeki64(f, offset, SEEK_SET)) {
-        return 0;
-    }
+	#ifdef _WIN32
+		if (0 != _fseeki64(f, offset, SEEK_SET)) {
+			return 0;
+		}
+	#else
+		if (0 != fseek(f, offset, SEEK_SET)) {
+			return 0;
+		}
+	#endif
     return fread(buffer, sizeof(pduint8), length, f);
 }
 

@@ -1,6 +1,17 @@
-
+#
 # This is a makefile for building on non-Windows platforms.
+#
 
+
+
+# Let's start by offloading platform and common stuff to a central Makefile...
+include Makefile.platform
+.SUFFIXES: .o .c .h
+
+
+
+# This is what we want to build...
+CFLAGS += -fPIC
 O =	md5.o \
 	PdfAlloc.o \
 	PdfArray.o \
@@ -20,12 +31,35 @@ O =	md5.o \
 	PdfValues.o \
 	PdfXrefTable.o
 
-CFLAGS = -O -g
+
+
+# do it all
+all: ../bin/$(TARGETDIR)/libpdfras_writer.$(STATICLIBEXT) ../bin/$(TARGETDIR)/libpdfras_writer.$(SHAREDLIBEXT)
+debug: ../bin/$(TARGETDIR)/libpdfras_writer.$(STATICLIBEXT) ../bin/$(TARGETDIR)/libpdfras_writer.$(SHAREDLIBEXT)
+
+
+
+# how we clean...
+clean:
+	rm -f ../bin/$(TARGETDIR)/libpdfras_writer.$(STATICLIBEXT) ../bin/$(TARGETDIR)/libpdfras_writer.$(SHAREDLIBEXT) $O
+
+
 
 # create a static library for pdfras_writer
-libpdfras_writer.a: $O
+../bin/$(TARGETDIR)/libpdfras_writer.$(STATICLIBEXT): $O
+	@mkdir -p ../bin/$(TARGETDIR)
 	@rm -f $@
-	ar rcs libpdfras_writer.a $O
+	$(STATICLIBCMD) $@ $O
+
+
+
+# create a shared library for pdfras_writer
+../bin/$(TARGETDIR)/libpdfras_writer.$(SHAREDLIBEXT): $O
+	@mkdir -p ../bin/$(TARGETDIR)
+	@rm -f ../bin/$@
+	$(SHAREDLIBCMD) $(SHAREDFLAGS) $(BINARYFLAGS) $(LFLAGS) -o $@ $O $(LIBDIRS) $(LIBFILES) $(LIBS)
+
+
 
 # compile all the individual object modules
 md5.o: md5.c md5.h
@@ -46,6 +80,3 @@ PdfString.o: PdfString.c PdfString.h
 PdfStrings.o: PdfStrings.c PdfStrings.h
 PdfValues.o: PdfValues.c PdfValues.h PdfString.h PdfStrings.h PdfDict.h PdfArray.h
 PdfXrefTable.o: PdfXrefTable.c PdfXrefTable.h
-
-clean:
-	@rm -f *.o *.a

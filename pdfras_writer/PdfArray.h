@@ -55,7 +55,7 @@ extern void pd_array_foreach(t_pdarray *arr, f_pdarray_iterator iter, void *cook
 
 // Create and return an array containing the n variable arguments (of type t_pdvalue).
 // If memory allocation fails, returns the error value.
-extern t_pdarray *pd_array_build(t_pdmempool *pool, pduint32 n, /* t_pdvalue value, */ ...);
+extern t_pdarray *pd_array_build(t_pdmempool *pool, pduint32 n, t_pdvalue values[]);
 
 // Create and return an array containing the n variable arguments (of type pdint32).
 // If memory allocation fails, returns the error value.

@@ -14,7 +14,7 @@
 #include "PdfArray.h"
 
 
-typedef struct t_pdfrasencoder {
+struct t_pdfrasencoder {
 	t_pdmempool*		pool;
 	int					apiLevel;			// caller's specified API level.
 	t_pdoutstream*		stm;				// output PDF stream
@@ -52,7 +52,7 @@ typedef struct t_pdfrasencoder {
     t_pdvalue           colorspace;         // colorspace
     int					phys_pageno;		// physical page number
     int					page_front;			// front/back/unspecified
-} t_pdfrasencoder;
+};
 
 
 t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os)
@@ -394,6 +394,7 @@ int pdfr_encoder_get_page_height(t_pdfrasencoder* enc)
 // it draws the strips of the page in order from top to bottom.
 static void content_generator(t_pdcontents_gen *gen, void *cookie)
 {
+	int n;
 	t_pdfrasencoder* enc = (t_pdfrasencoder*)cookie;
 	// compute width & height of page in PDF points
 	double W = enc->width / enc->xdpi * 72.0;
@@ -405,7 +406,7 @@ static void content_generator(t_pdcontents_gen *gen, void *cookie)
 	pdbool succ;
 	t_pdvalue res = pd_dict_get(enc->currentPage, PDA_Resources, &succ);
 	t_pdvalue xobj = pd_dict_get(res, PDA_XObject, &succ);
-	for (int n = 0; n < enc->strips; n++) {
+	for (n = 0; n < enc->strips; n++) {
 		char stripNname[5+12] = "strip";
 		pditoa(n, stripNname + 5);
 		// turn strip name into an atom
@@ -515,6 +516,8 @@ long pdfr_encoder_bytes_written(t_pdfrasencoder* enc)
 
 static int pdfr_sig_handler(t_pdoutstream *stm, void* cookie, PdfOutputEventCode eventid)
 {
+	(void)cookie;
+	(void)eventid;
     pd_puts(stm, "%PDF-raster-" PDFRASTER_SPEC_VERSION "\n");
     return 0;
 }

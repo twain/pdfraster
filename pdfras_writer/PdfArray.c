@@ -3,11 +3,11 @@
 
 #define kSomeReasonableDefaultSize 12
 
-typedef struct t_pdarray {
+struct t_pdarray {
 	pduint32 size;				// no. of entries in use
 	pduint32 maxsize;			// no. of entries allocated (data)
 	t_pdvalue *data;			// storage for entries
-} t_pdarray;
+};
 
 t_pdarray *pd_array_new(t_pdmempool *pool, pduint32 initialSize)
 {

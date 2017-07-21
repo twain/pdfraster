@@ -9,7 +9,7 @@ const t_pdvalue __pderr = { TPDERRVALUE, { 0 } };
 
 t_pdvalue pdatomvalue(t_pdatom v)
 {
-	t_pdvalue val = { TPDNAME };
+	t_pdvalue val = { TPDNAME, { 0 } };
 	val.value.namevalue = v;
 	return val;
 }
@@ -26,35 +26,35 @@ t_pdvalue pdnullvalue()
 
 t_pdvalue pdintvalue(pdint32 v)
 {
-	t_pdvalue val = { TPDNUMBERINT };
+	t_pdvalue val = { TPDNUMBERINT, { 0 } };
 	val.value.intvalue = v;
 	return val;
 }
 
 t_pdvalue pdfloatvalue(double v)
 {
-	t_pdvalue val = { TPDNUMBERFLOAT };
+	t_pdvalue val = { TPDNUMBERFLOAT, { 0 } };
 	val.value.floatvalue = v;
 	return val;
 }
 
 t_pdvalue pdboolvalue(pdbool v)
 {
-	t_pdvalue val = { TPDBOOL };
+	t_pdvalue val = { TPDBOOL, { 0 } };
 	val.value.boolvalue = v;
 	return val;
 }
 
 t_pdvalue pdarrayvalue(t_pdarray *arr)
 {
-	t_pdvalue val = { TPDARRAY };
+	t_pdvalue val = { TPDARRAY, { 0 } };
 	val.value.arrvalue = arr;
 	return val;
 }
 
 t_pdvalue pdstringvalue(t_pdstring *str)
 {
-	t_pdvalue val = { TPDSTRING };
+	t_pdvalue val = { TPDSTRING, { 0 } };
 	val.value.stringvalue = str;
 	return val;
 }

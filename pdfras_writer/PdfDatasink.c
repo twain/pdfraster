@@ -3,11 +3,11 @@
 
 #include "PdfDatasink.h"
 
-typedef struct t_datasink {
+struct t_datasink {
 	f_sink_put put;
 	f_sink_free free;
 	void *cookie;
-} t_datasink;
+};
 
 t_datasink *pd_datasink_new(t_pdmempool *pool, f_sink_put put, f_sink_free free, void *cookie)
 {

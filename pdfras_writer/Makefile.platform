@@ -1,0 +1,107 @@
+# Makefile.platform
+#
+# Figure out what the heck we're running on, and set stuff that's
+# applicable (and hopefully useable) for that platform.
+#
+
+
+
+# Hey, what freaking OS is this?
+ifeq ($(OSNAME),)
+	OSNAME = $(shell uname -s)
+endif
+
+
+
+# A wild Linux has been spotted...
+ifeq ($(OSNAME),Linux)
+
+	# Common stuff...
+	STATICLIBEXT = a
+	SHAREDLIBEXT = so
+	STATICLIBCMD = $(AR) csur
+	SHAREDLIBCMD = $(CC)
+	SIGN =  echo
+	SHAREDFLAGS = -shared
+	BINARYFLAGS =
+	Cxx = g++
+	CC = gcc
+
+	# ...and it's 64-bit
+	ifeq ($(shell uname -m),x86_64)
+
+		# Debug/Release stuff...
+		ifeq ($(MAKECMDGOALS),debug)
+			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = debug/linuxx64
+		else
+			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = linuxx64
+		endif
+
+	# Really, who still uses 32-bit?  Fine...
+	else
+
+		# Debug/Release stuff...
+		ifeq ($(MAKECMDGOALS),debug)
+			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = debug/linuxx86
+		else
+			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = linuxx86
+		endif
+	endif
+
+# Well, it ain't Linux...
+else
+
+	# It's osMac (aka MacOSX)...
+	ifeq ($(OSNAME),Darwin)
+
+		# Common stuff...
+		STATICLIBEXT = a
+		SHAREDLIBEXT = dylib
+		OSMACSDK = 10.7
+		OSMACSDKPATH = /Developer/SDKs/MacOSX$(OSMACSDK).sdk
+		STATICLIBCMD = libtool -static -o
+		SHAREDLIBCMD = $(CC)
+		SIGN = codesign --verbose -s "TWAIN Working Group"
+		SHAREDFLAGS = -bundle
+		BINARYFLAGS = -arch i386 -arch x86_64 -Wl,-syslibroot,$(OSMACSDKPATH)
+		Cxx = g++
+		CC = gcc
+
+		# Debug/Release stuff...
+		ifeq ($(MAKECMDGOALS),debug)
+			CXXFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = debug/osmac
+		else
+			CXXFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			CCFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			CFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
+			TARGETDIR = osmac
+		endif
+
+	# Ruh-roh...
+	else
+		echo "Congratulations, if you want to build with this OS, you get to add it! $(OSNAME)"
+		exit 1
+	endif
+endif
+
+
+
+# Suffixing sucatash...
+.SUFFIXES:
+.SUFFIXES:
+	$(SUFFIXES) .o .cpp .c .mm .m .h

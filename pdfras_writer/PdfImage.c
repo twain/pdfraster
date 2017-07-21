@@ -114,6 +114,8 @@ t_pdvalue pd_make_calgray_colorspace(t_pdmempool *alloc, double gamma, double bl
 // with given Gamma, BlackPoint, WhitePoint and transform matrix. See PDF spec.
 t_pdvalue pd_make_calrgb_colorspace(t_pdmempool *alloc, double gamma[3], double black[3], double white[3], double matrix[9])
 {
+	int i;
+
     // A calibrated RGB colorspace is an array [/CalRGB <<dict>>]
     // Legal dictionary entries: Gamma, WhitePoint, BlackPoint, and Matrix.
     //
@@ -151,7 +153,7 @@ t_pdvalue pd_make_calrgb_colorspace(t_pdmempool *alloc, double gamma[3], double 
     if (matrix) {
         // add transform matrix
         t_pdarray* m = pd_array_new(alloc, 9);
-        for (int i = 0; i < 9; i++) {
+        for (i = 0; i < 9; i++) {
             pd_array_add(m, pdfloatvalue(matrix[i]));
         }
         pd_dict_put(csdict, PDA_Matrix, pdarrayvalue(m));

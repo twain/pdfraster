@@ -51,7 +51,7 @@ public:
 		LOG(dbg, "> file=\"%s\" mode=\"%s\"", name.c_str(), mode);
 		fp = fopen(name.c_str(), mode);
 		if (nullptr == fp) {
-			char *mode_desc = "";
+			const char *mode_desc = "";
 			switch (mode[0]) {
 			case 'a': mode_desc = "for appending"; break;
 			case 'r': mode_desc = "for reading"; break;

@@ -93,7 +93,7 @@ static char *find_file_in_path(char *path)
 }
 
 using std::setw;
-void journal::println(char *path, const int line, const char *function, const log_level level, const char *fmt, ...)
+void journal::println(const char *path, const int line, const char *function, const log_level level, const char *fmt, ...)
 {
 	if (level > lvl) return;
 
@@ -123,7 +123,7 @@ void journal::println(char *path, const int line, const char *function, const lo
 	}
 
 	*os << tbuf;
-	*os << " " << find_file_in_path(path);
+	*os << " " << find_file_in_path((char*)path);
 	*os << setw(5) << line;
 	*os << " " << level_ch;
 	*os << " " << function << "()";

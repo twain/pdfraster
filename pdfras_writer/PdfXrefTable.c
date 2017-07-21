@@ -1,12 +1,12 @@
 #include "PdfXrefTable.h"
 #include "PdfString.h"
 
-typedef struct t_pdreference {
+struct t_pdreference {
 	pdint16 isWritten;
 	pdint16 objectNumber;
 	pduint32 pos;
 	t_pdvalue value;
-} t_pdreference;
+};
 
 pduint32 pd_reference_object_number(t_pdvalue ref)
 {
@@ -93,11 +93,11 @@ typedef struct t_xr {
 	struct t_xr *next;
 } t_xr;
 
-typedef struct t_pdxref
+struct t_pdxref
 {
 	pduint32 nextObjectNumber;
 	t_xr *first, *last;
-} t_pdxref;
+};
 
 t_pdxref *pd_xref_new(t_pdmempool *alloc)
 {
@@ -202,7 +202,7 @@ t_pdvalue pd_xref_create_forward_reference(t_pdxref *xref)
 	if (xref) {
 		t_xr *xr = add_reference(xref, pdnullvalue());
 		if (xr) {
-			t_pdvalue ref = { TPDREFERENCE };
+			t_pdvalue ref = { TPDREFERENCE, { 0 } };
 			ref.value.refvalue = xr->reference;
 			return ref;
 		}
@@ -225,7 +225,7 @@ t_pdvalue pd_xref_makereference(t_pdxref *xref, t_pdvalue value)
 			xr = add_reference(xref, value);
 		}
 		if (xr) {
-			t_pdvalue ref = { TPDREFERENCE };
+			t_pdvalue ref = { TPDREFERENCE, { 0 } };
 			ref.value.refvalue = xr->reference;
 			return ref;
 		}
@@ -270,7 +270,7 @@ void pd_xref_writeallpendingreferences(t_pdxref *xref, t_pdoutstream *os)
 		t_xr *walker;
 		for (walker = xref->first; walker; walker = walker->next)
 		{
-			t_pdvalue ref = { TPDREFERENCE };
+			t_pdvalue ref = { TPDREFERENCE, { 0 } };
 			ref.value.refvalue = walker->reference;
 			pd_write_reference_declaration(os, ref);
 		}

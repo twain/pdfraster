@@ -2,12 +2,12 @@
 #include "PdfDatasink.h"
 #include "PdfStreaming.h"
 
-typedef struct t_pdcontents_gen {
+struct t_pdcontents_gen {
 	f_gen gen;
 	void *gencookie;
 	t_datasink *sink;
 	t_pdoutstream *os;
-}t_pdcontents_gen;
+};
 
 static int gen_write_out(const pduint8 *data, pduint32 offset, pduint32 length, void *cookie)
 {

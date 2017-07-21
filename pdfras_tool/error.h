@@ -68,7 +68,7 @@ public:
 	error(pdfrt_error_code err, const char *function, const char *file, int line);
 	error(ReadErrorCode err, const char *function, const char *file, int line);
 	bool operator () (void) const; // get
-	char *get_error_string() const;
+	const char *get_error_string() const;
 };
 
 using std::ostream;

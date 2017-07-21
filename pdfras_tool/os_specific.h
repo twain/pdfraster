@@ -39,7 +39,7 @@
 #	define ACCESS _access
 #	define ACCESS_READ 04
 #else
-#	define STRICMP stricmp
+#	define STRICMP strcasecmp
 #	define ACCESS access
 #	define ACCESS_READ R_OK
 #endif

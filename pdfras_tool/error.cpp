@@ -59,8 +59,8 @@ bool error::operator () (void) const {  // get
 	return ((m_ReadErrorCode != READ_OK) || (m_pdfrt_error_code != OK)) ? true : false;
 }
 
-char *error::get_error_string(void) const {
-	char *str;
+const char *error::get_error_string(void) const {
+	const char *str;
 
 	switch (m_pdfrt_error_code) {
 	case OK: str = ""; break;

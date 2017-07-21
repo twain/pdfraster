@@ -9,18 +9,18 @@
 #include "PdfString.h"
 #include "PdfXrefTable.h"
 
-typedef struct t_pdoutstream {
+struct t_pdoutstream {
 	fOutputWriter writer;
 	t_pdencrypter *encrypter;
 	void *writercookie;
 	pduint32 pos;
     fOutStreamEventHandler eventHandler[PDF_OUTPUT_EVENT_COUNT];
     void* eventCookie[PDF_OUTPUT_EVENT_COUNT];
-} t_pdoutstream;
+};
 
 void pd_outstream_set_event_handler(t_pdoutstream *stm, PdfOutputEventCode eventid, fOutStreamEventHandler handler, void *cookie)
 {
-    if (stm && eventid >= 0 && eventid < PDF_OUTPUT_EVENT_COUNT) {
+    if (stm && ((int)eventid >= 0) && (eventid < PDF_OUTPUT_EVENT_COUNT)) {
         stm->eventHandler[eventid] = handler;
         stm->eventCookie[eventid] = cookie;
     }
@@ -30,7 +30,7 @@ void pd_outstream_set_event_handler(t_pdoutstream *stm, PdfOutputEventCode event
 int pd_outstream_fire_event(t_pdoutstream *stm, PdfOutputEventCode eventid)
 {
     int result = -1;
-    if (stm && eventid >= 0 && eventid < PDF_OUTPUT_EVENT_COUNT) {
+    if (stm && ((int)eventid >= 0) && (eventid < PDF_OUTPUT_EVENT_COUNT)) {
         fOutStreamEventHandler handler = stm->eventHandler[eventid];
         void* cookie = stm->eventCookie[eventid];
         if (handler) {
@@ -433,13 +433,6 @@ void pd_write_pdf_header(t_pdoutstream *stm, char *version)
 	pd_puts(stm, version);
 	pd_putc(stm, '\n');
 	pd_puts(stm, "%\xE2\xE3\xCF\xD3\n");
-}
-
-static pdbool freeTrailerEntry(t_pdatom atom, t_pdvalue value, void *cookie)
-{
-	(void)atom; (void)cookie;
-	pd_value_free(&value);
-	return PD_TRUE;
 }
 
 void pd_write_endofdocument(t_pdoutstream *stm, t_pdxref *xref, t_pdvalue catalog, t_pdvalue info, t_pdvalue caller_trailer)

@@ -7,14 +7,14 @@
 #include <memory.h>
 #include <assert.h>
 
-typedef struct t_pdatomtable {
+struct t_pdatomtable {
 	// number of elements this table can currently hold
 	pduint32 capacity;
 	// number of elements currently stored in this table
 	pduint32 elements;
 	// array of capacity entries.
 	t_pdatom *buckets;
-} t_pdatomtable;
+};
 
 
 // Standard Atoms
