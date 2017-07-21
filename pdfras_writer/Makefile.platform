@@ -35,12 +35,12 @@ ifeq ($(OSNAME),Linux)
 			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = debug/linuxx64
+			TARGETDIR = linuxx64/Debug
 		else
 			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = linuxx64
+			TARGETDIR = linuxx64/Release
 		endif
 
 	# Really, who still uses 32-bit?  Fine...
@@ -51,12 +51,12 @@ ifeq ($(OSNAME),Linux)
 			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = debug/linuxx86
+			TARGETDIR = linuxx86/Debug
 		else
 			CXXFLAGS = -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = linuxx86
+			TARGETDIR = linuxx86/Release
 		endif
 	endif
 
@@ -84,12 +84,12 @@ else
 			CXXFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = debug/osmac
+			TARGETDIR = osmac/Debug
 		else
 			CXXFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
 			CCFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
 			CFLAGS = -g3 -arch i386 -arch x86_64 -isysroot $(OSMACSDKPATH) -mmacosx-version-min=$(OSMACSDK) -Wall -Wextra -Werror -fexceptions
-			TARGETDIR = osmac
+			TARGETDIR = osmac/Release
 		endif
 
 	# Ruh-roh...

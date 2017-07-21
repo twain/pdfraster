@@ -24,6 +24,7 @@ O =	application.o \
 
 # do it all
 all: ../bin/$(TARGETDIR)/pdfras_tool
+debug: ../bin/$(TARGETDIR)/pdfras_tool
 
 
 
