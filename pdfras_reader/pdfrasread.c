@@ -1832,7 +1832,7 @@ static int parse_trailer(t_pdfrasreader* reader)
     off = reader->filesize - tailsize;
 	// Calculate the file position of the "startxref" keyword
 	// and make a note of it for a bit later.
-	// pdfpos_t startxref_off = off += (startxref - tail); // not used, but left in case anybody wants it back...
+	off += (startxref - tail);
 	unsigned long xref_off;
 	if (!token_eat(reader, &off, "startxref") || !token_ulong(reader, &off, &xref_off)) {
 		// startxref not followed by unsigned int
