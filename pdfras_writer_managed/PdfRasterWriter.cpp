@@ -141,7 +141,7 @@ namespace PdfRasterWriter {
 		int idx;
 		for (idx = 0; idx < MAX_ENCODERS; ++idx) {
 			if (!state[idx].valid()) {
-				break; //good, found an unused encoder struc
+				break; //good, found an unused encoder struct
 			}
 		}
 		if (idx == MAX_ENCODERS) {
@@ -261,6 +261,30 @@ namespace PdfRasterWriter {
 		checkStateValid(idx);
 
 		pdfr_encoder_start_page(state[idx].enc, width);
+		LOG(fprintf(fp, "<"));
+	}
+
+	void Writer::encoder_write_page_xmp(int idx, String^ xmpdata)
+	{
+		LOG(fprintf(fp, "> idx=%d xmpdata=%s", xmpdata));
+		checkStateValid(idx);
+
+		// Convert to UTF-8, make sure it's NUL terminated...
+		array<Byte>^ abXmpdata = System::Text::Encoding::UTF8->GetBytes(xmpdata + "\0");
+		pin_ptr<Byte> p = &abXmpdata[0];
+		pdfr_encoder_write_page_xmp(state[idx].enc, reinterpret_cast<const char*>(p));
+		LOG(fprintf(fp, "<"));
+	}
+
+	void Writer::encoder_write_document_xmp(int idx, String^ xmpdata)
+	{
+		LOG(fprintf(fp, "> idx=%d xmpdata=%s", xmpdata));
+		checkStateValid(idx);
+
+		// Convert to UTF-8, make sure it's NUL terminated...
+		array<Byte>^ abXmpdata = System::Text::Encoding::UTF8->GetBytes(xmpdata + "\0");
+		pin_ptr<Byte> p = &abXmpdata[0];
+		pdfr_encoder_write_document_xmp(state[idx].enc, reinterpret_cast<const char*>(p));
 		LOG(fprintf(fp, "<"));
 	}
 

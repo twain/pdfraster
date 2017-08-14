@@ -49,6 +49,8 @@ namespace PdfRasterWriter {
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);
 		void encoder_set_compression(int enc, PdfRasterCompression compression);
 		void encoder_start_page(int enc, int width);
+		void encoder_write_page_xmp(int idx, String^ xmpdata);
+		void encoder_write_document_xmp(int idx, String^ xmpdata);
 		void encoder_write_strip(int enc, int rows, array<unsigned char>^ buf, unsigned offset, unsigned len);
 		void encoder_end_page(int enc);
 		void encoder_end_document(int enc);
