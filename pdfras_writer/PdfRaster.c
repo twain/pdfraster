@@ -153,6 +153,12 @@ void pdfr_encoder_get_creation_date(t_pdfrasencoder *enc, time_t *t)
 
 void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 {
+	pdfr_encoder_write_document_xmp_addrdf(enc, xmpdata, 0);
+}
+
+void pdfr_encoder_write_document_xmp_addrdf(t_pdfrasencoder *enc, const char* xmpdata, int addrdf)
+{
+	// placeholder: if addrdf is non-zero, then wrap the data in a standard rdf block
 	t_pdvalue xmpstm = pd_metadata_new(enc->pool, enc->xref, f_write_string, (void*)xmpdata);
 	// flush the metadata stream to output immediately
 	pd_write_reference_declaration(enc->stm, xmpstm);
@@ -161,6 +167,12 @@ void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 
 void pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 {
+	pdfr_encoder_write_page_xmp_addrdf(enc, xmpdata, 0);
+}
+
+void pdfr_encoder_write_page_xmp_addrdf(t_pdfrasencoder *enc, const char* xmpdata, int addrdf)
+{
+	// placeholder: if addrdf is non-zero, then wrap the data in a standard rdf block
 	t_pdvalue xmpstm = pd_metadata_new(enc->pool, enc->xref, f_write_string, (void*)xmpdata);
 	// flush the metadata stream to output immediately
 	pd_write_reference_declaration(enc->stm, xmpstm);

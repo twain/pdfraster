@@ -14,7 +14,8 @@ extern "C" {
 // Version of the file format we support (or at least, write)
 #define PDFRASTER_SPEC_VERSION "1.0"
 
-#define PDFRAS_LIBRARY_VERSION "0.18"
+#define PDFRAS_LIBRARY_VERSION "0.19"
+// 0.19 mark	2017.09.07  added _addrdf variants for xmp metadata functions
 //      gus     2017.07.19  compiles 64-bit, added pdfpos_t type
 // 0.18 spike   2016.10.23  clarified/enforced image params that must be same for all strips on page.
 // 0.17 spike   2016.09.23  moved %PDF-raster marker to just before startxref
@@ -100,10 +101,14 @@ typedef void (PDFRASAPICALL *pfn_pdfr_encoder_get_creation_date)(t_pdfrasencoder
 // The XMP data is a UTF-8 encoded, NUL-terminated string which is written verbatim.
 void PDFRASAPICALL pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata);
 typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_page_xmp)(t_pdfrasencoder *enc, const char* xmpdata);
+void PDFRASAPICALL pdfr_encoder_write_page_xmp_addrdf(t_pdfrasencoder *enc, const char* xmpdata, int addrdf);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_page_xmp_addrdf)(t_pdfrasencoder *enc, const char* xmpdata, int addrdf);
 
 // Attach XMP metadata to the document.
 void PDFRASAPICALL pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata);
 typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_document_xmp)(t_pdfrasencoder *enc, const char* xmpdata);
+void PDFRASAPICALL pdfr_encoder_write_document_xmp_addrdf(t_pdfrasencoder *enc, const char* xmpdata, int addrdf);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_write_document_xmp_addrdf)(t_pdfrasencoder *enc, const char* xmpdata, int addrdf);
 
 // Set the viewing angle for subsequent pages.
 // The angle is a rotation clockwise in degrees and must be a multiple of 90.

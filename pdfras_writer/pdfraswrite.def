@@ -27,6 +27,8 @@ EXPORTS
 	pdfr_encoder_end_document			@24
 	pdfr_encoder_bytes_written			@25
 	pdfr_encoder_destroy				@26
+	pdfr_encoder_write_page_xmp_addrdf		@27
+	pdfr_encoder_write_document_xmp_addrdf		@28
 
 	pd_outstream_new				@100
 	pd_outstream_free				@101

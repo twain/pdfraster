@@ -33,7 +33,7 @@ char* pdatoulz(char* p, pduint32 n, int w)
 static long get_local_time_and_offset(time_t t, struct tm *ptm)
 {
 	long UTCoff;
-#if defined(WIN32) && _MSC_VER>=1900
+#if defined(WIN32) && (_MSC_VER >= 1900)
 	// get local time
 	localtime_s(ptm, &t);
 	// get the offset in seconds from local time to UTC:

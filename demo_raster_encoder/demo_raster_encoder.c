@@ -435,7 +435,7 @@ int write_gray8_uncompressed_file(t_OS os, const char *filename)
 	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
 	pdfr_encoder_set_subject(enc, "GRAY8 Uncompressed sample output");
 
-	pdfr_encoder_write_page_xmp(enc, XMP_metadata);
+	pdfr_encoder_write_page_xmp_addrdf(enc, XMP_metadata, 0);
 
 	write_gray8_uncomp_page(enc);
 
@@ -462,7 +462,7 @@ int write_gray8_uncompressed_multistrip_file(t_OS os, const char *filename)
 	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
 	pdfr_encoder_set_subject(enc, "GRAY8 Uncompressed multi-strip sample output");
 
-	pdfr_encoder_write_page_xmp(enc, XMP_metadata);
+	pdfr_encoder_write_page_xmp_addrdf(enc, XMP_metadata, 0);
 
 	write_gray8_uncomp_multistrip_page(enc);
 
@@ -507,7 +507,7 @@ int write_gray8_jpeg_file(t_OS os, const char *filename)
 	time_t tcd;
 	pdfr_encoder_get_creation_date(enc, &tcd);
 	set_xmp_create_date(XMP_metadata, tcd);
-	pdfr_encoder_write_document_xmp(enc, XMP_metadata);
+	pdfr_encoder_write_document_xmp_addrdf(enc, XMP_metadata, 0);
 
 	write_gray8_jpeg_page(enc);
 
@@ -822,7 +822,7 @@ int write_rgb24_jpeg_file(t_OS os, const char *filename)
 	pdfr_encoder_set_title(enc, filename);
 	pdfr_encoder_set_subject(enc, "24-bit JPEG-compressed sample output");
 
-	pdfr_encoder_write_document_xmp(enc, XMP_metadata);
+	pdfr_encoder_write_document_xmp_addrdf(enc, XMP_metadata, 0);
 
 	write_rgb24_jpeg_page(enc);
 
@@ -948,7 +948,7 @@ int write_allformat_multipage_file(t_OS os, const char *filename)
 	t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
 	pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
 
-	pdfr_encoder_write_document_xmp(enc, XMP_metadata);
+	pdfr_encoder_write_document_xmp_addrdf(enc, XMP_metadata, 0);
 
 	pdfr_encoder_set_physical_page_number(enc, 1);
 	pdfr_encoder_set_page_front(enc, 1);					// front side
