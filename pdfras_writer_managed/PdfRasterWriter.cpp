@@ -266,35 +266,25 @@ namespace PdfRasterWriter {
 
 	void Writer::encoder_write_page_xmp(int idx, String^ xmpdata)
 	{
-		encoder_write_page_xmp_addrdf(idx, xmpdata, 0);
-	}
-
-	void Writer::encoder_write_page_xmp_addrdf(int idx, String^ xmpdata, int addrdf)
-	{
-		LOG(fprintf(fp, "> idx=%d xmpdata=%s addrdf=%d", idx, xmpdata, addrdf));
+		LOG(fprintf(fp, "> idx=%d xmpdata=%s", idx, xmpdata));
 		checkStateValid(idx);
 
 		// Convert to UTF-8, make sure it's NUL terminated...
 		array<Byte>^ abXmpdata = System::Text::Encoding::UTF8->GetBytes(xmpdata + "\0");
 		pin_ptr<Byte> p = &abXmpdata[0];
-		pdfr_encoder_write_page_xmp_addrdf(state[idx].enc, reinterpret_cast<const char*>(p), addrdf);
+		pdfr_encoder_write_page_xmp(state[idx].enc, reinterpret_cast<const char*>(p));
 		LOG(fprintf(fp, "<"));
 	}
 
 	void Writer::encoder_write_document_xmp(int idx, String^ xmpdata)
 	{
-		encoder_write_document_xmp_addrdf(idx, xmpdata, 0);
-	}
-
-	void Writer::encoder_write_document_xmp_addrdf(int idx, String^ xmpdata, int addrdf)
-	{
-		LOG(fprintf(fp, "> idx=%d xmpdata=%s addrdf=%d", idx, xmpdata, addrdf));
+		LOG(fprintf(fp, "> idx=%d xmpdata=%s", idx, xmpdata));
 		checkStateValid(idx);
 
 		// Convert to UTF-8, make sure it's NUL terminated...
 		array<Byte>^ abXmpdata = System::Text::Encoding::UTF8->GetBytes(xmpdata + "\0");
 		pin_ptr<Byte> p = &abXmpdata[0];
-		pdfr_encoder_write_document_xmp_addrdf(state[idx].enc, reinterpret_cast<const char*>(p), addrdf);
+		pdfr_encoder_write_document_xmp(state[idx].enc, reinterpret_cast<const char*>(p));
 		LOG(fprintf(fp, "<"));
 	}
 

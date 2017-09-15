@@ -18,7 +18,6 @@
 
 #define PDFRASREAD_VERSION "0.7.9.6"
 
-// 0.8.0.0  mark    2017.09.07  API addition - added xmp _addrdf functiongs to writer
 //          gus     2017.07.19  compiles 64-bit, added pdfpos_t type
 // 0.7.9.5  gus     2017.07.11  added pdfrasread_strip_height() - use for multistrip pages
 //                              added pdfrasread_strip_raw_size() - use for compressed strips
