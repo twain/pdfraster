@@ -32,3 +32,6 @@ demo_raster_encoder/*.pdf
 *.VC.db
 *.ipch
 *.vs
+
+.vscode/
+build/
