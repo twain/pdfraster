@@ -9,6 +9,8 @@
 #include "PdfString.h"
 #include "PdfXrefTable.h"
 
+#include <assert.h>
+
 struct t_pdoutstream {
 	fOutputWriter writer;
 	t_pdencrypter *encrypter;
@@ -476,4 +478,25 @@ void pd_write_endofdocument(t_pdoutstream *stm, t_pdxref *xref, t_pdvalue catalo
 			pd_dict_free(trailer);
 		}
 	}
+}
+
+// Writer
+extern fOutputWriter pd_outputstream_set_writer(t_pdoutstream* stm, fOutputWriter writer) {
+    assert(stm);
+    assert(writer);
+
+    fOutputWriter ret = stm->writer;
+    stm->writer = writer;
+
+    return ret;
+}
+
+// Cookie
+extern void* pd_outputstream_set_cookie(t_pdoutstream* stm, void* cookie) {
+    assert(stm);
+
+    void* ret = stm->writercookie;
+    stm->writercookie = cookie;
+
+    return ret;
 }

@@ -55,6 +55,12 @@
     <ClCompile Include="PdfSecurityHandler.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PdfDigitalSignature.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PdfDate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PdfAlloc.h">
@@ -115,6 +121,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PdfSecurityHandler.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PdfDigitalSignature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PdfDate.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

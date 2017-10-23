@@ -10,6 +10,8 @@
 #include "PdfRaster.h"
 #include "PdfRasterWriter.h"
 
+using namespace Runtime::InteropServices;
+
 // #define PDF_RASTER_WRITER_LOG
 #if defined(PDF_RASTER_WRITER_LOG) || defined(PDF_RASTER_WRITER_LOG_VERBOSE) || defined(PDF_RASTER_WRITER_LOG_VERBOSE_VERY)
 #	define LOG(x) \
@@ -171,6 +173,51 @@ namespace PdfRasterWriter {
 		return idx;
 	}
 
+    int Writer::encoder_create_digigally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password)
+    {
+        LOG(fprintf(fp, "> apiLevel=%d", apiLevel));
+
+        int idx;
+        for (idx = 0; idx < MAX_ENCODERS; ++idx) {
+            if (!state[idx].valid()) {
+                break; // good, found an unused encoder struct
+            }
+        }
+
+        if (idx == MAX_ENCODERS) {
+            LOG(fprintf(fp, "- ERROR: too many encoders used"));
+            throw(L"too many encoder used");
+        }
+
+        pin_ptr<const wchar_t> wfile = PtrToStringChars(pdfFileName);
+        LOG(fprintf(fp, "- pdfFileName=\"%S\"", wfile));
+
+        if (errno_t err = _wfopen_s((FILE **)&state[idx].os.writeoutcookie, wfile, L"wb")) {
+            state[idx].os.writeoutcookie = nullptr;
+            state[idx].invalidate();
+            char buf[256]; buf[0] = 0; strerror_s(buf, sizeof(buf) - 1, err);
+            LOG(fprintf(fp, "- ERROR: _wfopen_s() returned 0 errno=%d \"%s\"", err, buf));
+            throw(L"_wfopen_s() returned 0");
+        }
+
+        const char* pfx_file = (const char*)(Marshal::StringToHGlobalAnsi(pfxFile)).ToPointer();
+        const char* pfx_passwd = (const char*)(Marshal::StringToHGlobalAnsi(password)).ToPointer();
+
+        state[idx].enc = pdfr_signed_encoder_create(apiLevel, &state[idx].os, pfx_file, pfx_passwd);
+
+        Marshal::FreeHGlobal(IntPtr((void*)pfx_file));
+        Marshal::FreeHGlobal(IntPtr((void*)pfx_passwd));
+
+        if (!state[idx].valid()) {
+            state[idx].invalidate();
+            LOG(fprintf(fp, "- ERROR: pdfr_signed_encoder_create() returned nullptr"));
+            throw(L"pdfr_signed_encoder_create() returned nullptr");
+        }
+
+        LOG(fprintf(fp, "< idx=%d", idx));
+        return idx;
+    }
+
 	void Writer::encoder_set_creator(int idx, String^ creator)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));
@@ -315,6 +362,74 @@ namespace PdfRasterWriter {
 		pdfr_encoder_end_document(state[idx].enc);
 		LOG(fprintf(fp, "<"));
 	}
+
+    void Writer::digital_signature_set_name(int idx, String^ name) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        t_pdfdigitalsignature* signature = pdfr_encoder_get_digitalsignature(state[idx].enc);
+        if (!signature) {
+            LOG(fprintf("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr"));
+            throw("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr");
+        }
+
+        const char* name_chars = (const char*)(Marshal::StringToHGlobalAnsi(name)).ToPointer();
+        pdfr_digitalsignature_set_name(signature, name_chars);
+        Marshal::FreeHGlobal(IntPtr((void*)name_chars));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::digital_signature_set_reason(int idx, String^ reason) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        t_pdfdigitalsignature* signature = pdfr_encoder_get_digitalsignature(state[idx].enc);
+        if (!signature) {
+            LOG(fprintf("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr"));
+            throw("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr");
+        }
+
+        const char* reason_chars = (const char*)(Marshal::StringToHGlobalAnsi(reason)).ToPointer();
+        pdfr_digitalsignature_set_reason(signature, reason_chars);
+        Marshal::FreeHGlobal(IntPtr((void*)reason_chars));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::digital_signature_set_location(int idx, String^ location) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        t_pdfdigitalsignature* signature = pdfr_encoder_get_digitalsignature(state[idx].enc);
+        if (!signature) {
+            LOG(fprintf("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr"));
+            throw("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr");
+        }
+
+        const char* location_chars = (const char*)(Marshal::StringToHGlobalAnsi(location)).ToPointer();
+        pdfr_digitalsignature_set_location(signature, location_chars);
+        Marshal::FreeHGlobal(IntPtr((void*)location_chars));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::digital_signature_set_contactinfo(int idx, String^ contact) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        t_pdfdigitalsignature* signature = pdfr_encoder_get_digitalsignature(state[idx].enc);
+        if (!signature) {
+            LOG(fprintf("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr"));
+            throw("- ERROR: pdfr_encoder_get_digitalsignature returned nullptr");
+        }
+
+        const char* contact_chars = (const char*)(Marshal::StringToHGlobalAnsi(contact)).ToPointer();
+        pdfr_digitalsignature_set_contactinfo(signature, contact_chars);
+        Marshal::FreeHGlobal(IntPtr((void*)contact_chars));
+
+        LOG(fprintf(fp, "<"));
+    }
 
 	void Writer::encoder_destroy(int idx)
 	{

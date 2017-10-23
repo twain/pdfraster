@@ -87,7 +87,6 @@ void pd_reference_set_position(t_pdvalue ref, pduint32 pos)
 	}
 }
 
-
 typedef struct t_xr {
 	t_pdreference *reference;
 	struct t_xr *next;

@@ -90,17 +90,20 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\bin\x86\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>pdfraswrite_postbuild.bat $(TargetDir) $(TargetName) $(ProjectDir) $(Configuration)</Command>
@@ -114,17 +117,20 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\bin\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>pdfraswrite_postbuild.bat $(TargetDir) $(TargetName) $(ProjectDir) x64\$(Configuration)</Command>
@@ -138,12 +144,13 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,6 +158,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\bin\x86\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>pdfraswrite_postbuild.bat $(TargetDir) $(TargetName) $(ProjectDir) $(Configuration)</Command>
@@ -164,12 +173,13 @@
       <WarningLevel>Level3</WarningLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CompileAs>CompileAsC</CompileAs>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -177,6 +187,8 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\bin\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>pdfraswrite_postbuild.bat $(TargetDir) $(TargetName) $(ProjectDir) x64\$(Configuration)</Command>
@@ -192,7 +204,9 @@
     <ClInclude Include="PdfAtoms.h" />
     <ClInclude Include="PdfContentsGenerator.h" />
     <ClInclude Include="PdfDatasink.h" />
+    <ClInclude Include="PdfDate.h" />
     <ClInclude Include="PdfDict.h" />
+    <ClInclude Include="PdfDigitalSignature.h" />
     <ClInclude Include="PdfHash.h" />
     <ClInclude Include="PdfImage.h" />
     <ClInclude Include="PdfOS.h" />
@@ -214,7 +228,9 @@
     <ClCompile Include="PdfAtoms.c" />
     <ClCompile Include="PdfContentsGenerator.c" />
     <ClCompile Include="PdfDatasink.c" />
+    <ClCompile Include="PdfDate.c" />
     <ClCompile Include="PdfDict.c" />
+    <ClCompile Include="PdfDigitalSignature.c" />
     <ClCompile Include="PdfSecurityHandler.c" />
     <ClCompile Include="PdfValues.c" />
     <ClCompile Include="PdfHash.c" />
