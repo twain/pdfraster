@@ -218,6 +218,66 @@ namespace PdfRasterWriter {
         return idx;
     }
 
+    void Writer::encoder_set_RC4_40_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        const char* userpwd = (const char*)(Marshal::StringToHGlobalAnsi(user_password)).ToPointer();
+        const char* ownerpwd = (const char*)(Marshal::StringToHGlobalAnsi(owner_password)).ToPointer();
+
+        pdfr_encoder_set_RC4_40_encrypter(state[idx].enc, userpwd, ownerpwd, perms, metadata);
+
+        Marshal::FreeHGlobal(IntPtr((void*)userpwd));
+        Marshal::FreeHGlobal(IntPtr((void*)ownerpwd));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::encoder_set_RC4_128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        const char* userpwd = (const char*)(Marshal::StringToHGlobalAnsi(user_password)).ToPointer();
+        const char* ownerpwd = (const char*)(Marshal::StringToHGlobalAnsi(owner_password)).ToPointer();
+
+        pdfr_encoder_set_RC4_128_encrypter(state[idx].enc, userpwd, ownerpwd, perms, metadata);
+
+        Marshal::FreeHGlobal(IntPtr((void*)userpwd));
+        Marshal::FreeHGlobal(IntPtr((void*)ownerpwd));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::encoder_set_AES128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        const char* userpwd = (const char*)(Marshal::StringToHGlobalAnsi(user_password)).ToPointer();
+        const char* ownerpwd = (const char*)(Marshal::StringToHGlobalAnsi(owner_password)).ToPointer();
+
+        pdfr_encoder_set_AES128_encrypter(state[idx].enc, userpwd, ownerpwd, perms, metadata);
+
+        Marshal::FreeHGlobal(IntPtr((void*)userpwd));
+        Marshal::FreeHGlobal(IntPtr((void*)ownerpwd));
+
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::encoder_set_AES256_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        const char* userpwd = (const char*)(Marshal::StringToHGlobalAnsi(user_password)).ToPointer();
+        const char* ownerpwd = (const char*)(Marshal::StringToHGlobalAnsi(owner_password)).ToPointer();
+
+        pdfr_encoder_set_AES256_encrypter(state[idx].enc, userpwd, ownerpwd, perms, metadata);
+
+        Marshal::FreeHGlobal(IntPtr((void*)userpwd));
+        Marshal::FreeHGlobal(IntPtr((void*)ownerpwd));
+
+        LOG(fprintf(fp, "<"));
+    }
+
 	void Writer::encoder_set_creator(int idx, String^ creator)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));

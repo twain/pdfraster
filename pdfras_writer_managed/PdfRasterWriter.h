@@ -45,6 +45,10 @@ namespace PdfRasterWriter {
 	public:
 		int  encoder_create(int apiLevel, String^ pdfFileName);
         int  encoder_create_digigally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password);
+        void encoder_set_RC4_40_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
+        void encoder_set_RC4_128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
+        void encoder_set_AES128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
+        void encoder_set_AES256_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
 		void encoder_set_creator(int enc, String^ creator);
 		void encoder_set_resolution(int enc, double xdpi, double ydpi);
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);

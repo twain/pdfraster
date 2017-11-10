@@ -13,6 +13,7 @@
 #include "PdfImage.h"
 #include "PdfArray.h"
 #include "PdfDigitalSignature.h"
+#include "PdfSecurityHandler.h"
 
 struct t_pdfrasencoder {
 	t_pdmempool*		pool;
@@ -35,6 +36,8 @@ struct t_pdfrasencoder {
     double              next_page_ydpi;
 	RasterPixelFormat	next_page_pixelFormat;		// how pixels are represented
 	RasterCompression	next_page_compression;		// compression setting for next page
+    // document ID
+    t_pdvalue           file_id;
 
     // current page object
 	t_pdvalue			currentPage;
@@ -55,6 +58,9 @@ struct t_pdfrasencoder {
 
     // digital signature data
     t_pdfdigitalsignature* signer;
+
+    // encrypter
+    t_pdencrypter* encrypter;
 };
 
 static t_pdfrasencoder* create_encoder(int apiLevel, t_OS* os) {
@@ -90,6 +96,7 @@ static t_pdfrasencoder* create_encoder(int apiLevel, t_OS* os) {
         enc->page_front = -1;			    // unspecified
 
         enc->signer = NULL;
+        enc->encrypter = NULL;
         
         // initial atom table
         enc->atoms = pd_atom_table_new(pool, 128);
@@ -109,6 +116,11 @@ static t_pdfrasencoder* create_encoder(int apiLevel, t_OS* os) {
         pd_dict_put(enc->info, PDA_CreationDate, pd_make_time_string(pool, enc->creationDate));
         // we don't modify PDF so there is no ModDate
 
+        // drop the File ID into the trailer dictionary:
+        enc->file_id = pd_generate_file_id(pool, enc->info);
+        // finally, stuff that 'ID' entry into the trailer
+        pd_dict_put(enc->trailer, PDA_ID, enc->file_id);
+        
         assert(IS_NULL(enc->rgbColorspace));
         assert(IS_NULL(enc->currentPage));
     }
@@ -208,17 +220,33 @@ void pdfr_encoder_get_creation_date(t_pdfrasencoder *enc, time_t *t)
 void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 {
 	t_pdvalue xmpstm = pd_metadata_new(enc->pool, enc->xref, f_write_string, (void*)xmpdata);
-	// flush the metadata stream to output immediately
-	pd_write_reference_declaration(enc->stm, xmpstm);
+	
+    if (enc->encrypter && !pd_encrypt_metadata(enc->encrypter))
+        pd_encrypt_deactivate(enc->encrypter);
+	
+    // flush the metadata stream to output immediately
+    pd_write_reference_declaration(enc->stm, xmpstm);
+
+    if (enc->encrypter)
+        pd_encrypt_activate(enc->encrypter);
+
 	pd_dict_put(enc->catalog, PDA_Metadata, xmpstm);
 }
 
 void pdfr_encoder_write_page_xmp(t_pdfrasencoder *enc, const char* xmpdata)
 {
 	t_pdvalue xmpstm = pd_metadata_new(enc->pool, enc->xref, f_write_string, (void*)xmpdata);
-	// flush the metadata stream to output immediately
-	pd_write_reference_declaration(enc->stm, xmpstm);
-	pd_dict_put(enc->currentPage, PDA_Metadata, xmpstm);
+	
+    if (enc->encrypter && !pd_encrypt_metadata(enc->encrypter))
+        pd_encrypt_deactivate(enc->encrypter);
+
+    // flush the metadata stream to output immediately
+    pd_write_reference_declaration(enc->stm, xmpstm);
+
+    if (enc->encrypter)
+        pd_encrypt_activate(enc->encrypter);
+
+    pd_dict_put(enc->currentPage, PDA_Metadata, xmpstm);
 }
 
 void pdfr_encoder_set_resolution(t_pdfrasencoder *enc, double xdpi, double ydpi)
@@ -608,10 +636,78 @@ t_pdfdigitalsignature* pdfr_encoder_get_digitalsignature(t_pdfrasencoder* enc) {
     return enc->signer;
 }
 
+// Security
+void pdfr_encoder_set_RC4_40_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+    assert(enc);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
+
+    t_pdvalue id = pd_array_get(enc->file_id.value.arrvalue, 0);
+    pduint32 id_len = pd_string_length(id.value.stringvalue);
+    pduint8* id_str = pd_string_data(id.value.stringvalue);
+    enc->encrypter = pd_encrypt_new(enc->pool, user_password, owner_password, perms, PDFRAS_RC4_40, metadata, (const char*) id_str, id_len);
+    
+    pd_encrypt_dictionary(enc->encrypter, enc->xref, &enc->trailer);
+
+    pd_outstream_set_encrypter(enc->stm, enc->encrypter);
+}
+
+void pdfr_encoder_set_RC4_128_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+    assert(enc);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
+
+    t_pdvalue id = pd_array_get(enc->file_id.value.arrvalue, 0);
+    pduint32 id_len = pd_string_length(id.value.stringvalue);
+    pduint8* id_str = pd_string_data(id.value.stringvalue);
+    enc->encrypter = pd_encrypt_new(enc->pool, user_password, owner_password, perms, PDFRAS_RC4_128, metadata, (const char*)id_str, id_len);
+
+    pd_encrypt_dictionary(enc->encrypter, enc->xref, &enc->trailer);
+
+    pd_outstream_set_encrypter(enc->stm, enc->encrypter);
+}
+
+void pdfr_encoder_set_AES128_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+    assert(enc);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
+
+    t_pdvalue id = pd_array_get(enc->file_id.value.arrvalue, 0);
+    pduint32 id_len = pd_string_length(id.value.stringvalue);
+    pduint8* id_str = pd_string_data(id.value.stringvalue);
+    enc->encrypter = pd_encrypt_new(enc->pool, user_password, owner_password, perms, PDFRAS_AES_128, metadata, (const char*)id_str, id_len);
+
+    pd_encrypt_dictionary(enc->encrypter, enc->xref, &enc->trailer);
+
+    pd_outstream_set_encrypter(enc->stm, enc->encrypter);
+}
+
+void pdfr_encoder_set_AES256_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata) {
+    assert(enc);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
+
+    t_pdvalue id = pd_array_get(enc->file_id.value.arrvalue, 0);
+    pduint32 id_len = pd_string_length(id.value.stringvalue);
+    pduint8* id_str = pd_string_data(id.value.stringvalue);
+    enc->encrypter = pd_encrypt_new(enc->pool, user_password, owner_password, perms, PDFRAS_AES_256, metadata, (const char*)id_str, id_len);
+
+    pd_encrypt_dictionary(enc->encrypter, enc->xref, &enc->trailer);
+
+    pd_outstream_set_encrypter(enc->stm, enc->encrypter);
+}
+
 void pdfr_encoder_destroy(t_pdfrasencoder* enc)
 {
     if (enc->signer)
         digitalsignature_destroy(enc->signer);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
 
 	if (enc) {
 		// free everything in the pool associated
@@ -621,4 +717,3 @@ void pdfr_encoder_destroy(t_pdfrasencoder* enc)
 		pd_alloc_free_pool(pool);
 	}
 }
-

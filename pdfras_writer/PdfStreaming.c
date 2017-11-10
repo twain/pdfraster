@@ -85,11 +85,14 @@ t_pdstring* pd_encrypt_string(t_pdoutstream *stm, t_pdstring *str)
 	t_pdmempool* pool = pd_get_pool(str);
 	// calculate encrypted size
 	pduint32 strlen = pd_string_length(str);
-	pduint32 enclen = pd_encrypted_size(encrypter, strlen);
+    pdint32 enclen = pd_encrypted_size(encrypter, pd_string_data(str), strlen);
 	// allocate the encrypted string
-	t_pdstring* encstr = pd_string_new_binary(pool, enclen, NULL);
+    pduint8* enc_data = (pduint8*)pd_alloc(pool, sizeof(pduint8) * enclen);
 	// encrypt the data from plain string to encrypted string
-	pd_encrypt_data(encrypter, pd_string_data(encstr), pd_string_data(str), strlen);
+    pd_encrypt_data(encrypter, pd_string_data(str), strlen, enc_data);
+
+    t_pdstring* encstr = pd_string_new_binary(pool, enclen, enc_data);
+
 	return encstr;
 }
 
@@ -236,7 +239,7 @@ static pdbool itemwriter(t_pdatom key, t_pdvalue value, void *cookie)
 
 static pdbool stm_sink_put(const pduint8 *buffer, pduint32 offset, pduint32 len, void *cookie)
 {
-	t_pdoutstream *outstm = (t_pdoutstream *)cookie;
+    t_pdoutstream *outstm = (t_pdoutstream *)cookie;
 	pd_putn(outstm, buffer, offset, len);
 	return PD_TRUE;
 }
@@ -263,10 +266,6 @@ static void stream_resolve_length(t_pdvalue stream, pduint32 len)
 
 static void writestreambody(t_pdoutstream *os, t_pdvalue dict)
 {
-	// TODO: if stream has encryption,
-	// encrypt stream body before/during output.
-	// After any filters.
-
 	// create a datasink wrapper around the Stream and the outstream
 	t_datasink *sink = stream_datasink_new(os);
 	if (sink) {
@@ -275,8 +274,43 @@ static void writestreambody(t_pdoutstream *os, t_pdvalue dict)
         pduint32 startpos = pd_outstream_pos(os);
         // Call the Stream's content generator to write its contents
 		// to the sink (which writes it to the outstream):
-		stream_write_data(dict, sink);
-		pduint32 finalpos = pd_outstream_pos(os);
+        pduint32 finalpos = 0;
+        if (os->encrypter != NULL && pd_encrypt_is_active(os->encrypter)) {
+            fOutputWriter oldWriter = os->writer;
+            void* oldWriterCookie = os->writercookie;
+            os->writer = pd_encrypt_writer;
+            os->writercookie = (void*)os->encrypter;
+
+            stream_write_data(dict, sink);
+            
+            pduint8* data = pd_encrypt_writer_data(os->encrypter);
+            pduint32 data_len = pd_encrypt_writer_data_len(os->encrypter);
+
+            // encrypt data
+            pdint32 encrypted_data_len = pd_encrypted_size(os->encrypter, data, data_len);
+            pduint8* encrypted_data = NULL;
+            if (encrypted_data_len > 0) {
+                t_pdmempool *pool = pd_get_pool(os);
+                encrypted_data = (pduint8*)pd_alloc(pool, sizeof(pduint8) * encrypted_data_len);
+                pd_encrypt_data(os->encrypter, data, data_len, encrypted_data);
+            }
+
+            os->writer = oldWriter;
+            os->writercookie = oldWriterCookie;
+
+            os->writer(encrypted_data, 0, encrypted_data_len, os->writercookie);
+            os->pos = startpos + encrypted_data_len;
+            finalpos = pd_outstream_pos(os);
+
+            if (encrypted_data)
+                pd_free(encrypted_data);
+
+            pd_encrypt_writer_reset(os->encrypter);
+        }
+        else {
+            stream_write_data(dict, sink);
+            finalpos = pd_outstream_pos(os);
+        }
 		// write the ending keyword after the stream data.
 		pd_puts(os, "\r\nendstream\r\n");
 		// If there's an indirect /Length entry in the Stream dictionary, resolve it
@@ -366,7 +400,7 @@ static void writestring(t_pdoutstream *stm, t_pdstring *str)
 	// If stream has encryption,
 	// encrypt string contents before writing.
 	// EXCEPT... the strings in the file /ID are never encrypted.
-	if (pd_stream_is_encrypted(stm)) {
+	if (pd_stream_is_encrypted(stm) && (pd_encrypt_is_active(stm->encrypter) == PD_TRUE)) {
 		// encrypt the string and write it
 		t_pdstring* encstr = pd_encrypt_string(stm, str);
 		put_hex_string(stm, encstr);
@@ -417,7 +451,7 @@ void pd_write_reference_declaration(t_pdoutstream *stm, t_pdvalue ref)
 			// start definition with: <obj#> <gen#> obj<eol>
 			pd_putint(stm, onr);
 			pd_puts(stm, " 0 obj\n");
-			if (pd_stream_is_encrypted(stm)) {
+			if (pd_stream_is_encrypted(stm) && pd_encrypt_is_active(stm->encrypter)) {
 				pd_encrypt_start_object(stm->encrypter, onr, 0);
 			}
 			pd_write_value(stm, pd_reference_get_value(ref));
@@ -447,11 +481,7 @@ void pd_write_endofdocument(t_pdoutstream *stm, t_pdxref *xref, t_pdvalue catalo
 			// create the trailer now
 			trailer = pd_trailer_new(pool, xref, catalog, info);
 		}
-		// drop the File ID into the trailer dictionary:
-		t_pdvalue file_id = pd_generate_file_id(pool, info);
-		// finally, stuff that 'ID' entry into the trailer
-		pd_dict_put(trailer, PDA_ID, file_id);
-
+		
 		pd_xref_writeallpendingreferences(xref, stm);
         pd_outstream_fire_event(stm, PDF_EVENT_BEFORE_XREF);
 		// note the position of the XREF table
@@ -461,7 +491,9 @@ void pd_write_endofdocument(t_pdoutstream *stm, t_pdxref *xref, t_pdvalue catalo
 		// write the trailer dictionary
         pd_outstream_fire_event(stm, PDF_EVENT_BEFORE_TRAILER);
         pd_puts(stm, "trailer\n");
+        pd_encrypt_deactivate(stm->encrypter);
 		pd_write_value(stm, trailer);
+        pd_encrypt_activate(stm->encrypter);
 		// write the EOF sequence, including pointer to XREF table
 		pd_putc(stm, '\n');
         pd_outstream_fire_event(stm, PDF_EVENT_BEFORE_STARTXREF);
@@ -470,9 +502,6 @@ void pd_write_endofdocument(t_pdoutstream *stm, t_pdxref *xref, t_pdvalue catalo
 		pd_puts(stm, "\n%%EOF\n");
 		// that's the last byte of output!
 
-		// free the stuff that only we know about
-		// namely the file-id array in the trailer dict
-		pd_array_destroy(&file_id);
 		// free the trailer dict, if we created it:
 		if (!pd_value_eq(trailer, caller_trailer)) {
 			pd_dict_free(trailer);

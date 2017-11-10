@@ -7,6 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_writer", "pdfras_wri
 	ProjectSection(ProjectDependencies) = postProject
 		{AD5F3A73-01AD-43E9-AE82-427840AE23A2} = {AD5F3A73-01AD-43E9-AE82-427840AE23A2}
 		{AD94958A-B236-416C-B217-2BAD5ECF7CC3} = {AD94958A-B236-416C-B217-2BAD5ECF7CC3}
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B} = {830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader", "pdfras_reader\pdfras_reader.vcxproj", "{C06A94CA-439B-4C91-9FA3-F9C2E3487473}"
@@ -51,6 +52,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_tool", "pdfras_tool\pdfras_tool.vcxproj", "{69D574B2-9F49-456C-8886-C9A7C7482E3A}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_digitalsignature", "pdfras_digitalsignature\pdfras_digitalsignature.vcxproj", "{AD94958A-B236-416C-B217-2BAD5ECF7CC3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_encryption", "pdfras_encryption\pdfras_encryption.vcxproj", "{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -182,6 +185,16 @@ Global
 		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x64.Build.0 = Release|x64
 		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x86.ActiveCfg = Release|Win32
 		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x86.Build.0 = Release|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Debug|x64.ActiveCfg = Debug|x64
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Debug|x64.Build.0 = Debug|x64
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Debug|x86.ActiveCfg = Debug|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Debug|x86.Build.0 = Debug|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Release|Any CPU.ActiveCfg = Release|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Release|x64.ActiveCfg = Release|x64
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Release|x64.Build.0 = Release|x64
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Release|x86.ActiveCfg = Release|Win32
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -197,5 +210,6 @@ Global
 		{943AD428-4D74-49AA-807C-36D854FA7723} = {121036C4-905A-4B8E-AC1D-A26BCD0985BD}
 		{34032D75-96A8-43EE-ADBF-F2B68AA4218D} = {D9567C23-AE7B-454A-A06B-74F397A27DF2}
 		{B37B7306-E288-4D83-A810-ADF3F53DB542} = {121036C4-905A-4B8E-AC1D-A26BCD0985BD}
+		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B} = {1CBDE3D8-0C71-409E-AF14-FBD9988212C4}
 	EndGlobalSection
 EndGlobal

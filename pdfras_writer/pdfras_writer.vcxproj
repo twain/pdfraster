@@ -96,13 +96,13 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x86\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -123,13 +123,13 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -150,7 +150,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,7 +158,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x86\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
@@ -179,7 +179,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -187,7 +187,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>pdfraswrite.def</ModuleDefinitionFile>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
