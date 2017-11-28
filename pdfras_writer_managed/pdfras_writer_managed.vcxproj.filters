@@ -71,6 +71,12 @@
     <ClCompile Include="PdfRasterWriter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\pdfras_writer\PdfDigitalSignature.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pdfras_writer\PdfDate.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PdfRasterWriter.h">

@@ -1,0 +1,7 @@
+LIBRARY			pdfras_digitalsignature
+EXPORTS
+
+	pdfr_init_digitalsignature		@1
+	pdfr_exit_digitalsignature		@2
+	pdfr_digsig_signature_length	@3
+	pdfr_digsig_sign_data			@4

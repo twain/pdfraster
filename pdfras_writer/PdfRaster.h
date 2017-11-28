@@ -54,6 +54,7 @@ typedef enum {
 } RasterCompression;
 
 typedef struct t_pdfrasencoder t_pdfrasencoder;
+typedef struct t_pdfdigitalsignature t_pdfdigitalsignature;
 
 // create and return a raster PDF encoder, reading to begin
 // encoding a PDF/raster output stream.
@@ -73,6 +74,27 @@ typedef struct t_pdfrasencoder t_pdfrasencoder;
 //
 t_pdfrasencoder* PDFRASAPICALL pdfr_encoder_create(int apiLevel, t_OS *os);
 typedef t_pdfrasencoder* (PDFRASAPICALL *pfn_pdfr_encoder_create)(int apiLevel, t_OS *os);
+
+// Extended version of pdfr_encoder_create for creating digitaly signed document.
+// Extended params:
+// pfx_file: path to the certificate stored in PFX file
+// password: password for certificate
+t_pdfrasencoder* PDFRASAPICALL pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char* pfx_file, const char* password);
+typedef t_pdfrasencoder* (PDFRASAPICALL *pfn_signed_encoder_create) (int apiLevel, t_OS* os, const char* pfx_file, const char* password);
+
+// Query function for t_pdfrasencoder
+t_pdmempool* PDFRASAPICALL pdfr_encoder_mempool(t_pdfrasencoder* encoder);
+typedef t_pdmempool* (PDFRASAPICALL *pfn_pdfr_encoder_mempool) (t_pdfrasencoder* encoder);
+fOutputWriter PDFRASAPICALL pdfr_encoder_set_outputwriter(t_pdfrasencoder* encoder, fOutputWriter writer);
+typedef fOutputWriter(PDFRASAPICALL *pfn_pdfr_encoder_set_outputwriter) (t_pdfrasencoder* encoder, fOutputWriter writer);
+void* PDFRASAPICALL pdfr_encoder_set_cookie(t_pdfrasencoder* encoder, void* cookie);
+typedef void* (PDFRASAPICALL *pfn_pdfr_encoder_set_cookie) (t_pdfrasencoder* encoder, void* cookie);
+t_pdvalue* PDFRASAPICALL pdfr_encoder_catalog(t_pdfrasencoder* encoder);
+typedef t_pdvalue* (PDFRASAPICALL *pfn_pdfr_encoder_catalog) (t_pdfrasencoder* encoder);
+t_pdxref* PDFRASAPICALL pdfr_encoder_xref(t_pdfrasencoder* encoder);
+typedef t_pdxref* (PDFRASAPICALL *pfn_pdfr_encoder_xref) (t_pdfrasencoder* encoder);
+t_pdvalue* PDFRASAPICALL pdfr_encoder_currentpage(t_pdfrasencoder* encoder);
+typedef t_pdvalue* (PDFRASAPICALL *pfn_pdfr_encoder_currentpage) (t_pdfrasencoder* encoder);
 
 // Set various document metadata, traditionally stored in the DID (Document
 // Information Dictionary) but from PDF 2.0 stored preferentially
@@ -215,6 +237,27 @@ typedef long (PDFRASAPICALL *pfn_pdfr_encoder_bytes_written)(t_pdfrasencoder* en
 // Do not use the enc pointer after this, it is invalid.
 void PDFRASAPICALL pdfr_encoder_destroy(t_pdfrasencoder* enc);
 typedef void (PDFRASAPICALL *pfn_pdfr_encoder_destroy)(t_pdfrasencoder* enc);
+
+/* Digital signature prototypes */
+// Get signature object.
+t_pdfdigitalsignature* PDFRASAPICALL pdfr_encoder_get_digitalsignature(t_pdfrasencoder* enc);
+typedef t_pdfdigitalsignature* (PDFRASAPICALL *pfn_pdfr_encoder_get_digitalsignature) (t_pdfrasencoder* enc);
+
+// Set explictly Name of signer
+void PDFRASAPICALL pdfr_digitalsignature_set_name(t_pdfdigitalsignature* signature, const char* name);
+typedef void (PDFRASAPICALL *pfn_digitalsignature_set_name) (t_pdfdigitalsignature* signature, const char* name);
+
+// Set reason for the signing
+void PDFRASAPICALL pdfr_digitalsignature_set_reason(t_pdfdigitalsignature* signature, const char* reason);
+typedef void (PDFRASAPICALL *pfn_digitalsignature_set_reason) (t_pdfdigitalsignature* signature, const char* reason);
+
+// Set location of the signing
+void PDFRASAPICALL pdfr_digitalsignature_set_location(t_pdfdigitalsignature* signature, const char* location);
+typedef void (PDFRASAPICALL *pfn_digitalsignature_set_location) (t_pdfdigitalsignature* signature, const char* location);
+
+// Set contact info for signer
+void PDFRASAPICALL pdfr_digitalsignature_set_contactinfo(t_pdfdigitalsignature* signature, const char* contactinfo);
+typedef void (PDFRASAPICALL *pfn_digitalsignature_set_contactinfo) (t_pdfdigitalsignature* signature, const char* contactinfo);
 
 #ifdef __cplusplus
 }

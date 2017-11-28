@@ -6,6 +6,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_writer", "pdfras_writer\pdfras_writer.vcxproj", "{F96F701B-73F9-4BAB-BA84-CEFF8A112289}"
 	ProjectSection(ProjectDependencies) = postProject
 		{AD5F3A73-01AD-43E9-AE82-427840AE23A2} = {AD5F3A73-01AD-43E9-AE82-427840AE23A2}
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3} = {AD94958A-B236-416C-B217-2BAD5ECF7CC3}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader", "pdfras_reader\pdfras_reader.vcxproj", "{C06A94CA-439B-4C91-9FA3-F9C2E3487473}"
@@ -48,6 +49,8 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PDF Raster", "PDF Raster", "{1CBDE3D8-0C71-409E-AF14-FBD9988212C4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_tool", "pdfras_tool\pdfras_tool.vcxproj", "{69D574B2-9F49-456C-8886-C9A7C7482E3A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_digitalsignature", "pdfras_digitalsignature\pdfras_digitalsignature.vcxproj", "{AD94958A-B236-416C-B217-2BAD5ECF7CC3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -169,6 +172,16 @@ Global
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x64.Build.0 = Release|x64
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x86.ActiveCfg = Release|Win32
 		{69D574B2-9F49-456C-8886-C9A7C7482E3A}.Release|x86.Build.0 = Release|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Debug|x64.ActiveCfg = Debug|x64
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Debug|x64.Build.0 = Debug|x64
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Debug|x86.ActiveCfg = Debug|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Debug|x86.Build.0 = Debug|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|Any CPU.ActiveCfg = Release|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x64.ActiveCfg = Release|x64
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x64.Build.0 = Release|x64
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x86.ActiveCfg = Release|Win32
+		{AD94958A-B236-416C-B217-2BAD5ECF7CC3}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

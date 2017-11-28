@@ -44,6 +44,7 @@ namespace PdfRasterWriter {
 #pragma region Public Methods: PdfRasterWriter
 	public:
 		int  encoder_create(int apiLevel, String^ pdfFileName);
+        int  encoder_create_digigally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password);
 		void encoder_set_creator(int enc, String^ creator);
 		void encoder_set_resolution(int enc, double xdpi, double ydpi);
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);
@@ -54,7 +55,12 @@ namespace PdfRasterWriter {
 		void encoder_write_strip(int enc, int rows, array<unsigned char>^ buf, unsigned offset, unsigned len);
 		void encoder_end_page(int enc);
 		void encoder_end_document(int enc);
-		void encoder_destroy(int enc);
+		void digital_signature_set_name(int enc, String^ name);
+        void digital_signature_set_reason(int enc, String^ reason);
+        void digital_signature_set_location(int enc, String^ location);
+        void digital_signature_set_contactinfo(int enc, String^ contact);
+        void encoder_destroy(int enc);
+
 #pragma endregion Public Methods for PdfRasterWriter
 	};
 }

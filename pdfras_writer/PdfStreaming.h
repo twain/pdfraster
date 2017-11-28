@@ -111,6 +111,14 @@ extern void pd_outstream_set_event_handler(t_pdoutstream *stm, PdfOutputEventCod
 // The event handler is called with the stream, the cookie, the eventid, and the arglist.
 extern int pd_outstream_fire_event(t_pdoutstream *stm, PdfOutputEventCode eventid);
 
+// Set writer function.
+// Return previous stored writer function.
+extern fOutputWriter pd_outputstream_set_writer(t_pdoutstream* stm, fOutputWriter writer);
+
+// Set cookie for writer handler
+// Return previous stored cookie
+extern void* pd_outputstream_set_cookie(t_pdoutstream* stm, void* cookie);
+
 #ifdef __cplusplus
 }
 #endif

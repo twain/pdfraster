@@ -215,6 +215,9 @@ $(TargetDir)xxd -i color_strip3.jpg color_strip3.h
     <Image Include="gray8_page.jpg" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\pdfras_digitalsignature\pdfras_digitalsignature.vcxproj">
+      <Project>{ad94958a-b236-416c-b217-2bad5ecf7cc3}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\pdfras_writer\pdfras_writer.vcxproj">
       <Project>{f96f701b-73f9-4bab-ba84-ceff8a112289}</Project>
     </ProjectReference>

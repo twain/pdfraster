@@ -264,6 +264,41 @@ int write_bitonal_uncompressed_file(t_OS os, const char *filename)
     return 0;
 }
 
+int write_bitonal_uncompressed_signed_file(t_OS os, const char* filename, const char* image_path) {
+    FILE *fp = fopen(filename, "wb");
+    if (fp == 0) {
+        fprintf(stderr, "unable to open %s for writing\n", filename);
+        return 1;
+    }
+    os.writeoutcookie = fp;
+    os.allocsys = pd_alloc_new_pool(&os);
+
+    // Construct a raster PDF encoder
+    char cert_path[256];
+    memset(cert_path, 0, 256);
+    char* demo = strstr(image_path, "demo_raster_encoder");
+    strncpy(cert_path, image_path, demo - image_path);
+    sprintf(cert_path + (demo - image_path), "%s", "certificate.p12");
+    t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, cert_path, "");
+    pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
+    pdfr_encoder_set_subject(enc, "BW 1-bit Uncompressed sample output");
+
+    t_pdfdigitalsignature* signature = pdfr_encoder_get_digitalsignature(enc);
+    pdfr_digitalsignature_set_location(signature, "Nove Zamky");
+    pdfr_digitalsignature_set_name(signature, "Mato");
+    pdfr_digitalsignature_set_reason(signature, "Test of signing");
+
+    write_bitonal_uncomp_page(enc);
+
+    // the document is complete
+    pdfr_encoder_end_document(enc);
+    // clean up
+    fclose(fp);
+    pdfr_encoder_destroy(enc);
+    printf("  %s\n", filename);
+    return 0;
+}
+
 int write_bitonal_uncompressed_multistrip_file(t_OS os, const char *filename)
 {
 	FILE *fp = fopen(filename, "wb");
@@ -1022,6 +1057,8 @@ int main(int argc, char** argv)
 	write_0page_file(os, "sample empty.pdf");
 
 	write_bitonal_uncompressed_file(os, "sample bw1 uncompressed.pdf");
+
+    write_bitonal_uncompressed_signed_file(os, "sample bw1 uncompressed signed.pdf", argv[0]);
 
 	write_bitonal_uncompressed_multistrip_file(os, "sample bw1 uncompressed multistrip.pdf");
 

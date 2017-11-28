@@ -12,7 +12,7 @@
 #include "PdfStandardObjects.h"
 #include "PdfImage.h"
 #include "PdfArray.h"
-
+#include "PdfDigitalSignature.h"
 
 struct t_pdfrasencoder {
 	t_pdmempool*		pool;
@@ -52,67 +52,121 @@ struct t_pdfrasencoder {
     t_pdvalue           colorspace;         // colorspace
     int					phys_pageno;		// physical page number
     int					page_front;			// front/back/unspecified
+
+    // digital signature data
+    t_pdfdigitalsignature* signer;
 };
 
+static t_pdfrasencoder* create_encoder(int apiLevel, t_OS* os) {
+    struct t_pdmempool *pool;
 
-t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os)
-{
-	struct t_pdmempool *pool;
+    if (apiLevel < 1) {
+        // TODO: report error
+        // invalid apiLevel parameter value
+        return NULL;
+    }
+    if (apiLevel > 1) {
+        // TODO: report error
+        // Caller was compiled for a later version of this API
+        return NULL;
+    }
+    assert(os);
+    // create a memory management pool for the internal use of this encoder.
+    pool = pd_alloc_new_pool(os);
+    assert(pool);
 
-	if (apiLevel < 1) {
-		// TODO: report error
-		// invalid apiLevel parameter value
-		return NULL;
-	}
-	if (apiLevel > 1) {
-		// TODO: report error
-		// Caller was compiled for a later version of this API
-		return NULL;
-	}
-	assert(os);
-	// create a memory management pool for the internal use of this encoder.
-	pool = pd_alloc_new_pool(os);
-	assert(pool);
+    t_pdfrasencoder *enc = (t_pdfrasencoder *)pd_alloc(pool, sizeof(t_pdfrasencoder));
+    if (enc)
+    {
+        enc->pool = pool;						// associated allocation pool
+        enc->apiLevel = apiLevel;				// level of this API assumed by caller
+        enc->stm = pd_outstream_new(pool, os);	// our PDF-output stream abstraction
 
-	t_pdfrasencoder *enc = (t_pdfrasencoder *)pd_alloc(pool, sizeof(t_pdfrasencoder));
-	if (enc)
-	{
-		enc->pool = pool;						// associated allocation pool
-		enc->apiLevel = apiLevel;				// level of this API assumed by caller
-		enc->stm = pd_outstream_new(pool, os);	// our PDF-output stream abstraction
-
-		enc->next_page_rotation = 0;						// default page rotation
-		enc->next_page_xdpi = enc->next_page_ydpi = 300;    // default resolution
-		enc->next_page_compression = PDFRAS_UNCOMPRESSED;	// default compression for next page
-		enc->next_page_pixelFormat = PDFRAS_BITONAL;		// default pixel format
+        enc->next_page_rotation = 0;						// default page rotation
+        enc->next_page_xdpi = enc->next_page_ydpi = 300;    // default resolution
+        enc->next_page_compression = PDFRAS_UNCOMPRESSED;	// default compression for next page
+        enc->next_page_pixelFormat = PDFRAS_BITONAL;		// default pixel format
         enc->phys_pageno = -1;			    // unspecified
         enc->page_front = -1;			    // unspecified
 
-		// initial atom table
-		enc->atoms = pd_atom_table_new(pool, 128);
-		// empty cross-reference table:
-		enc->xref = pd_xref_new(pool);
-		// initial document catalog:
-		enc->catalog = pd_catalog_new(pool, enc->xref);
+        enc->signer = NULL;
+        
+        // initial atom table
+        enc->atoms = pd_atom_table_new(pool, 128);
+        // empty cross-reference table:
+        enc->xref = pd_xref_new(pool);
+        // initial document catalog:
+        enc->catalog = pd_catalog_new(pool, enc->xref);
 
-		// create 'info' dictionary
-		enc->info = pd_info_new(pool, enc->xref);
-		// and trailer dictionary
-		enc->trailer = pd_trailer_new(pool, enc->xref, enc->catalog, enc->info);
-		// default Producer
-		pd_dict_put(enc->info, PDA_Producer, pdcstrvalue(pool, "PdfRaster encoder " PDFRAS_LIBRARY_VERSION));
-		// record creation date & time:
-		time(&enc->creationDate);
-		pd_dict_put(enc->info, PDA_CreationDate, pd_make_time_string(pool, enc->creationDate));
-		// we don't modify PDF so there is no ModDate
+        // create 'info' dictionary
+        enc->info = pd_info_new(pool, enc->xref);
+        // and trailer dictionary
+        enc->trailer = pd_trailer_new(pool, enc->xref, enc->catalog, enc->info);
+        // default Producer
+        pd_dict_put(enc->info, PDA_Producer, pdcstrvalue(pool, "PdfRaster encoder " PDFRAS_LIBRARY_VERSION));
+        // record creation date & time:
+        time(&enc->creationDate);
+        pd_dict_put(enc->info, PDA_CreationDate, pd_make_time_string(pool, enc->creationDate));
+        // we don't modify PDF so there is no ModDate
 
-		assert(IS_NULL(enc->rgbColorspace));
-		assert(IS_NULL(enc->currentPage));
+        assert(IS_NULL(enc->rgbColorspace));
+        assert(IS_NULL(enc->currentPage));
+    }
 
-		// Write the PDF header:
-		pd_write_pdf_header(enc->stm, "1.4");
-	}
-	return enc;
+    return enc;
+}
+
+t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os)
+{
+    t_pdfrasencoder* enc = create_encoder(apiLevel, os);
+	
+    if (enc)
+		pd_write_pdf_header(enc->stm, "1.7");
+	
+    return enc;
+}
+
+t_pdfrasencoder* pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char* pfx_file, const char* password) {
+    t_pdfrasencoder* enc = create_encoder(apiLevel, os);
+    if (!enc)
+        return NULL;
+
+    enc->signer = digitalsignature_create(enc, pfx_file, password);
+    if (!enc->signer) {
+        pdfr_encoder_destroy(enc);
+        return NULL;
+    }
+    
+    pd_write_pdf_header(enc->stm, "1.7");
+
+    return enc;
+}
+
+t_pdmempool* pdfr_encoder_mempool(t_pdfrasencoder* encoder) {
+    return encoder->pool;
+}
+
+fOutputWriter pdfr_encoder_set_outputwriter(t_pdfrasencoder* encoder, fOutputWriter writer) {
+    assert(writer);
+
+    return pd_outputstream_set_writer(encoder->stm, writer);
+    
+}
+
+void* pdfr_encoder_set_cookie(t_pdfrasencoder* encoder, void* cookie) {
+    return pd_outputstream_set_cookie(encoder->stm, cookie);
+}
+
+t_pdvalue* pdfr_encoder_catalog(t_pdfrasencoder* encoder) {
+    return &encoder->catalog;
+}
+
+t_pdxref* pdfr_encoder_xref(t_pdfrasencoder* encoder) {
+    return encoder->xref;
+}
+
+t_pdvalue* pdfr_encoder_currentpage(t_pdfrasencoder* encoder) {
+    return &encoder->currentPage;
 }
 
 void pdfr_encoder_set_creator(t_pdfrasencoder *enc, const char* creator)
@@ -243,6 +297,11 @@ int pdfr_encoder_start_page(t_pdfrasencoder* enc, int width)
 	enc->currentPage = pd_page_new_simple(enc->pool, enc->xref, enc->catalog, W, 0);
 	assert(IS_REFERENCE(enc->currentPage));
     assert(IS_DICT(pd_reference_get_value(enc->currentPage)));
+
+    if (enc->signer) {
+        if (digitalsignature_written(enc->signer) == PD_FALSE)
+            digitalsignature_set_page(enc->signer, enc->currentPage);
+    }
 
 	return 0;
 }
@@ -461,6 +520,12 @@ static void write_page_metadata(t_pdfrasencoder* enc)
 int pdfr_encoder_end_page(t_pdfrasencoder* enc)
 {
 	if (!IS_NULL(enc->currentPage)) {
+        // digital signature (if set then created needed dictionaries)
+        if (enc->signer) {
+            if (digitalsignature_written(enc->signer) == PD_FALSE)
+                digitalsignature_create_dictionaries(enc->signer);
+        }
+
 		// create a content generator
 		t_pdcontents_gen *gen = pd_contents_gen_new(enc->pool, content_generator, enc);
 		// create contents object (stream)
@@ -522,21 +587,32 @@ static int pdfr_sig_handler(t_pdoutstream *stm, void* cookie, PdfOutputEventCode
     return 0;
 }
 
-
 void pdfr_encoder_end_document(t_pdfrasencoder* enc)
 {
     t_pdoutstream* stm = enc->stm;
-	pdfr_encoder_end_page(enc);
+
+    pdfr_encoder_end_page(enc);
 	// remember to write our PDF/raster signature marker
     pd_outstream_set_event_handler(stm, PDF_EVENT_BEFORE_STARTXREF, pdfr_sig_handler, NULL);
 	pd_write_endofdocument(stm, enc->xref, enc->catalog, enc->info, enc->trailer);
+
+    // sign document if was set to sign
+    if (enc->signer)
+        digitalsignature_finish(enc->signer);
 
 	// Note: we leave all the final data structures intact in case the client
 	// has questions, like 'how many pages did we write?' or 'how big was the output file?'.
 }
 
+t_pdfdigitalsignature* pdfr_encoder_get_digitalsignature(t_pdfrasencoder* enc) {
+    return enc->signer;
+}
+
 void pdfr_encoder_destroy(t_pdfrasencoder* enc)
 {
+    if (enc->signer)
+        digitalsignature_destroy(enc->signer);
+
 	if (enc) {
 		// free everything in the pool associated
 		// with this encoder. Including the pool
