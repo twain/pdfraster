@@ -50,6 +50,8 @@ struct t_pdfdigitalsignature {
 
     // written to output
     pdbool written;
+
+    pduint32 digsig_objnum;
 };
 
 // Initialization
@@ -87,8 +89,25 @@ t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const c
     digitalSignature->contact_info = NULL;
 
     digitalSignature->written = PD_FALSE;
-   
+
+    digitalSignature->digsig_objnum = 0;
+    
     return digitalSignature;
+}
+
+static pduint8* find_string_in_binary(pduint8* data, const pduint32 data_len, const char* what) {
+    pduint32 idx = 0;
+    pduint32 what_len = strlen(what);
+
+    while ((idx < (data_len - what_len))) {
+        if (memcmp(data + idx, what, what_len) == 0) {
+            return data + idx;
+        }
+
+        ++idx;
+    }
+
+    return NULL;
 }
 
 void digitalsignature_finish(t_pdfdigitalsignature* signature) {
@@ -97,7 +116,10 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
     pduint32 offset2 = 0;
     pduint32 length2 = 0;
 
-    pduint8* contents = (pduint8*) strstr((char*) signature->data->buffer, "/Contents <");
+    pduint8* contents = find_string_in_binary(signature->data->buffer, signature->data->written, "/Contents <");
+    if (!contents)
+        return;
+
     length1 = (pduint32)(contents - signature->data->buffer + 10);
 
     pduint8* p = signature->data->buffer + length1;
@@ -110,7 +132,10 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
     offset2 += 1; 
     length2 = signature->data->bufferSize - offset2;
 
-    p = (pduint8*) strstr((char*)signature->data->buffer, "/ByteRange [");
+    p = find_string_in_binary(signature->data->buffer, signature->data->written, "/ByteRange [");
+    if (!p)
+        return;
+
     sprintf((char*) (p + 12), "%d %d %d %d", offset1, length1, offset2, length2);
 
     p += 12;
@@ -382,9 +407,17 @@ void digitalsignature_create_dictionaries(t_pdfdigitalsignature* signature) {
     t_pdvalue v_dict_ref = pd_xref_makereference(xref, v_dict);
     pd_dict_put(signature_field, ((t_pdatom)"V"), v_dict_ref);
 
+    signature->digsig_objnum = pd_reference_object_number(v_dict_ref);
+
     signature->written = PD_TRUE;
 }
 
 pdbool digitalsignature_written(t_pdfdigitalsignature* signature) {
     return signature->written;
+}
+
+pduint32 pd_digitalsignature_digsig_objnum(t_pdfdigitalsignature* signature) {
+    assert(signature);
+
+    return signature->digsig_objnum;
 }

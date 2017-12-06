@@ -27,6 +27,7 @@ struct t_pdencrypter {
 
     pduint32 encrypt_obj_number;
     pduint32 digsig_obj_number;
+    pduint32 current_obj_number;
 
     pdbool active;
 };
@@ -40,6 +41,7 @@ t_pdencrypter* pd_encrypt_new(t_pdmempool* pool, const char* user_passwd, const 
     crypter->pool = pool;
     crypter->digsig_obj_number = 0;
     crypter->encrypt_obj_number = 0;
+    crypter->current_obj_number = 0;
     crypter->active = PD_TRUE;
 
     crypter->data = (t_writer_data*)pd_alloc(crypter->pool, sizeof(t_writer_data));
@@ -84,6 +86,7 @@ void pd_encrypt_start_object(t_pdencrypter *crypter, pduint32 onr, pduint32 gen)
             pd_encrypt_activate(crypter);
 
         pdfr_encrypter_object_number(crypter->encrypter, onr, gen);
+        crypter->current_obj_number = onr;
     }
 }
 
@@ -232,4 +235,10 @@ void pd_encrypt_writer_reset(t_pdencrypter* encrypter) {
         encrypter->data->bufferSize = BUFFER_SIZE;
         encrypter->data->written = 0;
     }
+}
+
+int pd_encrypt_get_current_objectnumber(t_pdencrypter* encrypter) {
+    assert(encrypter);
+
+    return encrypter->current_obj_number;
 }

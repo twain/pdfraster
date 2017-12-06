@@ -50,6 +50,9 @@ extern pduint8* pd_encrypt_writer_data(t_pdencrypter* encrypter);
 extern pduint32 pd_encrypt_writer_data_len(t_pdencrypter* encrypter);
 extern void pd_encrypt_writer_reset(t_pdencrypter* encrypter);
 
+// Current object number being encrypted
+extern int pd_encrypt_get_current_objectnumber(t_pdencrypter* encrypter);
+
 #ifdef __cplusplus
 }
 #endif

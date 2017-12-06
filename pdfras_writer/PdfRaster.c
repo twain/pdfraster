@@ -151,6 +151,8 @@ t_pdfrasencoder* pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char* 
     
     pd_write_pdf_header(enc->stm, "1.7");
 
+    pd_outstream_set_digitalsignature(enc->stm, enc->signer);
+
     return enc;
 }
 
