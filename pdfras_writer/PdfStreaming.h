@@ -11,6 +11,7 @@
 #include "PdfAlloc.h"
 #include "PdfValues.h"
 #include "PdfSecurityHandler.h"
+#include "PdfDigitalSignature.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,6 +119,9 @@ extern fOutputWriter pd_outputstream_set_writer(t_pdoutstream* stm, fOutputWrite
 // Set cookie for writer handler
 // Return previous stored cookie
 extern void* pd_outputstream_set_cookie(t_pdoutstream* stm, void* cookie);
+
+// Set digital signature object
+extern void pd_outstream_set_digitalsignature(t_pdoutstream* stm, t_pdfdigitalsignature* signature);
 
 #ifdef __cplusplus
 }

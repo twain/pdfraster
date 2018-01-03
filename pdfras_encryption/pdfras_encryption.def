@@ -1,0 +1,21 @@
+LIBRARY			pdfras_encryption
+EXPORTS
+	pdfr_create_encrypter						@1
+	pdfr_destroy_encrypter						@2
+	pdfr_encrypter_object_number				@3
+	pdfr_encrypter_dictionary_data  			@4
+	pdfr_encrypter_get_V						@5
+	pdfr_encrypter_get_key_length				@6
+	pdfr_encrypter_get_R						@7
+	pdfr_encrypter_get_OU_length				@8
+	pdfr_encrypter_get_O						@9
+	pdfr_encrypter_get_U						@10
+	pdfr_encrypter_get_permissions				@11
+	pdfr_encrypter_get_metadata_encrypted		@12
+	pdfr_encrypter_get_algorithm				@13
+	pdfr_encrypter_encrypt_data					@14
+	pdfr_encrypter_get_OE						@15
+	pdfr_encrypter_get_UE						@16
+	pdfr_encrypter_get_OUE_length				@17
+	pdfr_encrypter_get_Perms					@18
+	pdfr_encrypter_get_Perms_length				@19

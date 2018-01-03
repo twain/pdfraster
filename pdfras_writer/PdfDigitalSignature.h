@@ -34,6 +34,9 @@ pdbool digitalsignature_written(t_pdfdigitalsignature* signature);
 // internal handler for writer
 int digitalsignature_writer(const pduint8* data, pduint32 offset, pduint32 len, void* cookie);
 
+// get digital signature dictionary object number
+extern pduint32 pd_digitalsignature_digsig_objnum(t_pdfdigitalsignature* signature);
+
 #ifdef __cplusplus
 }
 #endif

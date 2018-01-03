@@ -8,6 +8,7 @@ extern "C" {
 #include "PdfAlloc.h"
 #include "PdfValues.h"
 #include "PdfDatasink.h"
+#include "pdfras_encryption.h"
 
 #define PDFRAS_API_LEVEL	1
 
@@ -258,6 +259,23 @@ typedef void (PDFRASAPICALL *pfn_digitalsignature_set_location) (t_pdfdigitalsig
 // Set contact info for signer
 void PDFRASAPICALL pdfr_digitalsignature_set_contactinfo(t_pdfdigitalsignature* signature, const char* contactinfo);
 typedef void (PDFRASAPICALL *pfn_digitalsignature_set_contactinfo) (t_pdfdigitalsignature* signature, const char* contactinfo);
+
+/* Encryption prototypes */
+// RC4 40 bits
+void PDFRASAPICALL pdfr_encoder_set_RC4_40_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_RC4_40_encrypter) (t_pdfrasencoder* enc, const char* user_password, const char* owner_password, pdint32 perms, pdbool metadata);
+
+// RC4 128 bits
+void PDFRASAPICALL pdfr_encoder_set_RC4_128_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_RC4_128_encrypter) (t_pdfrasencoder* enc, const char* user_password, const char* owner_password, pdint32 perms, pdbool metadata);
+
+// AES 128 bits
+void PDFRASAPICALL pdfr_encoder_set_AES128_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_AES128_encrypter) (t_pdfrasencoder* enc, const char* user_password, const char* owner_password, pdint32 perms, pdbool metadata);
+
+// AES 256 bits
+void PDFRASAPICALL pdfr_encoder_set_AES256_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_AES256_encrypter) (t_pdfrasencoder* enc, const char* user_password, const char* owner_password, pdint32 perms, pdbool metadata);
 
 #ifdef __cplusplus
 }

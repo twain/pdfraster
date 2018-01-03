@@ -35,6 +35,11 @@ EXPORTS
 	pdfr_digitalsignature_set_location	@44
 	pdfr_digitalsignature_set_contactinfo @45
 	
+	pdfr_encoder_set_RC4_40_encrypter	@60
+	pdfr_encoder_set_RC4_128_encrypter	@61
+	pdfr_encoder_set_AES128_encrypter	@62
+	pdfr_encoder_set_AES256_encrypter	@63
+	
 	pd_outstream_new				@100
 	pd_outstream_free				@101
 	pd_outstream_set_encrypter			@102

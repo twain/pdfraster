@@ -82,7 +82,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common;..\pdfras_encryption</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -98,7 +98,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common;..\pdfras_encryption</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -116,7 +116,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common;..\pdfras_encryption</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -136,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_reader;$(SolutionDir)common;..\pdfras_encryption</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -168,6 +168,9 @@
   <ItemGroup>
     <ProjectReference Include="..\pdfras_digitalsignature\pdfras_digitalsignature.vcxproj">
       <Project>{ad94958a-b236-416c-b217-2bad5ecf7cc3}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\pdfras_encryption\pdfras_encryption.vcxproj">
+      <Project>{830942a3-b9b6-4bea-a5aa-213da65c6e1b}</Project>
     </ProjectReference>
     <ProjectReference Include="..\pdfras_writer\pdfras_writer.vcxproj">
       <Project>{f96f701b-73f9-4bab-ba84-ceff8a112289}</Project>

@@ -32,7 +32,7 @@ pdbool static load_ceratificate(t_signer* signer, const char* file, const char* 
 
     pkcs12 = d2i_PKCS12_bio(bio_file, NULL);
     BIO_free(bio_file);
-#elif
+#else
     pfx_file = fopen(file, "rb");
     if (!pfx_file)
         return PD_FALSE;
