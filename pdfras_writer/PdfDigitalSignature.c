@@ -96,8 +96,8 @@ t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const c
 }
 
 static pduint8* find_string_in_binary(pduint8* data, const pduint32 data_len, const char* what) {
-    pduint32 idx = 0;
-    pduint32 what_len = strlen(what);
+    size_t idx = 0;
+    size_t what_len = strlen(what);
 
     while ((idx < (data_len - what_len))) {
         if (memcmp(data + idx, what, what_len) == 0) {
