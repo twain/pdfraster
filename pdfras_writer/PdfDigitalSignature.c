@@ -130,7 +130,7 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
     }
 
     offset2 += 1; 
-    length2 = signature->data->bufferSize - offset2;
+    length2 = signature->data->written - offset2;
 
     p = find_string_in_binary(signature->data->buffer, signature->data->written, "/ByteRange [");
     if (!p)
@@ -180,7 +180,7 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
 
     pd_free(buffer_to_sign);
 
-    signature->userWriter(signature->data->buffer, 0, signature->data->bufferSize, signature->userCookie);
+    signature->userWriter(signature->data->buffer, 0, signature->data->written, signature->userCookie);
 }
 
 // Destroy

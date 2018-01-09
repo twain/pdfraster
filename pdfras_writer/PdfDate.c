@@ -52,7 +52,7 @@ char* pd_date_to_pdfstring(t_date* date) {
     char* ret = (char*)pd_alloc(date->pool, sizeof(char) * 25);
 
     char O;
-    pduint8 hour_offset = date->hour_offset;
+    pdint8 hour_offset = date->hour_offset;
     if (hour_offset < 0) {
         O = '-';
         hour_offset = hour_offset * -1;
