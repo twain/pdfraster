@@ -22,7 +22,7 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature);
 // Close digital signature (destroy). Call it at the end of digital signing process.
 void digitalsignature_destroy(t_pdfdigitalsignature* signature);
 
-// Create needed dictoctionaries
+// Create needed dictionaries
 void digitalsignature_create_dictionaries(t_pdfdigitalsignature* signature);
 
 // Set page containing signature

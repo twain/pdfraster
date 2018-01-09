@@ -173,7 +173,7 @@ namespace PdfRasterWriter {
 		return idx;
 	}
 
-    int Writer::encoder_create_digigally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password)
+    int Writer::encoder_create_digitally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password)
     {
         LOG(fprintf(fp, "> apiLevel=%d", apiLevel));
 
