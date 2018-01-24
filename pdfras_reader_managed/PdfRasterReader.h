@@ -53,7 +53,14 @@ namespace PdfRasterReader {
 		double decoder_get_yresolution(int idx);
 		PdfRasterReaderPixelFormat decoder_get_pixelformat(int idx);
 		PdfRasterReaderCompression decoder_get_compression(int idx);
-		array<Byte>^ decoder_read_strips(int idx);
+        array<Byte>^ decoder_read_strips(int idx);
+        bool decoder_is_digitally_signed(int idx);
+        int decoder_digital_siganture_count(int idx);
+        int decoder_digital_signature_validate(int idx, int ds_idx);
+        String^ decoder_digital_signature_name(int idx, int ds_idx);
+        String^ decoder_digital_signature_contactinfo(int idx, int ds_idx);
+        String^ decoder_digital_signature_reason(int idx, int ds_idx);
+        String^ decoder_digital_signature_location(int idx, int ds_idx);
 		void decoder_destroy(int idx);
 #pragma endregion Public Methods for PdfRasterReader
 	};

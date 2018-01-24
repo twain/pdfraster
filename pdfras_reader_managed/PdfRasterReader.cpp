@@ -244,6 +244,128 @@ namespace PdfRasterReader {
 		return strip_data;
 	}
 
+    bool Reader::decoder_is_digitally_signed(int idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int dig_signed = pdfrasread_is_digitally_signed(state[idx].decoder);
+        LOG(fprintf(fp, "- digitally signed = %d", dig_signed));
+
+        return dig_signed == 1 ? true : false;
+    }
+
+    int Reader::decoder_digital_siganture_count(int idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int count = pdfrasread_digital_signature_count(state[idx].decoder);
+        LOG(fprintf(fp, "- digital signature count = %d", count));
+
+        return count;
+    }
+
+    int Reader::decoder_digital_signature_validate(int idx, int ds_idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int res = pdfrasread_digital_signature_validate(state[idx].decoder, ds_idx);
+        LOG(fprintf(fp, " - digital signature validity = %d", res));
+
+        return res;
+    }
+
+    String^ Reader::decoder_digital_signature_name(int idx, int ds_idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        char* buf = NULL;
+        size_t len = pdfrasread_digital_signature_name(state[idx].decoder, ds_idx, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- digital signagture name = null"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * (len + 1));
+        len = pdfrasread_digital_signature_name(state[idx].decoder, ds_idx, buf);
+        buf[len] = '\0';
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- digital signagture name = %s", buf));
+
+        return ret;
+    }
+
+    String^ Reader::decoder_digital_signature_contactinfo(int idx, int ds_idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        char* buf = NULL;
+        size_t len = pdfrasread_digital_signature_contactinfo(state[idx].decoder, ds_idx, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- digital signagture contact info = null"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * (len + 1));
+        len = pdfrasread_digital_signature_contactinfo(state[idx].decoder, ds_idx, buf);
+        buf[len] = '\0';
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- digital signagture contact info = %s", buf));
+
+        return ret;
+    }
+
+    String^ Reader::decoder_digital_signature_reason(int idx, int ds_idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        char* buf = NULL;
+        size_t len = pdfrasread_digital_signature_reason(state[idx].decoder, ds_idx, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- digital signagture reason = null"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * (len + 1));
+        len = pdfrasread_digital_signature_reason(state[idx].decoder, ds_idx, buf);
+        buf[len] = '\0';
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- digital signagture reason = %s", buf));
+
+        return ret;
+    }
+
+    String^ Reader::decoder_digital_signature_location(int idx, int ds_idx) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        char* buf = NULL;
+        size_t len = pdfrasread_digital_signature_location(state[idx].decoder, ds_idx, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- digital signagture location = null"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * (len + 1));
+        len = pdfrasread_digital_signature_location(state[idx].decoder, ds_idx, buf);
+        buf[len] = '\0';
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- digital signagture location = %s", buf));
+
+        return ret;
+    }
+
 	void Reader::decoder_destroy(int idx)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));

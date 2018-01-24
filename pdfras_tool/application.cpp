@@ -52,6 +52,7 @@ void application::usage() {
 	cout << " -i=<file>   : the PDFraster input file (required)" << endl;
 	cout << " -o=<file>   : extract PDFraster image to output file (omit file extension)" << endl;
 	cout << " -p=<number> : page number (default is 1)" << endl;
+    cout << " -s          : print information about digitital signature if document is signed" << endl;
 	ERR(CLI_ARGS_INVALID);
 }
 
@@ -65,6 +66,7 @@ void application::parse_args(int argc, char * argv[]) {
 		const char opt_i[] = "-i=";
 		const char opt_o[] = "-o=";
 		const char opt_p[] = "-p=";
+        const char opt_s[] = "-s";
 
 		if (!strcmp(argv[i], opt_d)) {
 			config.op.add_print_details();
@@ -79,6 +81,9 @@ void application::parse_args(int argc, char * argv[]) {
 			config.op.add_extract_image();
 			handle.ofile.set_name(argv[i] + (sizeof(opt_o) - 1));
 		}
+        else if (!strcmp(argv[i], opt_s)) {
+            config.op.add_signature_info();
+        }
 		else {
 			LOG(err, "| option not recognized argv[%d]=\"%s\"",i,argv[i]);
 			usage();
@@ -170,6 +175,67 @@ void application::pdfr_close() {
 	}
 
 	LOG(dbg, "<");
+}
+
+void application::pdfr_signature_info() {
+    LOG(dbg, ">");
+    int sig_count = pdfrasread_digital_signature_count(handle.get_reader());
+
+    cout << "digital signatures count = " << sig_count << endl;
+    if (sig_count == 0)
+        return;
+
+    pdint32 sig = pdfrasread_digital_signature_validate(handle.get_reader(), 0);
+    if (sig == 0)
+        cout << "digital signature = not valid" << endl;
+    else {
+        cout << "digital signature = valid" << endl;
+        if (PDFR_CERT_VERIFIED(sig))
+            cout << "digital signature certificate = verified" << endl;
+        else
+            cout << "digital signature certificate = not verified" << endl;
+    }
+
+    char* buf = NULL;
+    size_t len = pdfrasread_digital_signature_name(handle.get_reader(), 0, NULL);
+    if (len > 0) {
+        buf = new char[len + 1];
+        len = pdfrasread_digital_signature_name(handle.get_reader(), 0, buf);
+        buf[len] = '\0';
+
+        cout << "digital signature Name = " << buf << endl;
+        delete[] buf;
+    }
+
+    len = pdfrasread_digital_signature_contactinfo(handle.get_reader(), 0, NULL);
+    if (len > 0) {
+        buf = new char[len + 1];
+        len = pdfrasread_digital_signature_contactinfo(handle.get_reader(), 0, buf);
+        buf[len] = '\0';
+
+        cout << "digital signature ContactInfo = " << buf << endl;
+        delete[] buf;
+    }
+
+    len = pdfrasread_digital_signature_location(handle.get_reader(), 0, NULL);
+    if (len > 0) {
+        buf = new char[len + 1];
+        len = pdfrasread_digital_signature_location(handle.get_reader(), 0, buf);
+        buf[len] = '\0';
+
+        cout << "digital signature Location = " << buf << endl;
+        delete[] buf;
+    }
+
+    len = pdfrasread_digital_signature_reason(handle.get_reader(), 0, NULL);
+    if (len > 0) {
+        buf = new char[len + 1];
+        len = pdfrasread_digital_signature_reason(handle.get_reader(), 0, buf);
+        buf[len] = '\0';
+
+        cout << "digital signature Reason = " << buf << endl;
+        delete[] buf;
+    }
 }
 
 void application::pdfr_parse_details() {
@@ -377,6 +443,11 @@ void application::run() {
 
 	pdfr_open();
 	pdfr_parse_details();
+
+    if (config.op.get_signature_info()) {
+        pdfr_signature_info();
+    }
+
 	if (config.op.get_extract_image()) {
 		pdfr_parse_image();
 	}

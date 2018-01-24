@@ -35,3 +35,11 @@ EXPORTS
 	pdfrasread_page_count_filename			@31
 	pdfrasread_open_file				@32
 	pdfrasread_open_filename			@33
+	
+	pdfrasread_is_digitally_signed		@34
+	pdfrasread_digital_signature_count	@35
+	pdfrasread_digital_signature_validate	@36
+	pdfrasread_digital_signature_name	@37
+	pdfrasread_digital_signature_contactinfo @38
+	pdfrasread_digital_signature_reason	@39
+	pdfrasread_digital_signature_location	@40
