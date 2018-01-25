@@ -20,7 +20,7 @@ struct t_signer {
     X509* digsig_cert;
 };
 
-pdbool static load_ceratificate(t_signer* signer, const char* file, const char* password) {
+pdbool static load_certificate(t_signer* signer, const char* file, const char* password) {
     PKCS12* pkcs12 = NULL;
     FILE* pfx_file = NULL;
     STACK_OF(X509)* ca = NULL;
@@ -65,7 +65,7 @@ t_signer* PDFRASAPICALL pdfr_init_digitalsignature(const char* pfx_file, const c
     signer->digsig_cert = NULL;
     signer->digsig_pkey = NULL;
 
-    if (!load_ceratificate(signer, pfx_file, password)) {
+    if (!load_certificate(signer, pfx_file, password)) {
         pdfr_exit_digitalsignature(signer);
         return NULL;
     }
