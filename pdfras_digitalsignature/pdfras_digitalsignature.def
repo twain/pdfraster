@@ -5,3 +5,5 @@ EXPORTS
 	pdfr_exit_digitalsignature		@2
 	pdfr_digsig_signature_length	@3
 	pdfr_digsig_sign_data			@4
+	pdfr_digitalsignature_create_signer	@5
+	pdfr_digitalsignature_validate	@6

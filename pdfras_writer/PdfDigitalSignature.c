@@ -37,7 +37,7 @@ struct t_pdfdigitalsignature {
     t_writer_data* data;
 
     // data used by pdfras_digitalsignature module
-    t_signer* signer;
+    t_digitalsignature* ds;
 
     // page containing signature
     t_pdvalue page;
@@ -63,8 +63,15 @@ t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const c
     if (!digitalSignature)
         return NULL;
 
-    digitalSignature->signer = pdfr_init_digitalsignature(pfx_file, password);
-    if (!digitalSignature->signer) {
+    digitalSignature->ds = pdfr_init_digitalsignature();
+    if (digitalSignature->ds == NULL) {
+        pd_free(digitalSignature);
+        return NULL;
+    }
+
+    pdbool result = pdfr_digitalsignature_create_signer(digitalSignature->ds, pfx_file, password);
+    if (!result) {
+        pdfr_exit_digitalsignature(digitalSignature->ds);
         pd_free(digitalSignature);
         return NULL;
     }
@@ -159,7 +166,7 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
     memset(signed_data, 0, sizeof(pduint8) * signed_len_in_hex);
     memset(signed_data_hex, 0, sizeof(pduint8) * (signed_len_in_hex + 1));
 
-    signed_len_in_bytes = pdfr_digsig_sign_data(signature->signer, buffer_to_sign, length1 + length2, signed_data, signed_len_in_hex);
+    signed_len_in_bytes = pdfr_digsig_sign_data(signature->ds, buffer_to_sign, length1 + length2, signed_data, signed_len_in_hex);
     if (signed_len_in_bytes > 0) {
 		pduint32 i;
         // converting to hex
@@ -188,7 +195,7 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
 void digitalsignature_destroy(t_pdfdigitalsignature* signature) {
     assert(signature);
 
-    pdfr_exit_digitalsignature(signature->signer);
+    pdfr_exit_digitalsignature(signature->ds);
 
     // restore user defined write callback and cookie
     pdfr_encoder_set_outputwriter(signature->encoder, signature->userWriter);
@@ -374,7 +381,7 @@ void digitalsignature_create_dictionaries(t_pdfdigitalsignature* signature) {
     memset(content, '0', 1024);
 
     // calculating lenght of the Content just to have accurate size 
-    pdint32 signature_length = pdfr_digsig_signature_length(signature->signer);
+    pdint32 signature_length = pdfr_digsig_signature_length(signature->ds);
     
     t_pdvalue v_dict = pd_dict_new(signature->pool, 3);
     pd_dict_put(v_dict, ((t_pdatom)"Contents"), pdstringvalue(pd_string_new_binary(signature->pool, signature_length, content)));

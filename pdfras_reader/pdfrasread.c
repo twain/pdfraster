@@ -124,6 +124,13 @@ typedef struct {
     unsigned long       height;             // of this strip
 } t_pdfstripinfo;
 
+// Data related to digital signature
+typedef struct {
+    pdfpos_t pos;               // position where digital signature dictonary starts
+    pdfpos_t byte_range[4];     // ByteRange from digital siganture dictionary
+    t_digitalsignature* ds;     // t_digitalsignature object for digital signature APIs
+} t_digitalsignaturedata;
+
 // Structure that represents a PDF/raster byte-stream that is open for reading
 struct t_pdfrasreader {
     int                 sig;                // safety/validity signature
@@ -147,6 +154,7 @@ struct t_pdfrasreader {
 	// page table
 	long				page_count;			// actual page count, or -1 for 'unknown'
 	pdfpos_t*			page_table;			// table of page positions (freed at close)
+    t_digitalsignaturedata* digital_signature;  // digital signature data
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -363,7 +371,7 @@ static size_t pdfras_read_tail(t_pdfrasreader* reader, char* tail, size_t len)
     pdfpos_t off = reader->filesize;
     off = (off < len) ? 0 : off - len;
     size_t step = reader->fread(reader->source, off, len, tail);
-    // make sure it's NUL-terminated but remember it could contain embedded NULs.
+    // make sure it's NULL-terminated but remember it could contain embedded NULs.
     tail[step] = 0;
     return step;
 }
@@ -459,7 +467,6 @@ static int seek_to(t_pdfrasreader* reader, pdfpos_t off)
     assert(off < reader->buffer.off + reader->buffer.len);
     return TRUE;
 }
-
 
 ///////////////////////////////////////////////////////////////////////
 // Single-character scanning methods
@@ -1109,6 +1116,20 @@ static int array_lookup(t_pdfrasreader* reader, pdfpos_t off, const char* key)
 		}
 	}
 	return FALSE;
+}
+
+static int open_array(t_pdfrasreader* reader, pdfpos_t* poff) {
+    skip_whitespace(reader, poff);
+    if (peekch(reader, *poff) != '[') {
+        // not a valid array
+        return FALSE;
+    }
+
+    // step over the opening '['
+    if (nextch(reader, poff) == -1)
+        return FALSE;
+
+    return TRUE;
 }
 
 static int parse_array(t_pdfrasreader* reader, pdfpos_t *poff)
@@ -1775,6 +1796,167 @@ static int validate_catalog(t_pdfrasreader* reader, pdfpos_t catpos)
     return TRUE;
 }
 
+// parse string object
+// reader - t_pdfrasreader
+// pos - where string should begin
+// str - buffer for string. If NULL then function determines length of string
+// hex - output param, if string is hex then it is set to 1, ohterwise 0 (TRUE/FALSE)
+// return - lenght of string
+static size_t parse_string(t_pdfrasreader* reader, pdfpos_t pos, char* str, int* hex) {
+    skip_whitespace(reader, &pos);
+    char ch = peekch(reader, pos);
+    char eos = 0;
+    ++pos;
+
+
+    if (ch == '(') {
+        eos = ')';
+        *hex = FALSE;
+    }
+    else if (ch == '<') {
+        eos = '>';
+        *hex = TRUE;
+    }
+    else {
+        compliance(reader, READ_BAD_STRING_BEGIN, --pos);
+        return 0;
+    }
+
+    size_t count = 0;
+    int esc = FALSE;
+    while ((ch = peekch(reader, pos++)) != eos && !esc) {
+        if (ch == '\\' && !esc)
+            esc = TRUE;
+        else
+            esc = FALSE;
+
+        if (str != NULL)
+            str[count] = ch;
+
+        ++count;
+    }
+
+    return count;
+}
+
+// digital signatures
+// return number of read data 
+// if buffer is NULL then only needed size of buffer is returned (caller must allocate it)
+static size_t read_bytes_for_validation(t_pdfrasreader* reader, char* buffer) {
+    if (reader->digital_signature == NULL)
+        return 0;
+
+    size_t len = (size_t)(reader->digital_signature->byte_range[1] + reader->digital_signature->byte_range[3]);
+    if (len == 0)
+        return 0;
+
+    if (buffer == NULL)
+        return len;
+
+    size_t count = reader->fread(reader->source, (size_t) reader->digital_signature->byte_range[0], (size_t) reader->digital_signature->byte_range[1], buffer);
+    count += reader->fread(reader->source, (size_t) reader->digital_signature->byte_range[2], (size_t) reader->digital_signature->byte_range[3], buffer + count);
+
+    return count;
+}
+
+static size_t parse_digital_signature_contents(t_pdfrasreader* reader, char* buffer) {
+    if (reader->digital_signature == NULL)
+        return 0;
+
+    pdfpos_t contents_pos = 0;
+    if (!dictionary_lookup(reader, reader->digital_signature->pos, "/Contents", &contents_pos)) {
+        compliance(reader, READ_CONTENTS_IN_DS_NOT_FOUND, contents_pos);
+        return 0;
+    }
+
+    // read the content of /Contents
+    int hex = TRUE;
+    size_t contents_len = parse_string(reader, contents_pos, NULL, &hex);
+    if (contents_len == 0)
+        return 0;
+
+    if (buffer == NULL)
+        return contents_len;
+
+    contents_len = parse_string(reader, contents_pos, buffer, &hex);
+
+    if (contents_len == 0) {
+        return 0;
+    }
+
+    return contents_len;
+}
+
+static int parse_digital_signature(t_pdfrasreader* reader, pdfpos_t afpos) {
+    pdfpos_t pos = 0;
+    // Check SigFlags 
+    if (!dictionary_lookup(reader, afpos, "/SigFlags", &pos))
+        return FALSE;
+
+    long l_val = 0;
+    if (!parse_long_value(reader, &pos, &l_val))
+        return FALSE;
+
+    // if bit position 1 is not set, there is no digital signature
+    if (!(l_val & 1))
+        return FALSE;
+
+    // Fields
+    if (!dictionary_lookup(reader, afpos, "/Fields", &pos)) {
+        compliance(reader, READ_FIELDS_NOT_IN_AF, afpos);
+        return FALSE;
+    }
+
+    if (!open_array(reader, &pos)) {
+        return FALSE;
+    }
+
+    pdfpos_t field_pos = 0;
+    if (!parse_indirect_reference(reader, &pos, &field_pos))
+        return FALSE;
+
+    // we're in field of AF where digital signature exists
+    // find V 
+    pdfpos_t v_pos = 0;
+    if (!dictionary_lookup(reader, field_pos, "/V", &v_pos)) {
+        compliance(reader, READ_V_NOT_IN_FIELD, field_pos);
+        return FALSE;
+    }
+    
+    // Find and load /ByteRange values
+    if (!dictionary_lookup(reader, v_pos, "/ByteRange", &pos)) {
+        compliance(reader, READ_BYTERANGE_NOT_FOUND, v_pos);
+        return FALSE;
+    }
+
+    if (!open_array(reader, &pos))
+        return FALSE;
+
+    reader->digital_signature = (t_digitalsignaturedata*)malloc(sizeof(t_digitalsignaturedata));
+    reader->digital_signature->pos = v_pos;
+
+    for (int i = 0; i < 4; ++i) {
+        if (!parse_long_value(reader, &pos, &l_val)) {
+            free(reader->digital_signature);
+            reader->digital_signature = NULL;
+            return FALSE;
+        }
+
+        reader->digital_signature->byte_range[i] = (long)l_val;
+    }
+
+    // OK, there is digital signature
+    reader->digital_signature->ds = pdfr_init_digitalsignature();
+    if (reader->digital_signature->ds == NULL) {
+        free(reader->digital_signature);
+        reader->digital_signature = NULL;
+        
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 // Return TRUE if all OK, FALSE if some problem.
 static int parse_trailer(t_pdfrasreader* reader)
 {
@@ -1874,6 +2056,7 @@ static int parse_trailer(t_pdfrasreader* reader)
         compliance(reader, READ_CAT_PAGES, catpos);
         return FALSE;
 	}
+
 	// pages points to the root Page Tree Node
 	if (!dictionary_lookup(reader, pages, "/Count", &off) ||
         !parse_long_value(reader, &off, &reader->page_count) ||
@@ -1888,6 +2071,16 @@ static int parse_trailer(t_pdfrasreader* reader)
         // any errors were already logged.
 		return FALSE;
 	}
+
+    // find digital signatures 
+    pdfpos_t afpos = 0;
+    if (dictionary_lookup(reader, catpos, "/AcroForm", &afpos)) {
+        if (!parse_digital_signature(reader, afpos))
+            return FALSE;
+
+        if (pdfrasread_digital_signature_validate(reader, 0) == -1)
+            return FALSE;
+    }
 
 	return TRUE;
 }
@@ -2278,6 +2471,7 @@ t_pdfrasreader* pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fs
     reader->fclose = closefn;
     reader->error_handler = call_global_error_handler;
     reader->page_count = -1;		// Unknown
+    reader->digital_signature = NULL;
     assert(VALID(reader));
 	return reader;
 }
@@ -2290,6 +2484,13 @@ void pdfrasread_destroy(t_pdfrasreader* reader)
         // force closed if open
         pdfrasread_close(reader);
         reader->sig = 0xDEAD;
+        
+        if (reader->digital_signature->ds)
+            pdfr_exit_digitalsignature(reader->digital_signature->ds);
+
+        if (reader->digital_signature)
+            free(reader->digital_signature);
+
 		free(reader);
 	}
 }
@@ -2462,6 +2663,155 @@ long pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s)
 	return strip.raw_size;
 }
 
+int pdfrasread_is_digitally_signed(t_pdfrasreader* reader) {
+    return reader->digital_signature != NULL;
+}
+
+// pdfrasreader does not support reading incrementally saved PDF/R,
+// therefore only 1 digital signature can be readed.
+int pdfrasread_digital_signature_count(t_pdfrasreader* reader) {
+    if (reader->digital_signature != NULL)
+        return 1;
+
+    return 0;
+}
+
+static char hex_to_char(const char ch) {
+    if (isdigit(ch))
+        return ch;
+
+    char low = tolower(ch);
+
+    if (low == 'a')
+        return 0x0A;
+    else if (low == 'b')
+        return 0x0B;
+    else if (low == 'c')
+        return 0x0C;
+    else if (low == 'd')
+        return 0x0D;
+    else if (low == 'e')
+        return 0x0E;
+    else if (low == 'f')
+        return 0x0F;
+
+    return 0;
+}
+
+pdint32 pdfrasread_digital_signature_validate(t_pdfrasreader* reader, pdint32 idx) {
+    assert(idx == 0); // only single digital signature supported now
+
+    size_t contents_hex_len = parse_digital_signature_contents(reader, NULL);
+    if (contents_hex_len == 0)
+        return -1;
+    char* contents_hex = NULL;
+    if ((contents_hex_len % 2) == 0) {
+        contents_hex = (char*)malloc(sizeof(char) * contents_hex_len);
+        contents_hex_len = parse_digital_signature_contents(reader, contents_hex);
+    }
+    else {
+        contents_hex = (char*)malloc(sizeof(char) * (contents_hex_len + 1));
+        memset(contents_hex, '0', contents_hex_len + 1);
+        contents_hex_len = parse_digital_signature_contents(reader, contents_hex);
+        ++contents_hex_len;
+    }
+
+    // decode contents
+    size_t contents_len = contents_hex_len / 2;
+    char* contents = (char*)malloc(sizeof(char) * contents_len);
+    char h, l;
+    for (size_t i = 0; i < contents_len; ++i) {
+        h = hex_to_char(contents_hex[i * 2]) & 0x0F;
+        l = hex_to_char(contents_hex[i * 2 + 1]) & 0x0F;
+        
+        contents[i] = ((h << 4) | l);
+    }
+
+    free(contents_hex);
+
+    size_t bytes_count = read_bytes_for_validation(reader, NULL);
+    if (bytes_count == 0) {
+        free(contents);
+        return -1;
+    }
+    char* bytes = (char*)malloc(sizeof(char) * bytes_count);
+    if (bytes == NULL) {
+        free(contents);
+        return -1;
+    }
+    bytes_count = read_bytes_for_validation(reader, bytes);
+   
+    pdint32 result = pdfr_digitalsignature_validate(reader->digital_signature->ds, (pduint8*) contents, (pduint32) contents_len, (pduint8*) bytes, (pduint32) bytes_count);
+    
+    free(contents);
+    free(bytes);
+
+    return result;
+}
+
+static size_t read_ds_dictionary_string_entry(t_pdfrasreader* reader, const char* key, char* buf) {
+    pdfpos_t pos = 0;
+    if (!dictionary_lookup(reader, reader->digital_signature->pos, key, &pos)) {
+        return 0;
+    }
+
+    int hex = FALSE;
+    size_t len = parse_string(reader, pos, NULL, &hex);
+    if (len == 0)
+        return 0;
+
+    if (buf == NULL) {
+        if (hex == TRUE)
+            len *= 2;
+
+        return len;
+    }
+
+    len = parse_string(reader, pos, buf, &hex);
+
+    return len;
+}
+
+size_t pdfrasread_digital_signature_name(t_pdfrasreader* reader, pdint32 idx, char* buf) {
+    assert(idx == 0); // only single digital signature supported now
+
+    const char* key = "/Name";
+    if (buf == NULL)
+        return read_ds_dictionary_string_entry(reader, key, NULL);
+
+    return read_ds_dictionary_string_entry(reader, key, buf);
+}
+
+size_t pdfrasread_digital_signature_contactinfo(t_pdfrasreader* reader, pdint32 idx, char* buf) {
+    assert(idx == 0); // only single digital signature supported now
+
+    const char* key = "/ContactInfo";
+    if (buf == NULL)
+        return read_ds_dictionary_string_entry(reader, key, NULL);
+
+    return read_ds_dictionary_string_entry(reader, key, buf);
+}
+
+size_t pdfrasread_digital_signature_reason(t_pdfrasreader* reader, pdint32 idx, char* buf) {
+    assert(idx == 0); // only single digital signature supported now
+
+    const char* key = "/Reason";
+    if (buf == NULL)
+        return read_ds_dictionary_string_entry(reader, key, NULL);
+
+    return read_ds_dictionary_string_entry(reader, key, buf);
+}
+
+size_t pdfrasread_digital_signature_location(t_pdfrasreader* reader, pdint32 idx, char* buf) {
+    assert(idx == 0); // only single digital signature supported now
+
+    const char* key = "/Location";
+    if (buf == NULL)
+        return read_ds_dictionary_string_entry(reader, key, NULL);
+
+    return read_ds_dictionary_string_entry(reader, key, buf);
+}
+
 static const char* error_code_description(int code)
 {
     switch (code) {
@@ -2562,6 +2912,11 @@ static const char* error_code_description(int code)
 	case READ_XREF_NUMREFS:         return "number of claimed entries in xref table is  < 1 or > 8388607";
 	case READ_XREF_OBJECT_ZERO:     return "first object in xref table is not object 0";
 	case READ_XREF_TABLE:           return "failed reading xref table - invalid file (or file read error?)";
+    case READ_FIELDS_NOT_IN_AF:     return "AcroForm does not contain Fields entry";
+    case READ_V_NOT_IN_FIELD:       return "No /V in AcroFrom field dictionary";
+    case READ_BYTERANGE_NOT_FOUND:  return "/ByteRange could not be found for digital signature";
+    case READ_CONTENTS_IN_DS_NOT_FOUND: return "/Contents could not be found for digital signature";
+    case READ_BAD_STRING_BEGIN:     return "Invalid begin mark for string object";
     default:
         return "<no details>";
     }

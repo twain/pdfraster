@@ -187,9 +187,11 @@ copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bi
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pdfras_digitalsignature.h" />
+    <ClInclude Include="pdfras_digitalsignature_windows.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pdfras_digitalsignature.c" />
+    <ClCompile Include="pdfras_digitalsignature_windows.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
