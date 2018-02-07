@@ -96,7 +96,8 @@ static pdbool compute_O(t_encrypter* enc) {
 
     // c
     if (enc->R >= 3) {
-        for (pduint32 i = 0; i < 50; ++i) {
+		pduint32 i;
+        for (i = 0; i < 50; ++i) {
             MD5_Init(&md5);
             MD5_Update(&md5, hash, enc->encryption_key_length);
             MD5_Final(hash, &md5);
@@ -114,9 +115,11 @@ static pdbool compute_O(t_encrypter* enc) {
     // g
     if (enc->R >= 3) {
         unsigned char key[MD5_HASH_BYTES];
+		pduint32 i;
+		pduint32 k;
 
-        for (pduint32 i = 1; i <= 19; ++i) {
-            for (pduint32 k = 0; k < enc->encryption_key_length; ++k) {
+        for (i = 1; i <= 19; ++i) {
+            for (k = 0; k < enc->encryption_key_length; ++k) {
                 key[k] = (unsigned char)(hash[k] ^ i);
             }
 
@@ -145,6 +148,8 @@ static pdbool compute_U_r2(t_encrypter* enc) {
 // Algorithm 5: Compute U value (revision >= 3)
 static pdbool compute_U_r3_4(t_encrypter* enc) {
     unsigned char hash[MD5_HASH_BYTES];
+	pduint32 i;
+	pduint32 k;
 
     if (enc->encryption_key == NULL)
         return PD_FALSE;
@@ -168,8 +173,8 @@ static pdbool compute_U_r3_4(t_encrypter* enc) {
 
     // e
     unsigned char key[MD5_HASH_BYTES];
-    for (pduint32 i = 1; i <= 19; ++i) {
-        for (pduint32 k = 0; k < enc->encryption_key_length; ++k) {
+    for (i = 1; i <= 19; ++i) {
+        for (k = 0; k < enc->encryption_key_length; ++k) {
             key[k] = (unsigned char)(enc->encryption_key[k] ^ i);
         }
 
@@ -205,8 +210,10 @@ static void compute_2B(const char* password, const pduint8* salt, const pduint8*
     SHA256_Final(K, &sha256);
 
     unsigned int last = 0;
+	unsigned int step;
     EVP_CIPHER_CTX* aes128 = EVP_CIPHER_CTX_new();
-    for (unsigned int step = 0; step < 64 || last > step - 32; step++) {
+    for (step = 0; step < 64 || last > step - 32; step++) {
+		int i;
 
         // step a
         pduint8 K1[15962] = "";
@@ -219,7 +226,7 @@ static void compute_2B(const char* password, const pduint8* salt, const pduint8*
             memcpy(&K1[K1_length], additional, 48);
             K1_length += 48;
         }
-        for (int i = 0; i < 6; i++) {
+        for (i = 0; i < 6; i++) {
             memcpy(&K1[K1_length], K1, K1_length);
             K1_length = K1_length << 1;
         }
@@ -237,7 +244,7 @@ static void compute_2B(const char* password, const pduint8* salt, const pduint8*
 
         // step c
         unsigned int sum = 0;
-        for (int i = 0; i < 16; i++)
+        for (i = 0; i < 16; i++)
             sum += E[i];
 
         // step d
@@ -389,6 +396,7 @@ static pdbool generate_encryption_key(t_encrypter* enc) {
     else {
         pduint8 idx = 0;
         pduint32 len = 0;
+		int i;
 
         // a -> passwords already padded
 
@@ -423,7 +431,7 @@ static pdbool generate_encryption_key(t_encrypter* enc) {
 
         // g
         if (enc->R >= 3) {
-            for (int i = 0; i < 50; ++i) {
+            for (i = 0; i < 50; ++i) {
                 if (MD5_Init(&md5) == 0)
                     return PD_FALSE;
 

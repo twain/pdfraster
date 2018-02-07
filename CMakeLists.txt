@@ -1,4 +1,7 @@
 cmake_minimum_required(VERSION 3.9.0)
+if (APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "i386;x86_64")
+endif()
 project(pdfraster C)
 
 set(PDFRASTER_SHARED_LIB pdfraster)
@@ -9,6 +12,11 @@ find_package(OpenSSL REQUIRED)
 if (NOT ${OPENSSL_FOUND})
     message(FATAL_ERROR "OpenSSL was not found on system.")
 endif ()
+
+if (APPLE)
+    include_directories("/usr/include:/usr/local/include")
+    link_directories("/usr/lib:/usr/local/lib")
+endif()
 
 if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/icc_profile/srgb_icc_profile.h")
     message(FATAL_ERROR "icc_profile/srgb_icc_profile.h does not exist.\n

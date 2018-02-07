@@ -11,7 +11,7 @@ include Makefile.platform
 
 
 # This is what we want to build...
-CFLAGS += -fPIC
+CFLAGS += -fPIC -I./ -I../pdfras_digitalsignature/ -I../pdfras_encryption/
 O =	md5.o \
 	PdfAlloc.o \
 	PdfArray.o \

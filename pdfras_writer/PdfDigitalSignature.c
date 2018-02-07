@@ -161,8 +161,9 @@ void digitalsignature_finish(t_pdfdigitalsignature* signature) {
 
     signed_len_in_bytes = pdfr_digsig_sign_data(signature->signer, buffer_to_sign, length1 + length2, signed_data, signed_len_in_hex);
     if (signed_len_in_bytes > 0) {
+		pduint32 i;
         // converting to hex
-        for (pduint32 i = 0; i < signed_len_in_bytes; ++i) {
+        for (i = 0; i < signed_len_in_bytes; ++i) {
             sprintf((char*)&signed_data_hex[i * 2], "%02X", signed_data[i]);
         }
 

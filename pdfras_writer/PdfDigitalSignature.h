@@ -8,7 +8,8 @@ extern "C" {
 #include "PdfRaster.h"
 #include "PdfPlatform.h"
 
-typedef struct t_pdfdigitalsignature t_pdfdigitalsignature;
+// This is already being done inside of PdfRastrer.h
+//typedef struct t_pdfdigitalsignature t_pdfdigitalsignature;
 
 // Initialize digital signature and return its object
 // encoder - t_pdfrasencoder

@@ -41,9 +41,10 @@ void pdfras_generate_random_bytes(char* buf, pdint32 buf_len) {
     if (RAND_bytes(buf, buf_len) == 0) {
         // try pseudo random generator
         if (RAND_pseudo_bytes(buf, buf_len) == 0) {
+			pdint32 i;
             // ok, openssl failed to generate random nums
             srand((unsigned int)time(NULL));
-            for (pdint32 i = 0; i < buf_len; ++i) {
+            for (i = 0; i < buf_len; ++i) {
                 buf[i] = (char)rand();
             }
         }
