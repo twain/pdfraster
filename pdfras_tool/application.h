@@ -53,5 +53,6 @@ private:
 	void pdfr_open();
 	void pdfr_parse_details();
 	void pdfr_parse_image();
+    void pdfr_signature_info();
 	void pdfr_close();
 };

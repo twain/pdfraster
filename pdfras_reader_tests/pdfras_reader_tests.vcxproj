@@ -87,7 +87,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_digitalsignature</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -103,7 +103,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_digitalsignature</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -121,7 +121,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_digitalsignature</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -141,7 +141,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)common;$(SolutionDir)pdfras_reader;$(SolutionDir)pdfras_writer;$(SolutionDir)pdfras_digitalsignature</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
@@ -174,6 +174,9 @@
     <None Include="valid1.pdf" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\pdfras_digitalsignature\pdfras_digitalsignature.vcxproj">
+      <Project>{ad94958a-b236-416c-b217-2bad5ecf7cc3}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\pdfras_reader\pdfras_reader.vcxproj">
       <Project>{c06a94ca-439b-4c91-9fa3-f9c2e3487473}</Project>
     </ProjectReference>

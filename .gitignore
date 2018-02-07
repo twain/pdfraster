@@ -35,3 +35,5 @@ demo_raster_encoder/*.pdf
 
 .vscode/
 build/
+
+pdfras_tool/pdfras_tool.vcxproj.user

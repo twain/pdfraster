@@ -31,6 +31,7 @@ private:
 	const int test_pdfr = 1;			// test validity of PDFraster file
 	const int print_details = 2;		// print PDFraster (width, length, resolution, etc.)
 	const int extract_image = 4;		// extract image from PDFR file
+    const int print_signature = 8;      // print info about digital signature
 public:
 	operation() { op = test_pdfr; }
 
@@ -49,6 +50,10 @@ public:
 	void set_extract_image() { op = extract_image; }
 	void add_extract_image() { op |= extract_image; }
 	bool get_extract_image() { return op & extract_image ? true : false; }
+
+    void set_signature_info() { op = print_signature; }
+    void add_signature_info() { op |= print_signature; }
+    bool get_signature_info() { return op & print_signature ? true : false; }
 };
 
 class configuration {

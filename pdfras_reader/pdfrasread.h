@@ -10,6 +10,7 @@ extern "C" {
 #endif
 
 #include "PdfPlatform.h"
+#include "pdfras_digitalsignature.h"
 
 // This could be pduint32 for resource constrained 32-bit system using PDF/raster files smaller than 4GB
 typedef unsigned long long int pdfpos_t;
@@ -230,6 +231,41 @@ typedef unsigned long (PDFRASAPICALL *pfn_pdfrasread_strip_height)(t_pdfrasreade
 long PDFRASAPICALL pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s);
 typedef long (PDFRASAPICALL *pfn_pdfrasread_strip_raw_size)(t_pdfrasreader* reader, int p, int s);
 
+// API for digital signatures
+// Check if PDF/R document is digitally signed
+int PDFRASAPICALL pdfrasread_is_digitally_signed(t_pdfrasreader* reader);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_is_digitally_signed)(t_pdfrasreader* reader);
+
+// Return number digital signatures found in PDF/R document
+int PDFRASAPICALL pdfrasread_digital_signature_count(t_pdfrasreader* reader);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_digital_signature_count)(t_pdfrasreader* reader);
+
+// Validate digital signature at given position (zero based indices based on return value 
+// of pdfrasread_digital_signature_count()
+// 0 if signature is not valid, otherwise none zero value
+pdint32 PDFRASAPICALL pdfrasread_digital_signature_validate(t_pdfrasreader* reader, pdint32 idx);
+typedef pdint32 (PDFRASAPICALL *pfn_pdfrasread_digital_signature_validate) (t_pdfrasreader* reader, pdint32 idx);
+
+// Get /Name entry from digital signature dictionary
+// if buf is NULL then function returns count of bytes needed for buffer allcoated by caller
+size_t PDFRASAPICALL pdfrasread_digital_signature_name(t_pdfrasreader* reader, pdint32 idx, char* buf);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_name) (t_pdfrasreader* reader, pdint32 idx, char* buf);
+
+// Get /ContactInfo entry from digital signature dictionary
+// if buf is NULL then function returns count of bytes needed for buffer allcoated by caller
+size_t PDFRASAPICALL pdfrasread_digital_signature_contactinfo(t_pdfrasreader* reader, pdint32 idx, char* buf);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_contactinfo) (t_pdfrasreader* reader, pdint32 idx, char* buf);
+
+// Get /Reason entry from digital signature dictionary
+// if buf is NULL then function returns count of bytes needed for buffer allcoated by caller
+size_t PDFRASAPICALL pdfrasread_digital_signature_reason(t_pdfrasreader* reader, pdint32 idx, char* buf);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_reason) (t_pdfrasreader* reader, pdint32 idx, char* buf);
+
+// Get /Location entry from digital signature dictionary
+// if buf is NULL then function returns count of bytes needed for buffer allcoated by caller
+size_t PDFRASAPICALL pdfrasread_digital_signature_location(t_pdfrasreader* reader, pdint32 idx, char* buf);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_location) (t_pdfrasreader* reader, pdint32 idx, char* buf);
+
 // detailed error codes
 // TODO: assign hard codes to all, so they can't change accidentally
 // and so people can look 'em up.
@@ -331,6 +367,11 @@ typedef enum {
     READ_ICC_PROFILE,               // not a valid ICC Profile stream
     READ_ICCPROFILE_READ,           // read error while reading ICC Profile data
     READ_COLORSPACE_ARRAY,          // colorspace array syntax error - missing closing ']'?
+    READ_FIELDS_NOT_IN_AF,          // Fields entry is not present in AcroForms
+    READ_V_NOT_IN_FIELD,            // field of AcroForm does not contain /V
+    READ_BYTERANGE_NOT_FOUND,       // /ByteRange for digital signature was not found
+    READ_CONTENTS_IN_DS_NOT_FOUND,  // /Contents not present in digital signature dictionary
+    READ_BAD_STRING_BEGIN,          // Invalid begin mark for string object
     READ_pdfrt_error_code_COUNT
 } ReadErrorCode;
 

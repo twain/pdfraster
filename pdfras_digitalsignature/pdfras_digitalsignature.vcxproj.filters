@@ -23,9 +23,15 @@
     <ClInclude Include="pdfras_digitalsignature.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pdfras_digitalsignature_windows.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pdfras_digitalsignature.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pdfras_digitalsignature_windows.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
