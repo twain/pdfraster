@@ -366,6 +366,57 @@ namespace PdfRasterReader {
         return ret;
     }
 
+    String^ Reader::decoder_document_metadata(int idx) {
+        LOG(fprintf("> idx=%d", idx));
+        checkStateValid(idx);
+
+        char* buf = NULL;
+        size_t len = pdfrasread_document_metadata(state[idx].decoder, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- document metadata length = 0"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * len);
+        len = pdfrasread_document_metadata(state[idx].decoder, buf);
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- document metadata length = %d", len));
+
+        return ret;
+    }
+
+    // page: number of page indexed from 1 (1st page -> 1), not from 0
+    String^ Reader::decoder_page_metadata(int idx, int page) {
+        LOG(fprintf("> idx=%d", idx));
+        checkStateValid(idx);
+
+        if (page <= 0) {
+            LOG(fprintf("- page metadata = wrong page number"));
+            return "";
+        }
+
+        char* buf = NULL;
+        --page;
+        size_t len = pdfrasread_page_metadata(state[idx].decoder, page, NULL);
+        if (len == 0) {
+            LOG(fprintf(fp, "- page metadata length = 0"));
+            return "";
+        }
+
+        buf = (char*)malloc(sizeof(char) * len);
+        len = pdfrasread_page_metadata(state[idx].decoder, page, buf);
+
+        String^ ret = gcnew String(buf);
+        free(buf);
+
+        LOG(fprintf(fp, "- page metadata length = %d", len));
+
+        return ret;
+    }
+
 	void Reader::decoder_destroy(int idx)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));

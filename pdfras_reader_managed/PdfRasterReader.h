@@ -61,6 +61,8 @@ namespace PdfRasterReader {
         String^ decoder_digital_signature_contactinfo(int idx, int ds_idx);
         String^ decoder_digital_signature_reason(int idx, int ds_idx);
         String^ decoder_digital_signature_location(int idx, int ds_idx);
+        String^ decoder_document_metadata(int idx);
+        String^ decoder_page_metadata(int idx, int page); // page: number of page indexed from 1 (1st page -> 1), not from 0
 		void decoder_destroy(int idx);
 #pragma endregion Public Methods for PdfRasterReader
 	};

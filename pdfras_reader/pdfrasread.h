@@ -231,6 +231,20 @@ typedef unsigned long (PDFRASAPICALL *pfn_pdfrasread_strip_height)(t_pdfrasreade
 long PDFRASAPICALL pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s);
 typedef long (PDFRASAPICALL *pfn_pdfrasread_strip_raw_size)(t_pdfrasreader* reader, int p, int s);
 
+// Metadata reading API
+// metadata: buffer for storing metadata. If it's NULL, function return count of bytes needed 
+// for allocation of buffer for metadata. Buffer is null-terminated.
+// return metadata stream length
+size_t PDFRASAPICALL pdfrasread_document_metadata(t_pdfrasreader* reader, char* metadata);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_document_metadata) (t_pdfrasreader* reader, char* metadata);
+
+// page: number of page
+// metadata: buffer for storing metadata. If it's NULL, function return count of bytes needed 
+// for allocation of buffer for metadata. Buffer is null-terminated.
+// return metadata stream length
+size_t PDFRASAPICALL pdfrasread_page_metadata(t_pdfrasreader* reader, int page, char* metadata);
+typedef size_t(PDFRASAPICALL *pfn_pdfrasread_page_metadata)(t_pdfrasreader* reader, int page, char* metadata);
+
 // API for digital signatures
 // Check if PDF/R document is digitally signed
 int PDFRASAPICALL pdfrasread_is_digitally_signed(t_pdfrasreader* reader);
