@@ -178,7 +178,7 @@ pdint32 pdfr_digsig_sign_data(t_digitalsignature* ds, const pduint8* input, cons
         BIO_get_mem_ptr(outputbio, &mem);
 
         if (mem && mem->data && output_length >= mem->length) {
-            ret = mem->length;
+            ret = (pdint32)mem->length;
             memcpy(output, mem->data, mem->length);
         }
 

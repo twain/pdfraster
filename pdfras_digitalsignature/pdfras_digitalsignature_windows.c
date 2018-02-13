@@ -18,7 +18,7 @@ static void load_certs_from_store(X509_STORE* x509_store, const char* name) {
     PCCERT_CONTEXT context = NULL;
 
     // Load from ROOT
-    store = CertOpenStore(CERT_STORE_PROV_SYSTEM_A, 0, NULL, CERT_SYSTEM_STORE_CURRENT_USER, name);
+    store = CertOpenStore(CERT_STORE_PROV_SYSTEM_A, 0, 0, CERT_SYSTEM_STORE_CURRENT_USER, name);
     // system stores
     // including Trust, CA, or Root
     if (store == NULL)

@@ -59,7 +59,7 @@ static void padd_passwords(t_encrypter* enc, const char* user_password, const ch
     pdint32 len = 0;
     pdint32 idx = 0;
     if (owner_password) {
-        len = strlen(owner_password);
+        len = (pdint32)strlen(owner_password);
         memcpy(enc->padded_op, owner_password, len > 32 ? 32 : len);
 
         // pad password
@@ -71,7 +71,7 @@ static void padd_passwords(t_encrypter* enc, const char* user_password, const ch
 
     idx = 0;
     if (user_password) {
-        len = strlen(user_password);
+        len = (pdint32)strlen(user_password);
         memcpy(enc->padded_up, user_password, len > 32 ? 32 : len);
 
         // pad password
@@ -195,7 +195,7 @@ static void compute_2B(const char* password, const pduint8* salt, const pduint8*
 
     pdint32 length = 0;
     if (password != NULL)
-        length = strlen(password);
+        length = (pdint32)strlen(password);
     if (length > 127)
         length = 127;
 
@@ -511,14 +511,14 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
         encrypter->Perms = (char*)malloc(encrypter->Perms_length * sizeof(char));
 
         if (user_password) {
-            pdint32 len = strlen(user_password);
+            pdint32 len = (pdint32)strlen(user_password);
             encrypter->user_password = (char*)malloc(sizeof(char) * (len + 1));
             strncpy(encrypter->user_password, user_password, len);
             encrypter->user_password[len] = '\0';
         }
 
         if (owner_password) {
-            pdint32 len = strlen(owner_password);
+            pdint32 len = (pdint32)strlen(owner_password);
             encrypter->owner_password = (char*)malloc(sizeof(char) * (len + 1));
             strncpy(encrypter->owner_password, owner_password, len);
             encrypter->owner_password[len] = '\0';
