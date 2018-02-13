@@ -43,3 +43,6 @@ EXPORTS
 	pdfrasread_digital_signature_contactinfo @38
 	pdfrasread_digital_signature_reason	@39
 	pdfrasread_digital_signature_location	@40
+	
+	pdfrasread_document_metadata		@41
+	pdfrasread_page_metadata			@42

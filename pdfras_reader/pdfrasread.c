@@ -154,6 +154,7 @@ struct t_pdfrasreader {
 	// page table
 	long				page_count;			// actual page count, or -1 for 'unknown'
 	pdfpos_t*			page_table;			// table of page positions (freed at close)
+    pdfpos_t            catalog_pos;        // position of Catalog
     t_digitalsignaturedata* digital_signature;  // digital signature data
 };
 
@@ -2038,22 +2039,21 @@ static int parse_trailer(t_pdfrasreader* reader)
 		return FALSE;
 	}
 	// find the address of the Catalog
-	pdfpos_t catpos;
-	if (!dictionary_lookup(reader, off, "/Root", &catpos)) {
+	if (!dictionary_lookup(reader, off, "/Root", &reader->catalog_pos)) {
 		// invalid PDF: trailer dictionary must contain /Root entry
         compliance(reader, READ_ROOT, off);
 		return FALSE;
 	}
 	// check the Catalog
-    if (!validate_catalog(reader, catpos)) {
+    if (!validate_catalog(reader, reader->catalog_pos)) {
         // any errors already logged.
         return FALSE;
     }
 	// Find the root node of the page tree
 	pdfpos_t pages;
-	if (!dictionary_lookup(reader, catpos, "/Pages", &pages)) {
+	if (!dictionary_lookup(reader, reader->catalog_pos, "/Pages", &pages)) {
 		// invalid PDF: catalog must have a /Pages entry
-        compliance(reader, READ_CAT_PAGES, catpos);
+        compliance(reader, READ_CAT_PAGES, reader->catalog_pos);
         return FALSE;
 	}
 
@@ -2074,7 +2074,7 @@ static int parse_trailer(t_pdfrasreader* reader)
 
     // find digital signatures 
     pdfpos_t afpos = 0;
-    if (dictionary_lookup(reader, catpos, "/AcroForm", &afpos)) {
+    if (dictionary_lookup(reader, reader->catalog_pos, "/AcroForm", &afpos)) {
         if (!parse_digital_signature(reader, afpos))
             return FALSE;
 
@@ -2471,6 +2471,7 @@ t_pdfrasreader* pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fs
     reader->fclose = closefn;
     reader->error_handler = call_global_error_handler;
     reader->page_count = -1;		// Unknown
+    reader->catalog_pos = 0;
     reader->digital_signature = NULL;
     assert(VALID(reader));
 	return reader;
@@ -2663,6 +2664,40 @@ long pdfrasread_strip_raw_size(t_pdfrasreader* reader, int p, int s)
 	return strip.raw_size;
 }
 
+// Metadata
+static size_t read_metadata_stream(t_pdfrasreader* reader, pdfpos_t pos, char* metadata) {
+    pdfpos_t metadata_pos = 0;
+    if (!dictionary_lookup(reader, pos, "/Metadata", &metadata_pos))
+        return 0;
+
+    pdfpos_t stream_pos = 0;
+    long stream_len = 0;
+    if (!parse_stream(reader, &metadata_pos, &stream_pos, &stream_len))
+        return 0;
+
+    if (stream_len == 0)
+        return 0;
+
+    if (metadata == NULL)
+        return stream_len + 1;
+
+    size_t read_len = reader->fread(reader->source, stream_pos, stream_len, metadata);
+    metadata[stream_len] = '\0';
+
+    return read_len;
+}
+
+size_t pdfrasread_document_metadata(t_pdfrasreader* reader, char* metadata) {
+    return read_metadata_stream(reader, reader->catalog_pos, metadata);
+}
+
+size_t pdfrasread_page_metadata(t_pdfrasreader* reader, int page, char* metadata) {
+    pdfpos_t page_pos = get_page_pos(reader, page);
+
+    return read_metadata_stream(reader, page_pos, metadata);
+}
+
+// Digital signatures
 int pdfrasread_is_digitally_signed(t_pdfrasreader* reader) {
     return reader->digital_signature != NULL;
 }

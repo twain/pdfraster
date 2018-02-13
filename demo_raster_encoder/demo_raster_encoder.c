@@ -557,6 +557,8 @@ void write_gray8_jpeg_page(t_pdfrasencoder* enc)
 	pdfr_encoder_set_compression(enc, PDFRAS_JPEG);
 	// write a strip of raster data to the current page
 	pdfr_encoder_write_strip(enc, 1100, gray8_page_jpg, sizeof gray8_page_jpg);
+    // page metadata
+    pdfr_encoder_write_page_xmp(enc, XMP_metadata);
 	// the page is done
 	pdfr_encoder_end_page(enc);
 }
