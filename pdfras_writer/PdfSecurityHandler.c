@@ -17,6 +17,42 @@ typedef struct {
     pduint32 written;
 } t_writer_data;
 
+// We need this to make C# happy...
+struct t_encrypter {
+	// user entered data
+	char* user_password;  // Only for PDF 2.0
+	char* owner_password; // Only for PDF 2.0
+
+	char padded_up[32];
+	char padded_op[32];
+
+	char* O;
+	char* U;
+	char* OE;
+	char* UE;
+	char* Perms;
+	PDFRAS_PERMS perms;
+	PDFRAS_ENCRYPT_ALGORITHM algorithm;
+	pdbool encrypt_metadata;
+
+	pduint32 OU_length;
+	pduint32 OUE_length;
+	pduint32 Perms_length;
+
+	pduint8 V;
+	pduint8 R;
+
+	char* document_id;
+	pduint32 document_id_length;
+
+	// encryption key
+	char* encryption_key;
+	pduint16 encryption_key_length;
+
+	pdint32 current_obj_number;
+	pdint32 current_gen_number;
+};
+
 struct t_pdencrypter {
 	t_pdmempool* pool;
     fOutputWriter userWriter;

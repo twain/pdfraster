@@ -17,6 +17,13 @@
 
 #include "pdfras_digitalsignature.h"
 
+// Need this to make C# happy...
+typedef void X509_STORE;
+struct t_digitalsignature {
+	struct t_signer* signer;
+	X509_STORE* cert_store;
+};
+
 #define BUFFER_SIZE 8192
 
 typedef struct {

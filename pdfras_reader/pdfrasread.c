@@ -124,6 +124,13 @@ typedef struct {
     unsigned long       height;             // of this strip
 } t_pdfstripinfo;
 
+// Need this to make C# happy...
+typedef void X509_STORE;
+struct t_digitalsignature {
+	struct t_signer* signer;
+	X509_STORE* cert_store;
+};
+
 // Data related to digital signature
 typedef struct {
     pdfpos_t pos;               // position where digital signature dictonary starts
