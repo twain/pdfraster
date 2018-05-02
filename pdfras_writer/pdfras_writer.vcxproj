@@ -96,7 +96,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -123,7 +123,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,7 +150,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -179,7 +179,7 @@
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <Optimization>MinSpace</Optimization>
       <TreatWarningAsError>true</TreatWarningAsError>
-      <AdditionalIncludeDirectories>..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_digitalsignature;..\pdfras_encryption;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -210,7 +210,6 @@
     <ClInclude Include="PdfHash.h" />
     <ClInclude Include="PdfImage.h" />
     <ClInclude Include="PdfOS.h" />
-    <ClInclude Include="PdfPlatform.h" />
     <ClInclude Include="PdfSecurityHandler.h" />
     <ClInclude Include="PdfValues.h" />
     <ClInclude Include="PdfRaster.h" />

@@ -19,13 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{AD94958A-B236-416C-B217-2BAD5ECF7CC3}</ProjectGuid>
+    <ProjectGuid>{33AD8E36-EAC0-46CE-A4ED-D32F32D83967}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>pdfras_digitalsignature</RootNamespace>
+    <RootNamespace>pdfras_platform</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <Import Project="$(SolutionDir)common\build.common.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -92,21 +91,13 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;PDFRAS_DIGITALSIGNATURE_EXPORTS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_writer;..\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;PDFRAS_PLATFORM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>pdfras_digitalsignature.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\openssl\x86_Debug\lib;..\bin\x86\Debug\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <PostBuildEvent>
-      <Command>copy $(MSBuildThisFileDirectory)..\openssl\x86_Debug\bin\*.dll $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -114,21 +105,13 @@ copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bi
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;PDFRAS_DIGITALSIGNATURE_EXPORTS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_writer;..\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;PDFRAS_PLATFORM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>pdfras_digitalsignature.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\openssl\x64_Debug\lib;..\bin\x64\Debug\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <PostBuildEvent>
-      <Command>copy $(MSBuildThisFileDirectory)..\openssl\x64_Debug\bin\*.dll $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -138,23 +121,15 @@ copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bi
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PDFRAS_DIGITALSIGNATURE_EXPORTS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_writer;..\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;PDFRAS_PLATFORM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>pdfras_digitalsignature.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\openssl\x86_Release\lib;..\bin\x86\Release\</AdditionalLibraryDirectories>
     </Link>
-    <PostBuildEvent>
-      <Command>copy $(MSBuildThisFileDirectory)..\openssl\x86_Release\bin\*.dll $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -164,34 +139,18 @@ copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bi
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;PDFRAS_DIGITALSIGNATURE_EXPORTS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\pdfras_platform;..\pdfras_writer;..\openssl\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;PDFRAS_PLATFORM_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <ModuleDefinitionFile>pdfras_digitalsignature.def</ModuleDefinitionFile>
-      <AdditionalDependencies>libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\openssl\x64_Release\lib;..\bin\x64\Release\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
-    <PostBuildEvent>
-      <Command>copy $(MSBuildThisFileDirectory)..\openssl\x64_Release\bin\*.dll $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-copy $(MSBuildThisFileDirectory)certificate.p12 $(MSBuildThisFileDirectory)..\bin\$(PlatformPath)\$(Configuration)\
-</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="pdfras_digitalsignature.def" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="pdfras_digitalsignature.h" />
-    <ClInclude Include="pdfras_digitalsignature_windows.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="pdfras_digitalsignature.c" />
-    <ClCompile Include="pdfras_digitalsignature_windows.c" />
+    <ClInclude Include="PdfPlatform.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

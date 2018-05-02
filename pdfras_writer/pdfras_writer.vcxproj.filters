@@ -87,9 +87,6 @@
     <ClInclude Include="PdfOS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PdfPlatform.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="PdfRaster.h">
       <Filter>Header Files</Filter>
     </ClInclude>
