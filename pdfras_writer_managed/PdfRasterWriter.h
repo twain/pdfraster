@@ -36,6 +36,19 @@ namespace PdfRasterWriter {
 			PDFRASWR_JPEG = PDFRAS_JPEG,					// JPEG baseline (DCTDecode)
 			PDFRASWR_CCITTG4 = PDFRAS_CCITTG4,				// CCITT Group 4 (CCITTFaxDecode)
 		};
+
+		// Permissions
+		enum struct PdfRasterPermissions
+		{
+			PDFRASWR_PERM_PRINT_DOCUMENT = PDFRAS_PERM_PRINT_DOCUMENT,
+			PDFRASWR_PERM_MODIFY_DOCUMENT = PDFRAS_PERM_MODIFY_DOCUMENT,
+			PDFRASWR_PERM_COPY_FROM_DOCUMENT = PDFRAS_PERM_COPY_FROM_DOCUMENT,
+			PDFRASWR_PERM_EDIT_ANNOTS = PDFRAS_PERM_EDIT_ANNOTS,
+			PDFRASWR_PERM_FILL_FORMS = PDFRAS_PERM_FILL_FORMS,
+			PDFRASWR_PERM_ACCESSIBILITY = PDFRAS_PERM_ACCESSIBILITY,
+			PDFRASWR_PERM_ASSEMBLE_DOCUMENT = PDFRAS_PERM_ASSEMBLE_DOCUMENT,
+			PDFRASWR_PERM_HIGH_PRINT = PDFRAS_PERM_HIGH_PRINT
+		};
 #pragma endregion Public Definitions for PdfRasterWriter
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -45,10 +58,10 @@ namespace PdfRasterWriter {
 	public:
 		int  encoder_create(int apiLevel, String^ pdfFileName);
         int  encoder_create_digitally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password);
-        void encoder_set_RC4_40_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
-        void encoder_set_RC4_128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
-        void encoder_set_AES128_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
-        void encoder_set_AES256_encrypter(int idx, String^ user_password, String^ owner_password, PDFRAS_PERMS perms, pdbool metadata);
+        void encoder_set_RC4_40_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
+        void encoder_set_RC4_128_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
+        void encoder_set_AES128_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
+        void encoder_set_AES256_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
 		void encoder_set_creator(int enc, String^ creator);
 		void encoder_set_resolution(int enc, double xdpi, double ydpi);
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);

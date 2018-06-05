@@ -55,7 +55,7 @@ namespace PdfRasterReader {
 		PdfRasterReaderCompression decoder_get_compression(int idx);
         array<Byte>^ decoder_read_strips(int idx);
         bool decoder_is_digitally_signed(int idx);
-        int decoder_digital_siganture_count(int idx);
+        int decoder_digital_signature_count(int idx);
         int decoder_digital_signature_validate(int idx, int ds_idx);
         String^ decoder_digital_signature_name(int idx, int ds_idx);
         String^ decoder_digital_signature_contactinfo(int idx, int ds_idx);

@@ -254,7 +254,7 @@ namespace PdfRasterReader {
         return dig_signed == 1 ? true : false;
     }
 
-    int Reader::decoder_digital_siganture_count(int idx) {
+    int Reader::decoder_digital_signature_count(int idx) {
         LOG(fprintf(fp, "> idx=%d", idx));
         checkStateValid(idx);
 

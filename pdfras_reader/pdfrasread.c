@@ -134,7 +134,7 @@ struct t_digitalsignature {
 // Data related to digital signature
 typedef struct {
     pdfpos_t pos;               // position where digital signature dictonary starts
-    pdfpos_t byte_range[4];     // ByteRange from digital siganture dictionary
+    pdfpos_t byte_range[4];     // ByteRange from digital signature dictionary
     t_digitalsignature* ds;     // t_digitalsignature object for digital signature APIs
 } t_digitalsignaturedata;
 
