@@ -40,6 +40,13 @@ typedef enum {
 	RASREAD_CCITTG4,			// CCITT Group 4 (CCITTFaxDecode)
 } RasterReaderCompression;
 
+typedef enum {
+    RASREAD_SECURITY_UNKNOWN,              // Unknown, error occurred
+    RASREAD_UNENCRYPTED,                   // document is unencrypted
+    RASREAD_STANDARD_SECURITY,             // document is encrypted by password security
+    RASREAD_PUBLIC_KEY_SECURITY            // document is encrypted by certificate security
+} RasterReaderSecurityType; 
+
 // Error categories
 // All levels except INFO and WARNING indicate that the current API call will fail.
 #define	REPORTING_INFO      0		// useful to know but not bad news.
@@ -280,6 +287,11 @@ typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_reason) (t_pdfras
 size_t PDFRASAPICALL pdfrasread_digital_signature_location(t_pdfrasreader* reader, pdint32 idx, char* buf);
 typedef size_t(PDFRASAPICALL *pfn_pdfrasread_digital_signature_location) (t_pdfrasreader* reader, pdint32 idx, char* buf);
 
+// Decryption
+// Checks if document is encrypted
+RasterReaderSecurityType PDFRASAPICALL pdfrasread_get_security_type(t_pdfrasreader* reader, void* source);
+typedef RasterReaderSecurityType(PDFRASAPICALL *pfn_pdfrasread_get_security_type) (t_pdfrasreader* reader, void* source);
+
 // detailed error codes
 // TODO: assign hard codes to all, so they can't change accidentally
 // and so people can look 'em up.
@@ -386,6 +398,8 @@ typedef enum {
     READ_BYTERANGE_NOT_FOUND,       // /ByteRange for digital signature was not found
     READ_CONTENTS_IN_DS_NOT_FOUND,  // /Contents not present in digital signature dictionary
     READ_BAD_STRING_BEGIN,          // Invalid begin mark for string object
+    READ_ENCRYPT_FILTER_NOT_FOUND,  // Required /Filter not found in encryption dictionary
+    READ_BAD_NAME_BEGIN,            // Invalid begin mark for name object
     READ_pdfrt_error_code_COUNT
 } ReadErrorCode;
 

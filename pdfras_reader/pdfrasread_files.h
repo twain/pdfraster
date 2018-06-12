@@ -32,6 +32,10 @@ typedef t_pdfrasreader* (PDFRASAPICALL *pfn_pdfrasread_open_file)(int apiLevel, 
 t_pdfrasreader* PDFRASAPICALL pdfrasread_open_filename(int apiLevel, const char* fn);
 typedef t_pdfrasreader* (PDFRASAPICALL *pfn_pdfrasread_open_filename)(int apiLevel, const char* fn);
 
+// return security type used by document
+RasterReaderSecurityType PDFRASAPICALL pdfrasread_get_security_type_filename(const char* filename);
+typedef RasterReaderSecurityType(PDFRASAPICALL *pfn_pdfrasread_get_security_type_filename)(const char* filename);
+
 #ifdef __cplusplus
 }
 #endif

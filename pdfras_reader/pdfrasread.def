@@ -46,3 +46,6 @@ EXPORTS
 	
 	pdfrasread_document_metadata		@41
 	pdfrasread_page_metadata			@42
+	
+	pdfrasread_get_security_type		@43
+	pdfrasread_get_security_type_filename @44

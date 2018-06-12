@@ -163,6 +163,7 @@ struct t_pdfrasreader {
 	pdfpos_t*			page_table;			// table of page positions (freed at close)
     pdfpos_t            catalog_pos;        // position of Catalog
     t_digitalsignaturedata* digital_signature;  // digital signature data
+    RasterReaderSecurityType security_type;  // encryption type (password, certificate, unencrypted)
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -1816,7 +1817,6 @@ static size_t parse_string(t_pdfrasreader* reader, pdfpos_t pos, char* str, int*
     char eos = 0;
     ++pos;
 
-
     if (ch == '(') {
         eos = ')';
         *hex = FALSE;
@@ -1845,6 +1845,38 @@ static size_t parse_string(t_pdfrasreader* reader, pdfpos_t pos, char* str, int*
     }
 
     return count;
+}
+
+// parse name object
+// reader - t_pdfrasreader
+// pos - where name object should begin
+// name - buffer for name object. If NULL then function determines its size (without ending /0)
+static size_t parse_name(t_pdfrasreader* reader, pdfpos_t pos, char* name) {
+    skip_whitespace(reader, &pos);
+    char ch = peekch(reader, pos);
+    char eon = 0;
+    ++pos;
+
+    if (ch != '/') {
+        compliance(reader, READ_BAD_NAME_BEGIN, --pos);
+        return 0;
+    }
+
+    size_t count = 0;
+    int esc = FALSE;
+    while ((ch = peekch(reader, pos++)) != eon && !esc) {
+        if (isspace(ch) && !esc)
+            esc = TRUE;
+        else
+            esc = FALSE;
+
+        if (name != NULL)
+            name[count] = ch;
+
+        ++count;
+    }
+
+    return --count;
 }
 
 // digital signatures
@@ -2089,7 +2121,7 @@ static int parse_trailer(t_pdfrasreader* reader)
             return FALSE;
     }
 
-	return TRUE;
+    return TRUE;
 }
 
 static pdfpos_t get_page_pos(t_pdfrasreader* reader, int n)
@@ -2480,6 +2512,8 @@ t_pdfrasreader* pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fs
     reader->page_count = -1;		// Unknown
     reader->catalog_pos = 0;
     reader->digital_signature = NULL;
+    reader->security_type = RASREAD_SECURITY_UNKNOWN;
+
     assert(VALID(reader));
 	return reader;
 }
@@ -2960,6 +2994,8 @@ static const char* error_code_description(int code)
     case READ_BYTERANGE_NOT_FOUND:  return "/ByteRange could not be found for digital signature";
     case READ_CONTENTS_IN_DS_NOT_FOUND: return "/Contents could not be found for digital signature";
     case READ_BAD_STRING_BEGIN:     return "Invalid begin mark for string object";
+    case READ_ENCRYPT_FILTER_NOT_FOUND: return "Required /Filner could not be found in encryption dictionary";
+    case READ_BAD_NAME_BEGIN:       return "Invalid begin mark for name object";
     default:
         return "<no details>";
     }
@@ -3033,6 +3069,7 @@ int pdfrasread_open(t_pdfrasreader* reader, void* source)
         api_error(NULL, READ_API_BAD_READER, __LINE__);
         return FALSE;
     }
+
 	if (reader->bOpen) {
         // already open, can't open it.
         api_error(reader, READ_API_ALREADY_OPEN, __LINE__);
@@ -3096,4 +3133,99 @@ int pdfrasread_close(t_pdfrasreader* reader)
     }
     assert(reader->bOpen == PD_FALSE);
     return TRUE;
+}
+
+static RasterReaderSecurityType parse_security_type(t_pdfrasreader* reader) {
+    char tail[TAILSIZE + 1];
+    size_t tailsize = pdfras_read_tail(reader, tail, sizeof tail - 1);
+    pdfpos_t off = reader->filesize - (pdfpos_t)tailsize;
+    
+    const char* startxref = memrstr(tail, tail + tailsize, "startxref");
+    if (!startxref) {
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+
+    const char* tag = memrstr(tail, tail + tailsize, "%PDF-raster-");
+    if (!tag || tag == tail) {
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+    assert(tag > tail);
+    
+    off = reader->filesize - tailsize;
+    off += (startxref - tail);
+    unsigned long xref_off;
+    if (!token_eat(reader, &off, "startxref") || !token_ulong(reader, &off, &xref_off)) {
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+    
+    off = xref_off;
+    if (!read_xref_table(reader, &off)) {
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+    if (!token_eat(reader, &off, "trailer")) {
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+  
+    // find the address of the Encrypt
+    pdfpos_t encrypt_pos = 0;
+    if (!dictionary_lookup(reader, off, "/Encrypt", &encrypt_pos)) {
+        // no /Encrypt found, file is unencrypted
+        return RASREAD_UNENCRYPTED;
+    }
+
+    // File is encrypted so we're going to find type of security
+    pdfpos_t filter_pos = 0;
+    if (!dictionary_lookup(reader, encrypt_pos, "/Filter", &filter_pos)) {
+        compliance(reader, READ_ENCRYPT_FILTER_NOT_FOUND, encrypt_pos);
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+
+    char* buffer = NULL;
+    int hex = 0;
+    size_t bufLen = parse_name(reader, filter_pos, buffer);
+    if (bufLen <= 0) {
+        compliance(reader, READ_ENCRYPT_FILTER_NOT_FOUND, encrypt_pos);
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+    ++bufLen;
+    buffer = (char*)malloc(sizeof(char) * bufLen);
+    if (buffer == NULL)
+        return RASREAD_SECURITY_UNKNOWN;
+
+    bufLen = parse_name(reader, filter_pos, buffer);
+    buffer[bufLen] = '\0';
+
+    RasterReaderSecurityType ret = RASREAD_SECURITY_UNKNOWN;
+    if (strncmp(buffer, "Standard", bufLen) == 0) {
+        ret = RASREAD_STANDARD_SECURITY;
+    }
+    else {   
+        // not Standard filter, it will be public key security
+        ret = RASREAD_PUBLIC_KEY_SECURITY;
+    }
+
+    if (buffer)
+        free(buffer);
+
+    return ret;
+}
+
+RasterReaderSecurityType pdfrasread_get_security_type(t_pdfrasreader* reader, void* source) {
+    if (!VALID(reader)) {
+        api_error(NULL, READ_API_BAD_READER, __LINE__);
+        return RASREAD_SECURITY_UNKNOWN;
+    }
+
+    if (reader->security_type != RASREAD_SECURITY_UNKNOWN)
+        return reader->security_type;
+
+    reader->source = source;
+    reader->filesize = reader->fsize(reader->source);
+
+    reader->security_type = parse_security_type(reader);
+
+    reader->source = NULL;
+    reader->filesize = 0;
+
+    return reader->security_type;
 }
