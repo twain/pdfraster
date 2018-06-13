@@ -2493,11 +2493,12 @@ void pdfrasread_destroy(t_pdfrasreader* reader)
         pdfrasread_close(reader);
         reader->sig = 0xDEAD;
         
-        if (reader->digital_signature->ds)
-            pdfr_exit_digitalsignature(reader->digital_signature->ds);
+        if (reader->digital_signature) {
+            if (reader->digital_signature->ds)
+                pdfr_exit_digitalsignature(reader->digital_signature->ds);
 
-        if (reader->digital_signature)
             free(reader->digital_signature);
+        }
 
 		free(reader);
 	}
