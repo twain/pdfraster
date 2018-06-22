@@ -18,13 +18,17 @@ pduint32 pdfras_aes_encrypt_data(const char* key, const pduint32 key_len, const 
     pdfras_generate_random_bytes(iv, IV_LEN);
 
     EVP_CIPHER_CTX* cipher = EVP_CIPHER_CTX_new();
+    if (!cipher)
+        return -1;
 
     if (key_len <= 16)
         EVP_EncryptInit(cipher, EVP_aes_128_cbc(), key, iv);
     else if (key_len == 32)
         EVP_EncryptInit(cipher, EVP_aes_256_cbc(), key, iv);
-    else
+    else {
+        EVP_CIPHER_CTX_free(cipher);
         return -1;
+    }
 
     memcpy(data_out, iv, IV_LEN);
 
@@ -49,4 +53,65 @@ void pdfras_generate_random_bytes(char* buf, pdint32 buf_len) {
             }
         }
     }
+}
+
+pduint32 pdfras_aes_decrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+    if (data_in == NULL || data_out == NULL)
+        return -1;
+
+    EVP_CIPHER_CTX* cipher = EVP_CIPHER_CTX_new();
+    if (!cipher)
+        return -1;
+
+    char iv[IV_LEN];
+    memcpy(iv, data_in, IV_LEN);
+
+    if (key_len <= 16)
+        EVP_DecryptInit_ex(cipher, EVP_aes_128_cbc(), NULL, key, iv);
+    else if (key_len == 32)
+        EVP_DecryptInit_ex(cipher, EVP_aes_256_cbc(), NULL, key, iv);
+    else {
+        EVP_CIPHER_CTX_free(cipher);
+        return -1;
+    }
+
+    int out_len = 0;
+    int len = 0;
+    EVP_DecryptUpdate(cipher, data_out, &len, data_in + IV_LEN, in_len - IV_LEN);
+    out_len += len;
+
+    EVP_DecryptFinal_ex(cipher, data_out + len, &len);
+    out_len += len;
+
+    EVP_CIPHER_CTX_free(cipher);
+
+    return out_len;
+}
+
+pduint32 pdfras_aes_decrypt_encryption_key(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+    if (data_in == NULL || data_out == NULL)
+        return -1;
+
+    if (key_len != 32)
+        return -1;
+
+    EVP_CIPHER_CTX* cipher = EVP_CIPHER_CTX_new();
+
+    char iv[IV_LEN];
+    memset(iv, 0, IV_LEN);
+
+    EVP_DecryptInit_ex(cipher, EVP_aes_256_cbc(), NULL, key, iv);
+    EVP_CIPHER_CTX_set_padding(cipher, 0);
+
+    int out_len = 0;
+    int len = 0;
+    
+    EVP_DecryptUpdate(cipher, data_out, &len, data_in, in_len);
+    out_len += len;
+    EVP_DecryptFinal_ex(cipher, data_out + len, &len);
+    out_len += len;
+
+    EVP_CIPHER_CTX_free(cipher);
+
+    return out_len;
 }

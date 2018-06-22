@@ -978,7 +978,7 @@ int write_rgb24_jpeg_file_encrypted_aes128(t_OS os, const char* filename) {
     os.allocsys = pd_alloc_new_pool(&os);
 
     t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
-    pdfr_encoder_set_AES128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_FALSE);
+    pdfr_encoder_set_AES128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_TRUE);
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_title(enc, filename);
     pdfr_encoder_set_subject(enc, "24-bit JPEG-compressed sample output");

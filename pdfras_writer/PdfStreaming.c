@@ -485,7 +485,7 @@ void pd_write_reference_declaration(t_pdoutstream *stm, t_pdvalue ref)
 			// start definition with: <obj#> <gen#> obj<eol>
 			pd_putint(stm, onr);
 			pd_puts(stm, " 0 obj\n");
-			if (pd_stream_is_encrypted(stm)) { // && pd_encrypt_is_active(stm->encrypter)) {
+			if (pd_stream_is_encrypted(stm) && pd_encrypt_is_active(stm->encrypter)) {
 				pd_encrypt_start_object(stm->encrypter, onr, 0);
 			}
 			pd_write_value(stm, pd_reference_get_value(ref));

@@ -140,6 +140,16 @@ typedef void (PDFRASAPICALL *pfn_pdfrasread_get_highest_pdfr_version)(t_pdfrasre
 int PDFRASAPICALL pdfrasread_open(t_pdfrasreader* reader, void* source);
 typedef int (PDFRASAPICALL *pfn_pdfrasread_open)(t_pdfrasreader* reader, void* source);
 
+// Open a secured PDF/raster source for reading.
+// If successful, records the source, sets the state to open and returns TRUE.
+// Otherwise it returns FALSE.
+// This function fails if the reader is already open.
+// It also fails if the source does not pass initial parsing/tests for PDF/raster.
+// No assumptions are made about the source parameter, it is only stored,
+// and passed to the readfn and closefn of the reader.
+int PDFRASAPICALL pdfrasread_open_secured(t_pdfrasreader* reader, void* source, const char* password);
+typedef int (PDFRASAPICALL *pfn_pdfrasread_open_secured) (t_pdfrasreader* reader, void* source, const char* password);
+
 // Check if a source passes a quick validation as a PDF/raster stream.
 // Returns TRUE if the source looks like something this library can parse.
 // (i.e. looks like PDF/raster with an acceptable major version number.)
@@ -400,6 +410,11 @@ typedef enum {
     READ_BAD_STRING_BEGIN,          // Invalid begin mark for string object
     READ_ENCRYPT_FILTER_NOT_FOUND,  // Required /Filter not found in encryption dictionary
     READ_BAD_NAME_BEGIN,            // Invalid begin mark for name object
+    READ_BAD_BOOLEAN_VALUE,         // Invalid boolean value
+    READ_BAD_ENCRYPT_DICTIONARY,    // Encrypt dictionary is not valid.
+    READ_NO_DOCUMENT_ID,            // Document has not ID (required by encryption/decryption)
+    READ_ARRAY_BAD_SYNTAX,          // Array has bad syntax
+    READ_ENCRYPTION_BAD_PASSWORD,    // Bad password provided for encrypted document
     READ_pdfrt_error_code_COUNT
 } ReadErrorCode;
 

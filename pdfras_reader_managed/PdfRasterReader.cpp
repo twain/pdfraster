@@ -101,6 +101,39 @@ namespace PdfRasterReader {
 		return idx;
 	}
 
+    int Reader::decoder_create(int apiLevel, String^ pdfFileName, String^ password) {
+        LOG(fprintf(fp, "> apiLevel=%d", apiLevel));
+
+        int idx;
+        for (idx = 0; idx < MAX_DECODERS; ++idx) {
+            if (!state[idx].valid()) {
+                break; // good, found an unused encoder struc
+            }
+        }
+
+        if (idx == MAX_DECODERS) {
+            LOG(fprintf(fp, "- ERROR: too many encoders used"));
+            throw(L"too many encoders used");
+        }
+
+        char *filename = wchar2char(pdfFileName);
+        LOG(fprintf(fp, "- filename=\"%s\"", filename));
+
+        char* passwd = wchar2char(password);
+
+        state[idx].decoder = pdfrasread_open_filename_secured(RASREAD_API_LEVEL, filename, passwd);
+
+        if (state[idx].decoder == nullptr) {
+            state[idx].invalidate();
+            char buf[256]; buf[0] = 0; strerror_s(buf, sizeof(buf) - 1, errno);
+            LOG(fprintf(fp, "- ERROR: fopen() returned 0 errno=%d \"%s\"", errno, buf));
+            throw(L"fopen() returned 0 ");
+        }
+
+        LOG(fprintf(fp, "< idx=%d", idx));
+        return idx;
+    }
+
 	int Reader::decoder_get_page_count(int idx)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));

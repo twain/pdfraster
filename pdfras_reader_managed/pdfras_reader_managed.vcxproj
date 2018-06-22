@@ -95,7 +95,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\bin\x86\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -110,7 +110,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\bin\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
@@ -124,7 +124,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x86\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -137,7 +137,7 @@
       <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>pdfras_digitalsignature.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>pdfras_digitalsignature.lib;pdfras_encryption.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\bin\x64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

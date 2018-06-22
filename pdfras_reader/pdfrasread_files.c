@@ -105,6 +105,18 @@ t_pdfrasreader* pdfrasread_open_file(int apiLevel, FILE* f)
 	return reader;
 }
 
+t_pdfrasreader* pdfrasread_open_file_secured(int apiLevel, FILE* f, const char* password) {
+    t_pdfrasreader* reader = pdfrasread_create(apiLevel, &file_reader, &file_sizer, &file_closer);
+
+    if (reader) {
+        if (!pdfrasread_open_secured(reader, f, password)) {
+            pdfrasread_destroy(reader);
+            reader = NULL;
+        }
+    }
+    return reader;
+}
+
 t_pdfrasreader* pdfrasread_open_filename(int apiLevel, const char* fn)
 {
 	t_pdfrasreader* reader = NULL;
@@ -118,6 +130,20 @@ t_pdfrasreader* pdfrasread_open_filename(int apiLevel, const char* fn)
 		}
 	}
 	return reader;
+}
+
+t_pdfrasreader* pdfrasread_open_filename_secured(int apiLevel, const char* fn, const char* password) {
+    t_pdfrasreader* reader = NULL;
+    FILE* f = fopen(fn, "rb");
+    if (f) {
+        // construct a PDF/raster reader based on the file
+        reader = pdfrasread_open_file_secured(apiLevel, f, password);
+        if (!reader) {
+            // open failed, we have to close the file ourselves
+            fclose(f);
+        }
+    }
+    return reader;
 }
 
 RasterReaderSecurityType pdfrasread_get_security_type_filename(const char* filename) {

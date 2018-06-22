@@ -55,6 +55,7 @@ namespace PdfRasterReader {
 #pragma region Public Methods: PdfRasterReader
 	public:
 		int  decoder_create(int apiLevel, String^ pdfFileName);
+        int  decoder_create(int apiLevel, String^ pdfFileName, String^ password);
 		int  decoder_get_page_count(int idx);
 		int  decoder_get_width(int idx);
 		int  decoder_get_height(int idx);

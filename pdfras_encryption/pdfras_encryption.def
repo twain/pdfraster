@@ -19,3 +19,10 @@ EXPORTS
 	pdfr_encrypter_get_OUE_length				@17
 	pdfr_encrypter_get_Perms					@18
 	pdfr_encrypter_get_Perms_length				@19
+	pdfr_create_decrypter						@20
+	pdfr_destroy_decrypter						@21
+	pdfr_decrypter_get_document_access			@22
+	pdfr_decrypter_decrypt_data					@23
+	pdfr_decrypter_get_algorithm				@24
+	pdfr_decrypter_object_number				@25
+	pdfr_decrypter_get_metadata_encrypted		@26
