@@ -210,6 +210,22 @@ namespace PdfRasterReader {
 		return compression;
 	}
 
+    Reader::PdfRasterReaderSecurityType Reader::decoder_get_security_type(String^ pdfFileName) {
+        char *filename = wchar2char(pdfFileName);
+        RasterReaderSecurityType st = pdfrasread_get_security_type_filename(filename);
+        
+        PdfRasterReaderSecurityType security;
+        switch (st) {
+        case RASREAD_SECURITY_UNKNOWN: security = PdfRasterReaderSecurityType::PDFRASREAD_SECURITY_UNKNOWN; break;
+        case RASREAD_UNENCRYPTED: security = PdfRasterReaderSecurityType::PDFRASREAD_UNENCRYPTED; break;
+        case RASREAD_STANDARD_SECURITY: security = PdfRasterReaderSecurityType::RASREAD_STANDARD_SECURITY; break;
+        case RASREAD_PUBLIC_KEY_SECURITY: security = PdfRasterReaderSecurityType::RASREAD_PUBLIC_KEY_SECURITY; break;
+        default: LOG(fprintf(fp, "> unknown security type!")); throw("unknown security type"); break;
+        }
+
+        return security;
+    }
+
 	array<Byte>^ Reader::decoder_read_strips(int idx)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));

@@ -1,6 +1,7 @@
 #include "pdfrasread_files.h"
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "PdfPlatform.h"
 
 // Some private helper functions
@@ -117,4 +118,22 @@ t_pdfrasreader* pdfrasread_open_filename(int apiLevel, const char* fn)
 		}
 	}
 	return reader;
+}
+
+RasterReaderSecurityType pdfrasread_get_security_type_filename(const char* filename) {
+    t_pdfrasreader* reader = pdfrasread_create(RASREAD_API_LEVEL, &file_reader, &file_sizer, &file_closer);
+    RasterReaderSecurityType ret = RASREAD_SECURITY_UNKNOWN;
+
+    if (reader) {
+        FILE* f = fopen(filename, "rb");
+    
+        if (f) {
+             ret = pdfrasread_get_security_type(reader, f);
+            fclose(f);
+        }
+
+        free(reader);
+    }
+
+    return ret;
 }

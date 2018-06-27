@@ -38,6 +38,15 @@ namespace PdfRasterReader {
 			PDFRASREAD_JPEG = RASREAD_JPEG,							// JPEG baseline (DCTDecode)
 			PDFRASEARD_CCITTG4 = RASREAD_CCITTG4,					// CCITT Group 4 (CCITTFaxDecode)
 		};
+
+        // Security type
+        enum struct PdfRasterReaderSecurityType
+        {
+            PDFRASREAD_SECURITY_UNKNOWN = RASREAD_SECURITY_UNKNOWN, // Unknown, error occurred
+            PDFRASREAD_UNENCRYPTED = RASREAD_UNENCRYPTED,           // document is unencrypted
+            RASREAD_STANDARD_SECURITY = RASREAD_STANDARD_SECURITY,  // document is encrypted by password security
+            RASREAD_PUBLIC_KEY_SECURITY = RASREAD_PUBLIC_KEY_SECURITY, // document is encrypted by certificate security
+        };
 #pragma endregion Public Definitions for PdfRasterReader
 
 		///////////////////////////////////////////////////////////////////////////////
@@ -53,6 +62,7 @@ namespace PdfRasterReader {
 		double decoder_get_yresolution(int idx);
 		PdfRasterReaderPixelFormat decoder_get_pixelformat(int idx);
 		PdfRasterReaderCompression decoder_get_compression(int idx);
+        PdfRasterReaderSecurityType decoder_get_security_type(String^ filename);
         array<Byte>^ decoder_read_strips(int idx);
         bool decoder_is_digitally_signed(int idx);
         int decoder_digital_signature_count(int idx);

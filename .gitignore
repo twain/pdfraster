@@ -37,3 +37,4 @@ demo_raster_encoder/*.pdf
 build/
 
 pdfras_tool/pdfras_tool.vcxproj.user
+pdfras_reader/pdfras_reader.vcxproj.user
