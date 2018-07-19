@@ -1,4 +1,5 @@
 #include "pdfrasread.h"
+#include "pdfras_encryption.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -162,8 +163,11 @@ struct t_pdfrasreader {
 	long				page_count;			// actual page count, or -1 for 'unknown'
 	pdfpos_t*			page_table;			// table of page positions (freed at close)
     pdfpos_t            catalog_pos;        // position of Catalog
+    pdfpos_t            trailer_pos;        // position of Trailer
+    pduint32            encrypt_obj_num;    // Object number for Encrypt dictionary
     t_digitalsignaturedata* digital_signature;  // digital signature data
-    RasterReaderSecurityType security_type;  // encryption type (password, certificate, unencrypted)
+    t_decrypter*        decrypter;          // decrypter object used for decryption
+    RasterReaderSecurityType security_type;  // encryption type (password, certificate, unencrypted)    
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -173,6 +177,10 @@ static pdfras_err_handler global_error_handler = pdfrasread_default_error_handle
 
 ///////////////////////////////////////////////////////////////////////
 // Functions
+int parse_long_value(t_pdfrasreader* reader, pdfpos_t *poff, long* pvalue);
+static RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdfpos_t enc_pos);
+static char* parse_document_first_id(t_pdfrasreader* reader);
+static char* hex_string_to_byte_array(const char* hexstr, size_t hexlen);
 
 ///////////////////////////////////////////////////////////////////////
 // Utility Functions
@@ -462,6 +470,21 @@ static int advance_buffer(t_pdfrasreader* reader, pdfpos_t* poff)
     return reader->buffer.len != 0;
 }
 
+// Reead the previous buffer-full into the buffer.
+// Append a NULL.
+// Set *poff to the offset in the file of the first byte in the buffer.
+// If nothing read return FALSE, otherwise TRUE.
+static int back_buffer(t_pdfrasreader* reader, pdfpos_t* poff) {
+    *poff = reader->buffer.off - reader->buffer.len;
+    if (*poff < 0)
+        *poff = 0;
+
+    reader->buffer.len = reader->fread(reader->source, *poff, sizeof reader->buffer.data - 1, reader->buffer.data);
+    reader->buffer.data[reader->buffer.len] = 0;
+
+    return reader->buffer.len != 0;
+}
+
 static int seek_to(t_pdfrasreader* reader, pdfpos_t off)
 {
     if (off < reader->buffer.off || off >= reader->buffer.off + reader->buffer.len) {
@@ -505,6 +528,17 @@ static int nextch(t_pdfrasreader* reader, pdfpos_t* poff)
 	return peekch(reader, *poff);
 }
 
+// Get the previous character in the file.
+// Return -1 if beginning of file reached.
+// Decrements the file position and resturns the char at the new position.
+static int prevch(t_pdfrasreader* reader, pdfpos_t* poff) {
+    if (!seek_to(reader, *poff - 1))
+        return -1;
+
+    --*poff;
+    return peekch(reader, *poff);
+}
+
 // Advance *poff over any whitespace characters.
 // Return FALSE if we end up at EOF (or have a read error)
 // otherwise return TRUE.
@@ -546,6 +580,75 @@ static int skip_whitespace(t_pdfrasreader* reader, pdfpos_t* poff)
 	}
 	assert(i + reader->buffer.off == *poff);
 	return TRUE;
+}
+
+// Find object which contains given position.
+// Return true if success otherwise false.
+static pdbool get_object_numbers(t_pdfrasreader* reader, pdfpos_t pos, pduint32* obj_num, pduint8* gen_num) {
+    char ch;
+    pdfpos_t num_pos = 0;
+
+    while (pos >= 0) {
+        ch = prevch(reader, &pos);
+
+        if (isspace(ch)) {
+            ch = prevch(reader, &pos);
+            
+            if (ch == 'j') {
+                ch = prevch(reader, &pos);
+            
+                if (ch == 'b') {
+                    ch = prevch(reader, &pos);
+
+                    if (ch == 'o') {
+                        ch = prevch(reader, &pos);
+                        
+                        if (isspace(ch)) {
+                            num_pos = pos;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (num_pos == 0)
+        return PD_FALSE;
+
+    // skip white spaces
+    while (isspace(prevch(reader, &pos)) && pos > 0)
+        continue;
+
+    // try to read generation number, should be 0
+    --pos;
+    num_pos = pos;
+    long value = 0L;
+    if (!parse_long_value(reader, &num_pos, &value))
+        return PD_FALSE;
+
+    if (value != 0L) {
+        compliance(reader, READ_GEN_ZERO, num_pos);
+        return PD_FALSE;
+    }
+    *gen_num = 0;
+
+    // try to read object number
+    // skip white spaces
+    while (isspace(prevch(reader, &pos)) && pos > 0)
+        continue;
+
+    // find the beginning of the token
+    while (!isspace(prevch(reader, &pos)) && pos > 0)
+        continue;
+
+    num_pos = pos;
+    if (!parse_long_value(reader, &num_pos, &value))
+        return PD_FALSE;
+
+    *obj_num = (pduint32)value;
+
+    return PD_TRUE;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -953,7 +1056,7 @@ static int parse_number_value(t_pdfrasreader* reader, pdfpos_t *poff, double* pd
 // parse a direct OR indirect numeric value and round it to a long.
 // if successful place it's value in *pvalue, update *poff and return TRUE.
 // Otherwise set *pvalue to 0, don't touch *poff and return FALSE.
-static int parse_long_value(t_pdfrasreader* reader, pdfpos_t *poff, long* pvalue)
+int parse_long_value(t_pdfrasreader* reader, pdfpos_t *poff, long* pvalue)
 {
 	double dvalue;
 	if (!parse_number_value(reader, poff, &dvalue)) {
@@ -1062,13 +1165,14 @@ static int parse_dictionary_or_stream(t_pdfrasreader* reader, pdfpos_t *poff, pd
 	// step over stream data
     pdfpos_t endstream = off + length;
 	// Parse 'endstream' keyword.
-	if (!token_eat(reader, &endstream, "endstream")) {
-		// invalid stream: 'endstream' not found where expected.
+    if (!token_eat(reader, &endstream, "endstream")) {
+        // invalid stream: 'endstream' not found where expected.
         // Report error at start of dictionary, it could be wrong /Length,
         // or keywords could be slightly misplaced, or who knows.
         compliance(reader, READ_STREAM_ENDSTREAM, *poff);
-		return FALSE;
-	}
+        return FALSE;
+    }
+    
     // return position and length of stream data:
     if (pstream) *pstream = off;
     if (plen) *plen = length;
@@ -1352,6 +1456,24 @@ static int parse_icc_profile(t_pdfrasreader* reader, pdfpos_t *poff, ICCProfile 
         free(iccProfile->data_ptr); iccProfile->data_ptr = NULL;
         return FALSE;
     }
+
+    // if decrypted then decrypt buffer
+    if (reader->decrypter != NULL) {
+        pduint32 obj_num = 0L;
+        pduint8 gen_num = 0;
+
+        if (!get_object_numbers(reader, iccProfile->data_pos, &obj_num, &gen_num))
+            return FALSE;
+
+        pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+        char* encrypted_buffer = (char*)malloc(sizeof(char) * iccProfile->data_len);
+        memcpy(encrypted_buffer, iccProfile->data_ptr, iccProfile->data_len);
+        memset(iccProfile->data_ptr, 0, iccProfile->data_len);
+
+        iccProfile->data_len = pdfr_decrypter_decrypt_data(reader->decrypter, (pduint8*)encrypted_buffer, (pdint32)iccProfile->data_len, (pduint8*)iccProfile->data_ptr);
+    }
+
     // TODO: validate that the data we read is actually an ICC Profile!
     *poff = off;
     return TRUE;
@@ -1844,6 +1966,24 @@ static size_t parse_string(t_pdfrasreader* reader, pdfpos_t pos, char* str, int*
         ++count;
     }
 
+    if (reader->decrypter && str) {
+        pduint32 obj_num = 0;
+        pduint8 gen_num = 0;
+
+        if (!get_object_numbers(reader, reader->digital_signature->byte_range[0], &obj_num, &gen_num)) {
+            return 0;
+        }
+
+        if (reader->encrypt_obj_num != obj_num) {
+            pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+            char* encrypted_buffer = hex_string_to_byte_array(str, count);
+            memset(str, '\0', count);
+            count = pdfr_decrypter_decrypt_data(reader->decrypter, (pduint8*)encrypted_buffer, (pdint32)count / 2, (pduint8*)str);
+            free(encrypted_buffer);
+        }
+    }
+
     return count;
 }
 
@@ -1879,6 +2019,40 @@ static size_t parse_name(t_pdfrasreader* reader, pdfpos_t pos, char* name) {
     return --count;
 }
 
+// parse boolean object
+// reader - t_pdfrasreader
+// pos - where boolean object should begin
+// ret - value of parsed object
+// return value: true if success, otherwise false
+static pdbool parse_boolean(t_pdfrasreader* reader, pdfpos_t pos, pdbool* ret) {
+#define BOOLEAN_BUFFER_SIZE 6
+
+    skip_whitespace(reader, &pos);
+    char buffer[BOOLEAN_BUFFER_SIZE] = { '\0' };
+    pduint8 idx = 0;
+
+    char ch = '\0';
+    while (idx < BOOLEAN_BUFFER_SIZE) {
+        ch = peekch(reader, pos++);
+
+        if (isspace(ch))
+            break;
+        
+        buffer[idx++] = ch;
+    }
+
+    if (strncmp(buffer, "true", BOOLEAN_BUFFER_SIZE) == 0)
+        *ret = PD_TRUE;
+    else if (strncmp(buffer, "false", READ_BAD_BOOLEAN_VALUE) == 0)
+        *ret = PD_FALSE;
+    else {
+        compliance(reader, READ_BAD_BOOLEAN_VALUE, --pos);
+        return PD_FALSE;
+    }
+
+    return PD_TRUE;
+}
+
 // digital signatures
 // return number of read data 
 // if buffer is NULL then only needed size of buffer is returned (caller must allocate it)
@@ -1895,6 +2069,23 @@ static size_t read_bytes_for_validation(t_pdfrasreader* reader, char* buffer) {
 
     size_t count = reader->fread(reader->source, (size_t) reader->digital_signature->byte_range[0], (size_t) reader->digital_signature->byte_range[1], buffer);
     count += reader->fread(reader->source, (size_t) reader->digital_signature->byte_range[2], (size_t) reader->digital_signature->byte_range[3], buffer + count);
+
+    if (reader->decrypter) {
+        pduint32 obj_num = 0;
+        pduint8 gen_num = 0;
+
+        if (!get_object_numbers(reader, reader->digital_signature->byte_range[0], &obj_num, &gen_num)) {
+            return 0;
+        }
+
+        pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+        char* encrypted_buffer = (char*)malloc(sizeof(char) * len);
+        memcpy(encrypted_buffer, buffer, len);
+        memset(buffer, 0, len);
+
+        count = pdfr_decrypter_decrypt_data(reader->decrypter, (pduint8*)encrypted_buffer, (pdint32)len, (pduint8*)buffer);
+    }
 
     return count;
 }
@@ -2077,6 +2268,9 @@ static int parse_trailer(t_pdfrasreader* reader)
         compliance(reader, READ_TRAILER, off);
 		return FALSE;
 	}
+    
+    reader->trailer_pos = off;
+
 	// find the address of the Catalog
 	if (!dictionary_lookup(reader, off, "/Root", &reader->catalog_pos)) {
 		// invalid PDF: trailer dictionary must contain /Root entry
@@ -2511,7 +2705,10 @@ t_pdfrasreader* pdfrasread_create(int apiLevel, pdfras_freader readfn, pdfras_fs
     reader->error_handler = call_global_error_handler;
     reader->page_count = -1;		// Unknown
     reader->catalog_pos = 0;
+    reader->trailer_pos = 0;
+    reader->encrypt_obj_num = 0;
     reader->digital_signature = NULL;
+    reader->decrypter = NULL;
     reader->security_type = RASREAD_SECURITY_UNKNOWN;
 
     assert(VALID(reader));
@@ -2532,6 +2729,10 @@ void pdfrasread_destroy(t_pdfrasreader* reader)
                 pdfr_exit_digitalsignature(reader->digital_signature->ds);
 
             free(reader->digital_signature);
+        }
+
+        if (reader->decrypter) {
+            pdfr_destroy_decrypter(reader->decrypter);
         }
 
 		free(reader);
@@ -2671,11 +2872,32 @@ size_t pdfrasread_read_raw_strip(t_pdfrasreader* reader, int p, int s, char* buf
 	if (buffer == NULL) {
 		return length;
 	}
+
     if (reader->fread(reader->source, strip.data_pos, length, buffer) != length) {
         // read error, unable to read all of strip data
         io_error(reader, READ_STRIP_READ, s);
         return 0;
     }
+
+    // decrypt content
+    if (reader->decrypter) {
+        pduint32 obj_num = 0;
+        pduint8 gen_num = 0;
+
+        if (!get_object_numbers(reader, strip.data_pos, &obj_num, &gen_num)) {
+            io_error(reader, READ_STRIP_READ, s);
+            return 0;
+        }
+
+        pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+        char* encrypted_buffer = (char*)malloc(sizeof(char) * length);
+        memcpy(encrypted_buffer, buffer, length);
+        memset(buffer, 0, bufsize);
+
+        length = pdfr_decrypter_decrypt_data(reader->decrypter, (pduint8*) encrypted_buffer, (pdint32) length, (pduint8*) buffer);
+    }
+
     return length;
 }
 
@@ -2725,6 +2947,24 @@ static size_t read_metadata_stream(t_pdfrasreader* reader, pdfpos_t pos, char* m
 
     size_t read_len = reader->fread(reader->source, stream_pos, stream_len, metadata);
     metadata[stream_len] = '\0';
+
+    if (reader->decrypter && pdfr_decrypter_get_metadata_encrypted(reader->decrypter)) {
+        pduint32 obj_num = 0;
+        pduint8 gen_num = 0;
+
+        if (!get_object_numbers(reader, stream_pos, &obj_num, &gen_num)) {
+            return 0;
+        }
+
+        pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+        char* encrypted_buffer = (char*)malloc(sizeof(char) * stream_len);
+        memcpy(encrypted_buffer, metadata, stream_len);
+        memset(metadata, 0, stream_len);
+
+        read_len = pdfr_decrypter_decrypt_data(reader->decrypter, (pduint8*)encrypted_buffer, (pdint32)stream_len, (pduint8*) metadata);
+        metadata[read_len - 1] = '\0';
+    }
 
     return read_len;
 }
@@ -2996,6 +3236,11 @@ static const char* error_code_description(int code)
     case READ_BAD_STRING_BEGIN:     return "Invalid begin mark for string object";
     case READ_ENCRYPT_FILTER_NOT_FOUND: return "Required /Filner could not be found in encryption dictionary";
     case READ_BAD_NAME_BEGIN:       return "Invalid begin mark for name object";
+    case READ_BAD_BOOLEAN_VALUE:    return "Invalid boolean value written in Boolean object.";
+    case READ_BAD_ENCRYPT_DICTIONARY: return "/Encrypt dictionary is not valid.";
+    case READ_NO_DOCUMENT_ID:       return "Document has not ID.";
+    case READ_ARRAY_BAD_SYNTAX:     return "Bad syntax for array object.";
+    case READ_ENCRYPTION_BAD_PASSWORD:  return "Bad password provided for encrypted document.";
     default:
         return "<no details>";
     }
@@ -3070,7 +3315,7 @@ int pdfrasread_open(t_pdfrasreader* reader, void* source)
         return FALSE;
     }
 
-	if (reader->bOpen) {
+    if (reader->bOpen) {
         // already open, can't open it.
         api_error(reader, READ_API_ALREADY_OPEN, __LINE__);
         return FALSE;
@@ -3086,6 +3331,61 @@ int pdfrasread_open(t_pdfrasreader* reader, void* source)
 		reader->bOpen = PD_TRUE;
 	}
 	return reader->bOpen;
+}
+
+int pdfrasread_open_secured(t_pdfrasreader* reader, void* source, const char* password) {
+    if (!VALID(reader)) {
+        api_error(NULL, READ_API_BAD_READER, __LINE__);
+        return FALSE;
+    }
+
+    if (reader->bOpen) {
+        // already open, can't open it.
+        api_error(reader, READ_API_ALREADY_OPEN, __LINE__);
+        return FALSE;
+    }
+
+    if (pdfrasread_get_security_type(reader, source) == RASREAD_UNENCRYPTED)
+        return pdfrasread_open(reader, source);
+
+    // creation of decrypter and user authentification by password
+    assert(!reader->bOpen);
+    reader->source = source;
+    reader->filesize = reader->fsize(reader->source);
+    if (!parse_trailer(reader)) {
+        // not a valid PDF/raster file
+        reader->source = NULL;
+    }
+    else {
+        pdfpos_t enc_pos = 0;
+        if (!dictionary_lookup(reader, reader->trailer_pos, "/Encrypt", &enc_pos)) {
+            api_error(reader, READ_BAD_ENCRYPT_DICTIONARY, __LINE__);
+            reader->source = NULL;
+            return PD_FALSE;
+        }
+
+        RasterReaderEncryptData* data = parse_encryption_dictionary(reader, enc_pos);
+        if (data) {
+            data->document_id = parse_document_first_id(reader);
+            if (data->document_id)
+                data->document_id_length = 16; // According to specification
+
+            reader->decrypter = pdfr_create_decrypter(data);
+
+            if (pdfr_decrypter_get_document_access(reader->decrypter, password) == PDFRAS_DOCUMENT_NONE_ACCESS) {
+                api_error(reader, READ_ENCRYPTION_BAD_PASSWORD, __LINE__);
+                reader->source = NULL;
+                return PD_FALSE;
+            }
+
+            reader->bOpen = PD_TRUE;
+        }
+        else {
+            reader->source = NULL;
+        }
+    }
+
+    return reader->bOpen;
 }
 
 void* pdfrasread_source(t_pdfrasreader* reader)
@@ -3133,6 +3433,319 @@ int pdfrasread_close(t_pdfrasreader* reader)
     }
     assert(reader->bOpen == PD_FALSE);
     return TRUE;
+}
+
+// Security 
+static void encrypt_data_destroy(RasterReaderEncryptData* data) {
+    if (!data)
+        return;
+
+    if (data->document_id)
+        free(data->document_id);
+
+    if (data->O)
+        free(data->O);
+
+    if (data->OE)
+        free(data->OE);
+
+    if (data->Perms)
+        free(data->Perms);
+
+    if (data->U)
+        free(data->U);
+
+    if (data->UE)
+        free(data->UE);
+
+    data = NULL;
+}
+
+char* hex_string_to_byte_array(const char* hexstr, size_t hexlen) {
+    if ((hexlen % 2) != 0)
+        return NULL;
+
+    char h, l;
+    size_t len = hexlen / 2;
+    char* buffer = (char*)malloc(sizeof(char) * len);
+
+    for (size_t i = 0; i < len; ++i) {
+        h = hex_to_char(hexstr[i * 2]) & 0x0F;
+        l = hex_to_char(hexstr[i * 2 + 1]) & 0x0F;
+
+        buffer[i] = ((h << 4) | l);
+    }
+
+    return buffer;
+}
+
+RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdfpos_t enc_pos) {
+    RasterReaderEncryptData* data = (RasterReaderEncryptData*)malloc(sizeof(RasterReaderEncryptData));
+    
+    data->algorithm = PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM;
+    data->document_id = NULL;
+    data->document_id_length = 0;
+    data->encrypt_metadata = PD_TRUE;
+    data->O = NULL;
+    data->OE = NULL;
+    data->OUE_length = 32;
+    data->OU_length = 0;
+    data->Perms = NULL;
+    data->Perms_length = 16;
+    data->perms = PDFRAS_PERM_UNKNOWN;
+    data->R = 0;
+    data->U = NULL;
+    data->UE = NULL;
+    data->V = 0;
+    
+    pdbool error = PD_FALSE;
+    pdfpos_t pos = 0;
+    int hex = 0;
+    size_t len = 0;
+
+    if (dictionary_lookup(reader, enc_pos, "/EncryptMetadata", &pos)) {
+        if (!parse_boolean(reader, pos, &data->encrypt_metadata))
+            data->encrypt_metadata = PD_TRUE;
+    }
+
+    if (dictionary_lookup(reader, enc_pos, "/O", &pos)) {
+        char* buffer = NULL;
+        len = parse_string(reader, pos, buffer, &hex);
+        
+        buffer = (char*)malloc(sizeof(char) * len);
+        len = parse_string(reader, pos, buffer, &hex);
+
+        if (hex) {
+            data->O = hex_string_to_byte_array(buffer, len);
+            
+            if (!data->O)
+                error = PD_TRUE;
+        }
+        else {
+            data->O = (char*)malloc(sizeof(char) * len);
+            memcpy(data->O, buffer, len);
+        }
+
+        free(buffer);
+    }
+    else
+        error = PD_TRUE;
+
+    if (dictionary_lookup(reader, enc_pos, "/U", &pos)) {
+        char* buffer = NULL;
+        len = parse_string(reader, pos, buffer, &hex);
+
+        buffer = (char*)malloc(sizeof(char) * len);
+        len = parse_string(reader, pos, buffer, &hex);
+
+        if (hex) {
+            data->U = hex_string_to_byte_array(buffer, len);
+
+            if (!data->U)
+                error = PD_TRUE;
+        }
+        else {
+            data->U = (char*)malloc(sizeof(char) * len);
+            memcpy(data->U, buffer, len);
+        }
+
+        free(buffer);
+    }
+    else
+        error = PD_TRUE;
+
+    if (dictionary_lookup(reader, enc_pos, "/OE", &pos)) {
+        char* buffer = NULL;
+        len = parse_string(reader, pos, buffer, &hex);
+
+        buffer = (char*)malloc(sizeof(char) * len);
+        len = parse_string(reader, pos, buffer, &hex);
+
+        if (hex) {
+            data->OE = hex_string_to_byte_array(buffer, len);
+
+            if (!data->OE)
+                error = PD_TRUE;
+        }
+        else {
+            data->OE = (char*)malloc(sizeof(char) * len);
+            memcpy(data->OE, buffer, len);
+        }
+
+        free(buffer);
+    }
+
+    if (dictionary_lookup(reader, enc_pos, "/UE", &pos)) {
+        char* buffer = NULL;
+        len = parse_string(reader, pos, buffer, &hex);
+
+        buffer = (char*)malloc(sizeof(char) * len);
+        len = parse_string(reader, pos, buffer, &hex);
+
+        if (hex) {
+            data->UE = hex_string_to_byte_array(buffer, len);
+
+            if (!data->UE)
+                error = PD_TRUE;
+        }
+        else {
+            data->UE = (char*)malloc(sizeof(char) * len);
+            memcpy(data->UE, buffer, len);
+        }
+
+        free(buffer);
+    }
+
+    if (dictionary_lookup(reader, enc_pos, "/Perms", &pos)) {
+        char* buffer = NULL;
+        len = parse_string(reader, pos, buffer, &hex);
+
+        buffer = (char*)malloc(sizeof(char) * len);
+        len = parse_string(reader, pos, buffer, &hex);
+
+        if (hex) {
+            data->Perms = hex_string_to_byte_array(buffer, len);
+
+            if (!data->Perms)
+                error = PD_TRUE;
+        }
+        else {
+            data->Perms = (char*)malloc(sizeof(char) * len);
+            memcpy(data->Perms, buffer, len);
+        }
+
+        free(buffer);
+    }
+
+    if (dictionary_lookup(reader, enc_pos, "/P", &pos)) {
+        long value = 0L;
+        if (parse_long_value(reader, &pos, &value))
+            data->perms = (PDFRAS_PERMS)value;
+        else
+            error = PD_TRUE;
+    }
+    else
+        error = PD_TRUE;
+
+    if (dictionary_lookup(reader, enc_pos, "/R", &pos)) {
+        long value = 0L;
+        if (parse_long_value(reader, &pos, &value))
+            data->R = (int)value;
+        else
+            error = PD_TRUE;
+    }
+    else
+        error = PD_TRUE;
+
+    if (dictionary_lookup(reader, enc_pos, "/V", &pos)) {
+        long value = 0L;
+        if (parse_long_value(reader, &pos, &value))
+            data->V = (int)value;
+        else
+            error = PD_TRUE;
+    }
+    else
+        error = PD_TRUE;
+
+    if (data->R <= 4)
+        data->OU_length = 32;
+    else if (data->R == 6) {
+        data->OU_length = 48;
+        if (!data->OE || !data->UE)
+            error = PD_TRUE;
+    }
+    else
+        error = PD_TRUE;
+
+    if (data->V == 1) {
+        data->algorithm = PDFRAS_RC4_40;
+        data->encryption_key_length = 5;
+    }
+    else {
+        if (dictionary_lookup(reader, enc_pos, "/CF", &pos)) {
+            if (dictionary_lookup(reader, pos, "/StdCF", &pos)) {
+                if (dictionary_lookup(reader, pos, "/CFM", &pos)) {
+                    char* buffer = NULL;
+                    size_t len = parse_name(reader, pos, buffer) + 1;
+                    buffer = (char*)malloc(sizeof(char) * len);
+                    len = parse_name(reader, pos, buffer);
+                    buffer[len] = '\0';
+
+                    if (strncmp(buffer, "V2", len) == 0) {
+                        data->algorithm = PDFRAS_RC4_128;
+                        data->encryption_key_length = 16;
+                    }
+                    else if (strncmp(buffer, "AESV2", len) == 0) {
+                        data->algorithm = PDFRAS_AES_128;
+                        data->encryption_key_length = 16;
+                    }
+                    else if (strncmp(buffer, "AESV3", len) == 0) {
+                        data->algorithm = PDFRAS_AES_256;
+                        data->encryption_key_length = 32;
+                    }
+                    else
+                        error = PD_TRUE;
+                }
+                else
+                    error = PD_TRUE;
+            }
+            else
+                error = PD_TRUE;
+        }
+        else
+            error = PD_TRUE;
+    }
+    
+    if (error) {
+        compliance(reader, READ_BAD_ENCRYPT_DICTIONARY, enc_pos);
+        encrypt_data_destroy(data);
+        return NULL;
+    }
+
+    pduint8 gen_obj = 0;
+    if (!get_object_numbers(reader, enc_pos, &reader->encrypt_obj_num, &gen_obj)) {
+        compliance(reader, READ_BAD_ENCRYPT_DICTIONARY, enc_pos);
+        encrypt_data_destroy(data);
+        return NULL;
+    }
+
+    return data;
+}
+
+char* parse_document_first_id(t_pdfrasreader* reader) {
+    pdfpos_t id_pos = 0;
+    char* buffer = NULL;
+    char* id = NULL;
+    size_t len = 0;
+
+    if (!dictionary_lookup(reader, reader->trailer_pos, "/ID", &id_pos)) {
+        compliance(reader, READ_NO_DOCUMENT_ID, reader->trailer_pos);
+    }
+    else {
+        if (!open_array(reader, &id_pos)) {
+            compliance(reader, READ_ARRAY_BAD_SYNTAX, id_pos);
+        }
+        else {
+            int hex = 0;
+
+            len = parse_string(reader, id_pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, id_pos, buffer, &hex);
+
+            if (hex) {
+                id = hex_string_to_byte_array(buffer, len);
+            }
+            else {
+                id = (char*)malloc(sizeof(char) * len);
+                memcpy(id, buffer, len);
+            }
+            
+            free(buffer);
+        }
+    }
+
+    return id;
 }
 
 static RasterReaderSecurityType parse_security_type(t_pdfrasreader* reader) {

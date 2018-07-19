@@ -49,3 +49,6 @@ EXPORTS
 	
 	pdfrasread_get_security_type		@43
 	pdfrasread_get_security_type_filename @44
+	pdfrasread_open_secured				@45
+	pdfrasread_open_filename_secured	@46
+	pdfrasread_open_file_secured		@47

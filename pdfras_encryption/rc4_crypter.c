@@ -15,3 +15,7 @@ pduint32 pdfras_rc4_encrypt_data(const char* key, const pduint32 key_len, const 
 
     return in_len;
 }
+
+pduint32 pdfras_rc4_decrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+    return pdfras_rc4_encrypt_data(key, key_len, data_in, in_len, data_out);
+}

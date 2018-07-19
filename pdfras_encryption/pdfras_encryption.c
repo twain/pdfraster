@@ -50,6 +50,9 @@ struct t_encrypter {
 
     pdint32 current_obj_number;
     pdint32 current_gen_number;
+
+    // Encrypt/decrypt mode
+    pdbool encrypt_mode;
 };
 
 static char password_padding[] = "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
@@ -389,9 +392,11 @@ static pdbool compute_Perms(t_encrypter* enc) {
 // Algorithm 2: Computing encryption key
 static pdbool generate_encryption_key(t_encrypter* enc) {
     if (enc->R == 6) {
-        enc->encryption_key = (char*)malloc(sizeof(char) * R_6_KEY_LENGTH);
-        enc->encryption_key_length = R_6_KEY_LENGTH;
-        pdfras_generate_random_bytes(enc->encryption_key, R_6_KEY_LENGTH);
+        if (enc->encrypt_mode) {
+            enc->encryption_key = (char*)malloc(sizeof(char) * R_6_KEY_LENGTH);
+            enc->encryption_key_length = R_6_KEY_LENGTH;
+            pdfras_generate_random_bytes(enc->encryption_key, R_6_KEY_LENGTH);
+        }
     }
     else {
         pduint8 idx = 0;
@@ -448,7 +453,7 @@ static pdbool generate_encryption_key(t_encrypter* enc) {
     return PD_TRUE;
 }
 
-//TODO: If memory module will be separated, then used PDFRAS memory managment functions
+//TODO: If memory module will be separated, then use PDFRAS memory managment functions
 t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_password, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
     if (algorithm >= PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM || algorithm < PDFRAS_RC4_40)
         return NULL;
@@ -470,6 +475,7 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
     encrypter->Perms = NULL;
     encrypter->OUE_length = 0;
     encrypter->Perms_length = 0;
+    encrypter->encrypt_mode = PD_TRUE;
 
     switch (encrypter->algorithm)
     {
@@ -653,7 +659,7 @@ pdint32 pdfr_encrypter_encrypt_data(t_encrypter* encrypter, const pduint8* data_
     pduint32 encryption_key_len = 0;
     char* encryption_key = NULL;
 
-    if (encrypter->V < 5) {
+    if (encrypter->R <= 5) {
         pduint32 obj_key_len = 0;
 
         obj_key_len = aes == PD_TRUE ? encrypter->encryption_key_length + 9 : encrypter->encryption_key_length + 5;
@@ -699,16 +705,10 @@ pdint32 pdfr_encrypter_encrypt_data(t_encrypter* encrypter, const pduint8* data_
     }
 
     if (aes) {
-        if (pdfras_aes_encrypt_data(encryption_key, encryption_key_len, data_in, in_len, data_out) == 0) {
-            free(encryption_key);
-            return -1;
-        }
+        out_len = pdfras_aes_encrypt_data(encryption_key, encryption_key_len, data_in, in_len, data_out);
     }
     else {
-        if (pdfras_rc4_encrypt_data(encryption_key, encryption_key_len, data_in, in_len, data_out) == 0) {
-            free(encryption_key);
-            return -1;
-        }
+        out_len = pdfras_rc4_encrypt_data(encryption_key, encryption_key_len, data_in, in_len, data_out);
     }
 
     if (encrypter->R < 5)
@@ -799,4 +799,324 @@ pduint32 pdfr_encrypter_get_Perms_length(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->Perms_length;
+}
+
+// Decryption part
+t_decrypter* pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data) {
+    if (!encrypt_data)
+        return NULL;
+
+    if (encrypt_data->algorithm >= PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM || encrypt_data->algorithm < PDFRAS_RC4_40) {
+        return NULL;
+    }
+
+    t_decrypter* decrypter = (t_decrypter*)malloc(sizeof(t_decrypter));
+    
+    decrypter->algorithm = encrypt_data->algorithm;
+    decrypter->perms = encrypt_data->perms;
+    decrypter->encrypt_metadata = encrypt_data->encrypt_metadata;
+    decrypter->R = encrypt_data->R;
+    decrypter->V = encrypt_data->V;
+    decrypter->OU_length = encrypt_data->OU_length;
+    decrypter->OUE_length = encrypt_data->OUE_length;
+    decrypter->Perms_length = encrypt_data->Perms_length;
+    decrypter->encryption_key_length = encrypt_data->encryption_key_length;
+    decrypter->encrypt_mode = PD_FALSE;
+
+    decrypter->encryption_key = NULL;
+    decrypter->current_obj_number = -1;
+    decrypter->current_gen_number = -1;
+    decrypter->user_password = NULL;
+    decrypter->owner_password = NULL;
+    decrypter->user_password = NULL;
+    decrypter->Perms = NULL;   
+
+    decrypter->O = NULL;
+    decrypter->U = NULL;
+    decrypter->OE = NULL;
+    decrypter->UE = NULL;
+    decrypter->Perms = NULL;
+
+    if (encrypt_data->document_id && encrypt_data->document_id_length > 0) {
+        decrypter->document_id = (char*)malloc(sizeof(char) * encrypt_data->document_id_length);
+        decrypter->document_id_length = encrypt_data->document_id_length;
+        memcpy(decrypter->document_id, encrypt_data->document_id, encrypt_data->document_id_length);
+    }
+    else {
+        decrypter->document_id = NULL;
+        decrypter->document_id_length = 0;
+    }
+
+    decrypter->OU_length = encrypt_data->OU_length;
+
+    if (encrypt_data->O) {
+        decrypter->O = (char*)malloc(sizeof(char) * decrypter->OU_length);
+        memcpy(decrypter->O, encrypt_data->O, decrypter->OU_length);
+    }
+
+    if (encrypt_data->U) {
+        decrypter->U = (char*)malloc(sizeof(char) * decrypter->OU_length);
+        memcpy(decrypter->U, encrypt_data->U, decrypter->OU_length);
+    }
+        
+    if (encrypt_data->OE) {
+        decrypter->OE = (char*)malloc(sizeof(char) * decrypter->OUE_length);
+        memcpy(decrypter->OE, encrypt_data->OE, decrypter->OUE_length);
+    }
+
+    if (encrypt_data->UE) {
+        decrypter->UE = (char*)malloc(sizeof(char) * decrypter->OUE_length);
+        memcpy(decrypter->UE, encrypt_data->UE, decrypter->OUE_length);
+    }
+
+    if (encrypt_data->Perms) {
+        decrypter->Perms = (char*)malloc(sizeof(char) * decrypter->Perms_length);
+        memcpy(decrypter->Perms, encrypt_data->Perms, decrypter->Perms_length);
+    }
+  
+    return decrypter;
+}
+
+void pdfr_destroy_decrypter(t_decrypter* decrypter) {
+    pdfr_destroy_encrypter(decrypter);
+}
+
+static pdbool is_user(t_decrypter* decrypter, const char* password, pdbool pad) {
+    char tempU[48];
+
+    if (pad)
+        padd_passwords(decrypter, password, NULL);
+
+    if (!generate_encryption_key(decrypter))
+        return PD_FALSE;
+
+    memcpy(tempU, decrypter->U, decrypter->OU_length);
+    if (decrypter->R <= 2) {
+        if (!compute_U_r2(decrypter)) {
+            memcpy(decrypter->U, tempU, decrypter->OU_length);
+            return PD_FALSE;
+        }
+    }
+    else if (decrypter->R >= 3 && decrypter->R < 6) {
+        if (!compute_U_r3_4(decrypter)) {
+            memcpy(decrypter->U, tempU, decrypter->OU_length);
+            return PD_FALSE;
+        }
+    }
+    else if (decrypter->R == 6) {
+        char userValidationSalt[8];
+        memcpy(userValidationSalt, decrypter->U + 32, 8);
+        compute_2B(password, userValidationSalt, NULL, tempU);
+    }
+    else {
+        memcpy(decrypter->U, tempU, decrypter->OU_length);
+        return PD_FALSE;
+    }
+
+    if (decrypter->R < 6) {
+        if (memcmp(tempU, decrypter->U, decrypter->OU_length) == 0)
+            return PD_TRUE;
+
+        memcpy(decrypter->U, tempU, decrypter->OU_length);
+    }
+    else {
+        if (memcmp(tempU, decrypter->U, 32) == 0) {
+            if (decrypter->encryption_key)
+                free(decrypter->encryption_key);
+            decrypter->encryption_key = (char*)malloc(sizeof(char) * decrypter->encryption_key_length);
+            
+            char userKeySalt[8];
+            memcpy(userKeySalt, decrypter->U + 40, 8);
+            compute_2B(password, userKeySalt, NULL, tempU);
+
+            if (pdfras_aes_decrypt_encryption_key(tempU, 32, decrypter->UE, decrypter->OUE_length, decrypter->encryption_key) == -1)
+                return PD_FALSE;
+
+            return PD_TRUE;
+        }
+    }
+
+    return PD_FALSE;
+}
+
+static pdbool is_owner(t_decrypter* decrypter, const char* password) {
+    if (decrypter->R < 6) {
+        padd_passwords(decrypter, NULL, password);
+
+        // Algorithm 7
+        // a
+        MD5_CTX md5;
+        unsigned char hash[MD5_HASH_BYTES];
+
+        if (MD5_Init(&md5) == 0)
+            return PD_FALSE;
+
+        // a, b
+        MD5_Update(&md5, decrypter->padded_op, 32);
+        MD5_Final(hash, &md5);
+
+        // c
+        if (decrypter->R >= 3) {
+            pduint32 i;
+            for (i = 0; i < 50; ++i) {
+                MD5_Init(&md5);
+                MD5_Update(&md5, hash, decrypter->encryption_key_length);
+                MD5_Final(hash, &md5);
+            }
+        }
+
+        // d
+        RC4_KEY rc4_key;
+        RC4_set_key(&rc4_key, decrypter->encryption_key_length, hash);
+
+        RC4(&rc4_key, decrypter->OU_length, decrypter->O, decrypter->padded_up);
+
+        if (decrypter->R >= 3) {
+            unsigned char key[MD5_HASH_BYTES];
+            pduint32 i;
+            pduint32 k;
+
+            for (i = 1; i <= 19; ++i) {
+                for (k = 0; k < decrypter->encryption_key_length; ++k) {
+                    key[k] = (unsigned char)(hash[k] ^ i);
+                }
+
+                RC4_set_key(&rc4_key, decrypter->encryption_key_length, key);
+                RC4(&rc4_key, 32, decrypter->padded_up, decrypter->padded_up);
+            }
+        }
+
+        if (is_user(decrypter, decrypter->padded_up, PD_FALSE))
+            return PD_TRUE;
+    }
+    else {
+        char tempO[48];
+        char ownerValidationSalt[8];
+        
+        memcpy(ownerValidationSalt, decrypter->O + 32, 8);
+        compute_2B(password, ownerValidationSalt, decrypter->U, tempO);
+
+        if (memcmp(decrypter->O, tempO, 32) == 0) {
+            if (decrypter->encryption_key)
+                free(decrypter->encryption_key);
+            decrypter->encryption_key = (char*)malloc(sizeof(char) * decrypter->encryption_key_length);
+
+            char ownerKeySalt[8];
+            memcpy(ownerKeySalt, decrypter->O + 40, 8);
+            compute_2B(password, ownerKeySalt, decrypter->U, tempO);
+
+            if (pdfras_aes_decrypt_encryption_key(tempO, 32, decrypter->OE, decrypter->OUE_length, decrypter->encryption_key) == -1)
+                return PD_FALSE;
+
+            return PD_TRUE;
+        }
+    }
+
+    return PD_FALSE;
+}
+
+PDFRAS_DOCUMENT_ACCESS pdfr_decrypter_get_document_access(t_decrypter* decrypter, const char* password) {
+    // let's try authentificate user for user access
+    if (!decrypter)
+        return PDFRAS_DOCUMENT_NONE_ACCESS;
+
+    if (is_user(decrypter, password, PD_TRUE))
+        return PDFRAS_DOCUMENT_USER_ACCESS;
+
+    if (is_owner(decrypter, password))
+        return PDFRAS_DOCUMENT_OWNER_ACCESS;
+
+    return PDFRAS_DOCUMENT_NONE_ACCESS;
+}
+
+pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_in, const pdint32 in_len, pduint8* data_out) {
+    assert(decrypter);
+
+    if (data_in == NULL || data_out == NULL)
+        return -1;
+
+    if (decrypter->current_obj_number <= 0 || decrypter->current_gen_number < 0)
+        return -1;
+
+    pdbool aes = PD_FALSE;
+    if (decrypter->algorithm == PDFRAS_RC4_40 || decrypter->algorithm == PDFRAS_RC4_128)
+        aes = PD_FALSE;
+    else if (decrypter->algorithm == PDFRAS_AES_128 || decrypter->algorithm == PDFRAS_AES_256)
+        aes = PD_TRUE;
+    else
+        return -1;
+
+    int out_len = -1;
+
+    pduint32 decryption_key_len = 0;
+    char* decryption_key = NULL;
+
+    if (decrypter->R <= 5) {
+        pduint32 obj_key_len = aes == PD_TRUE ? decrypter->encryption_key_length + 9 : decrypter->encryption_key_length + 5;
+        char* obj_key = (char*)malloc(sizeof(char) * obj_key_len);
+        if (!obj_key)
+            return -1;
+
+        memcpy(obj_key, decrypter->encryption_key, decrypter->encryption_key_length);
+        obj_key[decrypter->encryption_key_length] = (char)decrypter->current_obj_number;
+        obj_key[decrypter->encryption_key_length + 1] = (char)(decrypter->current_obj_number >> 8);
+        obj_key[decrypter->encryption_key_length + 2] = (char)(decrypter->current_obj_number >> 16);
+        obj_key[decrypter->encryption_key_length + 3] = (char)(decrypter->current_gen_number);
+        obj_key[decrypter->encryption_key_length + 4] = (char)(decrypter->current_gen_number >> 8);
+
+        if (aes) {
+            obj_key[decrypter->encryption_key_length + 5] = (char)0x73;
+            obj_key[decrypter->encryption_key_length + 6] = (char)0x41;
+            obj_key[decrypter->encryption_key_length + 7] = (char)0x6c;
+            obj_key[decrypter->encryption_key_length + 8] = (char)0x54;
+        }
+
+        MD5_CTX md5;
+        char hash[MD5_HASH_BYTES];
+
+        if (MD5_Init(&md5) == 0) {
+            free(obj_key);
+            return -1;
+        }
+
+        MD5_Update(&md5, obj_key, obj_key_len);
+        MD5_Final(hash, &md5);
+
+        decryption_key_len = decrypter->encryption_key_length + 5 > 16 ? 16 : decrypter->encryption_key_length + 5;
+        decryption_key = (char*)malloc(sizeof(char) * decryption_key_len);
+        memcpy(decryption_key, hash, decryption_key_len);
+
+        free(obj_key);
+    }
+    else {
+        decryption_key = decrypter->encryption_key;
+        decryption_key_len = decrypter->encryption_key_length;
+    }
+
+    if (aes) {
+        out_len = pdfras_aes_decrypt_data(decryption_key, decryption_key_len, data_in, in_len, data_out);
+    }
+    else {
+        out_len = pdfras_rc4_decrypt_data(decryption_key, decryption_key_len, data_in, in_len, data_out);
+    }
+
+    if (decrypter->R <= 5)
+        free(decryption_key);
+
+    return out_len;
+}
+
+PDFRAS_ENCRYPT_ALGORITHM pdfr_decrypter_get_algorithm(t_decrypter* decrypter) {
+    assert(decrypter);
+    return pdfr_encrypter_get_algorithm(decrypter);
+}
+
+void pdfr_decrypter_object_number(t_decrypter* decrypter, pduint32 objnum, pduint32 gennum) {
+    assert(decrypter);
+    pdfr_encrypter_object_number(decrypter, objnum, gennum);
+}
+
+pdbool pdfr_decrypter_get_metadata_encrypted(t_decrypter* decrypter) {
+    assert(decrypter);
+    return pdfr_encrypter_get_metadata_encrypted(decrypter);
 }

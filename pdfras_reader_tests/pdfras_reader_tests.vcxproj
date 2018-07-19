@@ -178,6 +178,9 @@
     <ProjectReference Include="..\pdfras_digitalsignature\pdfras_digitalsignature.vcxproj">
       <Project>{ad94958a-b236-416c-b217-2bad5ecf7cc3}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\pdfras_encryption\pdfras_encryption.vcxproj">
+      <Project>{830942a3-b9b6-4bea-a5aa-213da65c6e1b}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\pdfras_reader\pdfras_reader.vcxproj">
       <Project>{c06a94ca-439b-4c91-9fa3-f9c2e3487473}</Project>
     </ProjectReference>

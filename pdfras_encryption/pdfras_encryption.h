@@ -16,6 +16,7 @@ typedef enum {
 } PDFRAS_ENCRYPT_ALGORITHM;
 
 typedef enum {
+    PDFRAS_PERM_UNKNOWN = 0x00000000,
     PDFRAS_PERM_PRINT_DOCUMENT = 0x00000004,
     PDFRAS_PERM_MODIFY_DOCUMENT = 0x00000008,
     PDFRAS_PERM_COPY_FROM_DOCUMENT = 0x00000010,
@@ -26,7 +27,33 @@ typedef enum {
     PDFRAS_PERM_HIGH_PRINT = 0x00000800
 } PDFRAS_PERMS;
 
+typedef enum {
+    PDFRAS_DOCUMENT_NONE_ACCESS,      // None access to the document
+    PDFRAS_DOCUMENT_USER_ACCESS,      // User access to the document
+    PDFRAS_DOCUMENT_OWNER_ACCESS      // Owner access to the document (full access)
+} PDFRAS_DOCUMENT_ACCESS;
+
 typedef struct t_encrypter t_encrypter;
+typedef struct t_encrypter t_decrypter;
+
+typedef struct {
+    PDFRAS_ENCRYPT_ALGORITHM algorithm;
+    PDFRAS_PERMS perms;
+    char* O;
+    char* U;
+    char* OE;
+    char* UE;
+    char* Perms;
+    char* document_id;
+    pduint32 OU_length;
+    pduint32 OUE_length;
+    pduint32 Perms_length;
+    pduint32 document_id_length;
+    pduint8 R;
+    pduint8 V;
+    pduint8 encryption_key_length;
+    pdbool encrypt_metadata;
+} RasterReaderEncryptData;
 
 // Creates encrypter
 // user_passwd: open password with enabled restrictions on document
@@ -96,6 +123,36 @@ typedef const char* (PDFRASAPICALL pfn_pdfr_encrypter_get_Perms) (t_encrypter* e
 
 pduint32 PDFRASAPICALL pdfr_encrypter_get_Perms_length(t_encrypter* encrypter);
 typedef pduint32(PDFRASAPICALL pfn_pdfr_encrypter_get_Perms_length) (t_encrypter* encrypter);
+
+// Decryption
+// Creates decrypter used for authentification of user and decryption of encrypted file.
+// encrypt_data: encryption data extracted from /Encrypt dictionary
+t_decrypter* PDFRASAPICALL pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data);
+typedef t_decrypter* (PDFRASAPICALL *pfn_pdfr_create_decrypter) (const RasterReaderEncryptData* encrypt_data);
+
+// Destroy decrypter object.
+void PDFRASAPICALL pdfr_destroy_decrypter(t_decrypter* decrypter);
+typedef void (PDFRASAPICALL *pfn_pdfr_destroy_decrypter)(t_decrypter* decrypter);
+
+// Authentificate and authorize user for opening document.
+PDFRAS_DOCUMENT_ACCESS PDFRASAPICALL pdfr_decrypter_get_document_access(t_decrypter* decrypter, const char* password);
+typedef PDFRAS_DOCUMENT_ACCESS(PDFRASAPICALL pfn_pdfr_decrypter_get_document_access)(t_decrypter* decrypter, const char* password);
+
+// Decrypt data
+pdint32 PDFRASAPICALL pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_in, const pdint32 in_len, pduint8* data_out);
+typedef pduint32(PDFRASAPICALL pfn_pdfr_decrypter_decrypt_data) (t_decrypter* decrypter, const pduint8* data_in, const pdint32 in_len, pduint8* data_out);
+
+// Algorithm used in encrypted document
+PDFRAS_ENCRYPT_ALGORITHM PDFRASAPICALL pdfr_decrypter_get_algorithm(t_decrypter* decrypter);
+typedef PDFRAS_ENCRYPT_ALGORITHM(PDFRASAPICALL *pfn_pdfr_decrypter_get_algorithm) (t_decrypter* decrypter);
+
+// Update object number for actual object to be decrypted
+void PDFRASAPICALL pdfr_decrypter_object_number(t_decrypter* decrypter, pduint32 objnum, pduint32 gennum);
+typedef void (PDFRASAPICALL *pfn_pdfr_decrypter_object_number) (t_decrypter* decrypter, pduint32 objnum, pduint32 gennum);
+
+// Check if metadata are encrypted
+pdbool PDFRASAPICALL pdfr_decrypter_get_metadata_encrypted(t_decrypter* decrypter);
+typedef pdbool(PDFRASAPICALL *pfn_pdfr_decrypter_get_metadata_encrypted) (t_decrypter* decrypter);
 
 #ifdef __cplusplus
 }
