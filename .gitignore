@@ -38,3 +38,4 @@ build/
 
 pdfras_tool/pdfras_tool.vcxproj.user
 pdfras_reader/pdfras_reader.vcxproj.user
+demo_raster_encoder/demo_raster_encoder.vcxproj.user

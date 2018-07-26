@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <string>
+
 class operation {
 private:
 	int op;
@@ -61,11 +63,16 @@ public:
 	operation op;
 private:
 	int page;
+    std::string password;
+
 public:
 	configuration();
 
 	int get_page() const { return page; }
 	void set_page(int p) { page = p; }
+
+    const char* get_password() const { return password.c_str(); }
+    void set_password(const string& passwd) { password = passwd; }
 
 	bool is_valid();
 };
