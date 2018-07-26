@@ -53,20 +53,22 @@ void application::usage() {
 	cout << " -o=<file>   : extract PDFraster image to output file (omit file extension)" << endl;
 	cout << " -p=<number> : page number (default is 1)" << endl;
     cout << " -s          : print information about digitital signature if document is signed" << endl;
+    cout << " -pwd=<password> : password for secured file" << endl;
 	ERR(CLI_ARGS_INVALID);
 }
 
 void application::parse_args(int argc, char * argv[]) {
 	LOG(dbg, "> argc=%d argv[0]=\"%s\"", argc, argv[0]);
 
+    const char opt_d[] = "-d";
+    const char opt_i[] = "-i=";
+    const char opt_o[] = "-o=";
+    const char opt_p[] = "-p=";
+    const char opt_s[] = "-s";
+    const char opt_pwd[] = "-pwd=";
+
 	for (int i = 1; i < argc; ++i) {
 		LOG(dbg, "| parse_args()argv[%d]=\"%s\"", i, argv[i]);
-
-		const char opt_d[] = "-d";
-		const char opt_i[] = "-i=";
-		const char opt_o[] = "-o=";
-		const char opt_p[] = "-p=";
-        const char opt_s[] = "-s";
 
 		if (!strcmp(argv[i], opt_d)) {
 			config.op.add_print_details();
@@ -83,6 +85,9 @@ void application::parse_args(int argc, char * argv[]) {
 		}
         else if (!strcmp(argv[i], opt_s)) {
             config.op.add_signature_info();
+        }
+        else if (!strncmp(argv[i], opt_pwd, sizeof(opt_pwd) - 1)) {
+            config.set_password(argv[i] + (sizeof(opt_pwd) - 1));
         }
 		else {
 			LOG(err, "| option not recognized argv[%d]=\"%s\"",i,argv[i]);
@@ -158,10 +163,23 @@ void application::pdfr_open() {
 		ERR(FILE_NOT_PDF_RASTER);
 	}
 
-	if (FALSE == pdfrasread_open(handle.get_reader(), handle.ifile.get_fp())) {
-		LOG(err, "| error opening pdfras_reader handle for \"%s\"", handle.ifile.get_fp());
-		ERR(PDFRAS_READER_OPEN_FAIL);
-	}
+    RasterReaderSecurityType security_type = pdfrasread_get_security_type(handle.get_reader(), handle.ifile.get_fp());
+    if (security_type == RASREAD_UNENCRYPTED) {
+        if (FALSE == pdfrasread_open(handle.get_reader(), handle.ifile.get_fp())) {
+            LOG(err, "| error opening pdfras_reader handle for \"%s\"", handle.ifile.get_fp());
+            ERR(PDFRAS_READER_OPEN_FAIL);
+        }
+    }
+    else if (security_type == RASREAD_STANDARD_SECURITY) {
+        if (FALSE == pdfrasread_open_secured(handle.get_reader(), handle.ifile.get_fp(), config.get_password())) {
+            LOG(err, "| error opening secured pdfras_reader handle for \"%s\"", handle.ifile.get_fp());
+            ERR(PDFRAS_READER_OPEN_FAIL);
+        }
+    }
+    else {
+        LOG(err, "| unknown security type used for \"%s\"", handle.ifile.get_fp());
+        ERR(PDFRAS_READER_OPEN_FAIL);
+    }
 
 	LOG(dbg, "<");
 }
