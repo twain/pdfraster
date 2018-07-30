@@ -11,9 +11,13 @@ extern "C" {
 #include "PdfValues.h"
 
 typedef struct t_pdencrypter t_pdencrypter;
+typedef struct RasterPubSecRecipient RasterPubSecRecipient;
 
 // Create a new encrytper.
 extern t_pdencrypter* pd_encrypt_new(t_pdmempool* pool, const char* user_passwd, const char* owner_passwd, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algoritm, pdbool encrypt_metada, const char* document_id, pdint32 id_len);
+
+// Create new encrypter for Public key security
+extern t_pdencrypter* pd_encrypt_new_pubsec(t_pdmempool* pool, const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool encrypt_metadata);
 
 // free encrypter
 extern void pd_encrypt_free(t_pdencrypter* crypter);

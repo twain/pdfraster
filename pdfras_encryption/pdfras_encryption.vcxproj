@@ -20,13 +20,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aes_crypter.h" />
+    <ClInclude Include="pdfras_data_structures.h" />
     <ClInclude Include="pdfras_encryption.h" />
+    <ClInclude Include="pubsec.h" />
     <ClInclude Include="rc4_crypter.h" />
+    <ClInclude Include="recipient.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="aes_crypter.c" />
     <ClCompile Include="pdfras_encryption.c" />
+    <ClCompile Include="pubsec.c" />
     <ClCompile Include="rc4_crypter.c" />
+    <ClCompile Include="recipient.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="pdfras_encryption.def" />

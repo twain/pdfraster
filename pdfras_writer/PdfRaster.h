@@ -56,6 +56,7 @@ typedef enum {
 
 typedef struct t_pdfrasencoder t_pdfrasencoder;
 typedef struct t_pdfdigitalsignature t_pdfdigitalsignature;
+typedef struct RasterPubSecRecipient RasterPubSecRecipient;
 
 // create and return a raster PDF encoder, reading to begin
 // encoding a PDF/raster output stream.
@@ -276,6 +277,10 @@ typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_AES128_encrypter) (t_pdfrasenc
 // AES 256 bits
 void PDFRASAPICALL pdfr_encoder_set_AES256_encrypter(t_pdfrasencoder* enc, const char* user_password, const char* owner_password, PDFRAS_PERMS perms, pdbool metadata);
 typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_AES256_encrypter) (t_pdfrasencoder* enc, const char* user_password, const char* owner_password, pdint32 perms, pdbool metadata);
+
+// Public key security encryption
+void PDFRASAPICALL pdfr_encoder_set_pubsec_encrypter(t_pdfrasencoder* enc, const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata);
+typedef void (PDFRASAPICALL *pfn_pdfr_encoder_set_pubsec_encrypter) (t_pdfrasencoder* enc, const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata);
 
 #ifdef __cplusplus
 }

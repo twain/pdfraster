@@ -39,6 +39,7 @@ EXPORTS
 	pdfr_encoder_set_RC4_128_encrypter	@61
 	pdfr_encoder_set_AES128_encrypter	@62
 	pdfr_encoder_set_AES256_encrypter	@63
+	pdfr_encoder_set_pubsec_encrypter	@64
 	
 	pd_outstream_new				@100
 	pd_outstream_free				@101

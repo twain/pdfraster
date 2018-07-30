@@ -24,6 +24,15 @@
     <ClInclude Include="aes_crypter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="pdfras_data_structures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="recipient.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="pubsec.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pdfras_encryption.c">
@@ -33,6 +42,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="aes_crypter.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="recipient.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pubsec.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

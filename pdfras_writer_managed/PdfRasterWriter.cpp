@@ -278,6 +278,78 @@ namespace PdfRasterWriter {
         LOG(fprintf(fp, "<"));
     }
 
+    void Writer::encoder_set_pubsec_RC4_128_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int recipients_count = recipients->Count;
+        RasterPubSecRecipient* c_recipients = (RasterPubSecRecipient*)malloc(sizeof(RasterPubSecRecipient) * recipients_count);
+
+        int recipient_idx = 0;
+        for each(PdfRasterPubSecRecipient recipient in recipients) {
+            c_recipients[recipient_idx].pubkey = (const char*)(Marshal::StringToHGlobalAnsi(recipient.public_key)).ToPointer();
+            c_recipients[recipient_idx].perms = (PDFRAS_PERMS)recipient.perms;
+            ++recipient_idx;
+        }
+        
+        pdfr_encoder_set_pubsec_encrypter(state[idx].enc, c_recipients, recipients_count, PDFRAS_RC4_128, metadata);
+
+        for (int i = 0; i < recipients_count; ++i) {
+            Marshal::FreeHGlobal(IntPtr((void*)c_recipients[i].pubkey));
+        }
+
+        free(c_recipients);
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::encoder_set_pubsec_AES128_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int recipients_count = recipients->Count;
+        RasterPubSecRecipient* c_recipients = (RasterPubSecRecipient*)malloc(sizeof(RasterPubSecRecipient) * recipients_count);
+
+        int recipient_idx = 0;
+        for each(PdfRasterPubSecRecipient recipient in recipients) {
+            c_recipients[recipient_idx].pubkey = (const char*)(Marshal::StringToHGlobalAnsi(recipient.public_key)).ToPointer();
+            c_recipients[recipient_idx].perms = (PDFRAS_PERMS)recipient.perms;
+            ++recipient_idx;
+        }
+
+        pdfr_encoder_set_pubsec_encrypter(state[idx].enc, c_recipients, recipients_count, PDFRAS_AES_128, metadata);
+
+        for (int i = 0; i < recipients_count; ++i) {
+            Marshal::FreeHGlobal(IntPtr((void*)c_recipients[i].pubkey));
+        }
+
+        free(c_recipients);
+        LOG(fprintf(fp, "<"));
+    }
+
+    void Writer::encoder_set_pubsec_AES256_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata) {
+        LOG(fprintf(fp, "> idx=%d", idx));
+        checkStateValid(idx);
+
+        int recipients_count = recipients->Count;
+        RasterPubSecRecipient* c_recipients = (RasterPubSecRecipient*)malloc(sizeof(RasterPubSecRecipient) * recipients_count);
+
+        int recipient_idx = 0;
+        for each(PdfRasterPubSecRecipient recipient in recipients) {
+            c_recipients[recipient_idx].pubkey = (const char*)(Marshal::StringToHGlobalAnsi(recipient.public_key)).ToPointer();
+            c_recipients[recipient_idx].perms = (PDFRAS_PERMS)recipient.perms;
+            ++recipient_idx;
+        }
+
+        pdfr_encoder_set_pubsec_encrypter(state[idx].enc, c_recipients, recipients_count, PDFRAS_AES_256, metadata);
+
+        for (int i = 0; i < recipients_count; ++i) {
+            Marshal::FreeHGlobal(IntPtr((void*)c_recipients[i].pubkey));
+        }
+
+        free(c_recipients);
+        LOG(fprintf(fp, "<"));
+    }
+
 	void Writer::encoder_set_creator(int idx, String^ creator)
 	{
 		LOG(fprintf(fp, "> idx=%d", idx));
