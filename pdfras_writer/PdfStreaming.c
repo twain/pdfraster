@@ -443,48 +443,6 @@ static void writestring(t_pdoutstream *stm, t_pdstring *str)
 	else if (pd_string_is_binary(str))
 	{	// write using the hex string notation
 		put_hex_string(stm, str);
-    /*    pd_putc(stm, '(');
-        int len = pd_string_length(str);
-        char* data = pd_string_data(str);
-        for (int i = 0; i < len; ++i) {
-            char c = data[i];
-            if (c == '\n') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, 'n');
-            }
-            else if (c == '\r') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, 'r');
-            }
-            else if (c == '\t') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, 't');
-            }
-            else if (c == '\b') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, 'b');
-            }
-            else if (c == '\f') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, 'f');
-            }
-            else if (c == ')') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, ')');
-            }
-            else if (c == '(') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, '(');
-            }
-            else if (c == '\\') {
-                pd_putc(stm, '\\');
-                pd_putc(stm, '\'');
-            }
-            else
-                pd_putc(stm, c);
-
-        }
-        pd_putc(stm, ')');*/
 	}
 	else
 	{
