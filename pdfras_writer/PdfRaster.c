@@ -703,6 +703,19 @@ void pdfr_encoder_set_AES256_encrypter(t_pdfrasencoder* enc, const char* user_pa
     pd_outstream_set_encrypter(enc->stm, enc->encrypter);
 }
 
+void pdfr_encoder_set_pubsec_encrypter(t_pdfrasencoder* enc, const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
+    assert(enc);
+
+    if (enc->encrypter)
+        pd_encrypt_free(enc->encrypter);
+
+    enc->encrypter = pd_encrypt_new_pubsec(enc->pool, recipients, recipients_count, algorithm, metadata);
+    if (enc->encrypter) {
+        pd_encrypt_dictionary(enc->encrypter, enc->xref, &enc->trailer);
+        pd_outstream_set_encrypter(enc->stm, enc->encrypter);
+    }
+}
+
 void pdfr_encoder_destroy(t_pdfrasencoder* enc)
 {
     if (enc->signer)

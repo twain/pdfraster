@@ -26,3 +26,7 @@ EXPORTS
 	pdfr_decrypter_get_algorithm				@24
 	pdfr_decrypter_object_number				@25
 	pdfr_decrypter_get_metadata_encrypted		@26
+	pdfr_encrypter_is_password_security			@27
+	pdfr_create_pubsec_encrypter				@28
+	pdfr_encrypter_pubsec_recipients_count		@29
+	pdfr_encrypter_pubsec_recipient_pkcs7		@30

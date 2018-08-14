@@ -13,9 +13,11 @@
 #include "pdfras_encryption.h"
 #include "rc4_crypter.h"
 #include "aes_crypter.h"
+#include "recipient.h"
 
 #define MD5_HASH_BYTES  16
 #define R_6_KEY_LENGTH  32
+#define PUBSEC_SEED_LEN 20
 
 struct t_encrypter {
     // user entered data
@@ -53,6 +55,15 @@ struct t_encrypter {
 
     // Encrypt/decrypt mode
     pdbool encrypt_mode;
+
+    // password or public key security
+    pdbool password_security;
+
+    // list of recipeints (terminated by NULL)
+    t_recipient* recipients;
+
+    // random seed data used by public key security
+    char* seed;
 };
 
 static char password_padding[] = "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
@@ -453,15 +464,89 @@ static pdbool generate_encryption_key(t_encrypter* enc) {
     return PD_TRUE;
 }
 
-//TODO: If memory module will be separated, then use PDFRAS memory managment functions
-t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_password, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
-    if (algorithm >= PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM || algorithm < PDFRAS_RC4_40)
-        return NULL;
+static pdbool generate_encryption_key_pubsec(t_encrypter* encrypter) {
+    pduint32 pkcs7_size = 0;
+    pduint32 recipients_count = pdfr_encrypter_pubsec_recipients_count(encrypter);
+    
+    if (encrypter->encryption_key_length <= 16) {
+        SHA_CTX ctx;
+        char digest[SHA_DIGEST_LENGTH];
 
+        if (!SHA1_Init(&ctx))
+            return PD_FALSE;
+
+        if (!SHA1_Update(&ctx, encrypter->seed, PUBSEC_SEED_LEN))
+            return PD_FALSE;
+
+        for (pduint32 i = 0; i < recipients_count; ++i) {
+            const char* pkcs7_blob = pdfr_encrypter_pubsec_recipient_pkcs7(encrypter, i, &pkcs7_size);
+            
+            if (!SHA1_Update(&ctx, pkcs7_blob, pkcs7_size))
+                return PD_FALSE;
+        }
+
+        if (encrypter->V >= 4 && !encrypter->encrypt_metadata) {
+            pduint8 added[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+
+            if (!SHA1_Update(&ctx, added, 4))
+                return PD_FALSE;
+        }
+
+        if (!SHA1_Final(digest, &ctx)) {
+            free(encrypter->encryption_key);
+            encrypter->encryption_key = NULL;
+            return PD_FALSE;
+        }
+
+        encrypter->encryption_key = (char*)malloc(sizeof(char) * encrypter->encryption_key_length);
+        memcpy(encrypter->encryption_key, digest, encrypter->encryption_key_length);
+
+        return PD_TRUE;
+    }
+    else {
+        SHA256_CTX ctx;
+        char digest[SHA256_DIGEST_LENGTH];
+
+        if (!SHA256_Init(&ctx))
+            return PD_FALSE;
+
+        if (!SHA256_Update(&ctx, encrypter->seed, PUBSEC_SEED_LEN))
+            return PD_FALSE;
+
+        for (pduint32 i = 0; i < recipients_count; ++i) {
+            const char* pkcs7_blob = pdfr_encrypter_pubsec_recipient_pkcs7(encrypter, i, &pkcs7_size);
+
+            if (!SHA256_Update(&ctx, pkcs7_blob, pkcs7_size))
+                return PD_FALSE;
+        }
+
+        if (encrypter->V >= 4 && !encrypter->encrypt_metadata) {
+            pduint8 added[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
+
+            if (!SHA256_Update(&ctx, added, 4))
+                return PD_FALSE;
+        }
+
+        if (!SHA256_Final(digest, &ctx)) {
+            free(encrypter->encryption_key);
+            encrypter->encryption_key = NULL;
+            return PD_FALSE;
+        }
+
+        encrypter->encryption_key = (char*)malloc(sizeof(char) * encrypter->encryption_key_length);
+        memcpy(encrypter->encryption_key, digest, encrypter->encryption_key_length);
+
+        return PD_TRUE;
+    }
+
+    return PD_FALSE;
+}
+
+static t_encrypter* alloc_encrypter(PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
     t_encrypter* encrypter = (t_encrypter*)malloc(sizeof(t_encrypter));
 
     encrypter->algorithm = algorithm;
-    encrypter->perms = perms;
+    encrypter->perms = PDFRAS_PERM_UNKNOWN;
     encrypter->encrypt_metadata = metadata;
     encrypter->document_id = NULL;
     encrypter->document_id_length = 0;
@@ -470,13 +555,21 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
     encrypter->current_gen_number = -1;
     encrypter->user_password = NULL;
     encrypter->owner_password = NULL;
+    encrypter->O = NULL;
+    encrypter->U = NULL;
+    encrypter->OU_length = 0;
     encrypter->OE = NULL;
     encrypter->UE = NULL;
     encrypter->Perms = NULL;
     encrypter->OUE_length = 0;
     encrypter->Perms_length = 0;
     encrypter->encrypt_mode = PD_TRUE;
-
+    encrypter->password_security = PD_TRUE;
+    encrypter->V = 0;
+    encrypter->R = 0;
+    encrypter->recipients = NULL;
+    encrypter->seed = NULL;
+    
     switch (encrypter->algorithm)
     {
     case PDFRAS_RC4_40:
@@ -498,6 +591,19 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
     default:
         break;
     }
+
+    return encrypter;
+}
+
+//TODO: If memory module will be separated, then use PDFRAS memory managment functions
+t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_password, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
+    if (algorithm >= PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM || algorithm < PDFRAS_RC4_40)
+        return NULL;
+
+    t_encrypter* encrypter = alloc_encrypter(algorithm, metadata);
+
+    encrypter->password_security = PD_TRUE; 
+    encrypter->perms = perms;
 
     if (encrypter->R <= 4) {
         encrypter->OU_length = 32;
@@ -541,6 +647,61 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
     return encrypter;
 }
 
+t_encrypter* pdfr_create_pubsec_encrypter(const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool metadata) {
+    // RC4 40 bit is not supported.
+    if (algorithm >= PDFRAS_UNDEFINED_ENCRYPT_ALGORITHM || algorithm < PDFRAS_RC4_128)
+        return NULL;
+
+    t_encrypter* encrypter = alloc_encrypter(algorithm, metadata);
+    encrypter->password_security = PD_FALSE;
+
+    encrypter->seed = (char*)malloc(sizeof(char) * PUBSEC_SEED_LEN);
+    pdfras_generate_random_bytes(encrypter->seed, PUBSEC_SEED_LEN);
+
+    for (size_t i = 0; i < recipients_count; ++i) {
+        if (!add_recipient(&encrypter->recipients, recipients[i].pubkey, recipients[i].perms, encrypter->seed, algorithm)) {
+            pdfr_destroy_encrypter(encrypter);
+            return NULL;
+        }
+    }
+
+    if (!encrypter->recipients) {
+        pdfr_destroy_encrypter(encrypter);
+        return NULL;
+    }
+
+    return encrypter;
+}
+
+pduint32 pdfr_encrypter_pubsec_recipients_count(t_encrypter* encrypter) {
+    if (!encrypter || !encrypter->recipients)
+        return 0;
+
+    return recipients_count(encrypter->recipients);
+}
+
+const char* pdfr_encrypter_pubsec_recipient_pkcs7(t_encrypter* encrypter, pduint32 idx, pduint32* pkcs7_size) {
+    if (!encrypter || idx < 0)
+        return NULL;
+
+    pduint32 current_idx = 0;
+    t_recipient* recipient = encrypter->recipients;
+    
+    while (idx != current_idx && recipient) {
+        ++current_idx;
+        recipient = recipient->next;
+    }
+
+    if (recipient) {
+        if (pkcs7_size)
+            *pkcs7_size = recipient->pkcs7_blob_size;
+
+        return recipient->pkcs7_blob;
+    }
+
+    return NULL;
+}
+
 void pdfr_destroy_encrypter(t_encrypter* encrypter) {
     if (encrypter) {
         if (encrypter->O)
@@ -570,6 +731,12 @@ void pdfr_destroy_encrypter(t_encrypter* encrypter) {
         if (encrypter->Perms)
             free(encrypter->Perms);
 
+        if (encrypter->seed)
+            free(encrypter->seed);
+
+        if (encrypter->recipients)
+            delete_recipients(encrypter->recipients);
+
         free(encrypter);
     }
 }
@@ -593,36 +760,42 @@ pdbool pdfr_encrypter_dictionary_data(t_encrypter* encrypter, const char* docume
         encrypter->document_id_length = id_len;
     }
 
-    // compute O
-    if (encrypter->R < 6) {
-        if (compute_O(encrypter) == PD_FALSE)
-            return PD_FALSE;
+    if (encrypter->password_security) {
+        if (encrypter->R < 6) {
+            // compute O
+            if (compute_O(encrypter) == PD_FALSE)
+                return PD_FALSE;
 
-        // compute encryption key
-        if (generate_encryption_key(encrypter) == PD_FALSE) {
-            return PD_FALSE;
+            // compute encryption key
+            if (generate_encryption_key(encrypter) == PD_FALSE) {
+                return PD_FALSE;
+            }
+
+            if (encrypter->R == 2)
+                compute_U_r2(encrypter);
+            else if (encrypter->R >= 3)
+                compute_U_r3_4(encrypter);
         }
+        else if (encrypter->R == 6) {
+            // encryption key
+            if (generate_encryption_key(encrypter) == PD_FALSE)
+                return PD_FALSE;
 
-        if (encrypter->R == 2)
-            compute_U_r2(encrypter);
-        else if (encrypter->R >= 3)
-            compute_U_r3_4(encrypter);
+            // U and UE
+            if (compute_U_UE_r_6(encrypter) == PD_FALSE)
+                return PD_FALSE;
+
+            // O and OE
+            if (compute_O_OE_r_6(encrypter) == PD_FALSE)
+                return PD_FALSE;
+
+            // Perms
+            if (compute_Perms(encrypter) == PD_FALSE)
+                return PD_FALSE;
+        }
     }
-    else if (encrypter->R == 6) {
-        // encryption key
-        if (generate_encryption_key(encrypter) == PD_FALSE)
-            return PD_FALSE;
-
-        // U and UE
-        if (compute_U_UE_r_6(encrypter) == PD_FALSE)
-            return PD_FALSE;
-
-        // O and OE
-        if (compute_O_OE_r_6(encrypter) == PD_FALSE)
-            return PD_FALSE;
-        
-        // Perms
-        if (compute_Perms(encrypter) == PD_FALSE)
+    else {
+        if (!generate_encryption_key_pubsec(encrypter))
             return PD_FALSE;
     }
 
@@ -799,6 +972,12 @@ pduint32 pdfr_encrypter_get_Perms_length(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->Perms_length;
+}
+
+pdbool pdfr_encrypter_is_password_security(t_encrypter* encrypter) {
+    assert(encrypter);
+
+    return encrypter->password_security;
 }
 
 // Decryption part

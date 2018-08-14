@@ -3,6 +3,7 @@
 
 #include "PdfSecurityHandler.h"
 #include "PdfAlloc.h"
+#include "PdfArray.h"
 #include "PdfDict.h"
 #include "PdfString.h"
 #include "PdfStandardAtoms.h"
@@ -18,6 +19,7 @@ typedef struct {
 } t_writer_data;
 
 // We need this to make C# happy...
+// same struct defined in pdfras_encryption.c (TODO: fix this duplicity).
 struct t_encrypter {
 	// user entered data
 	char* user_password;  // Only for PDF 2.0
@@ -51,6 +53,18 @@ struct t_encrypter {
 
 	pdint32 current_obj_number;
 	pdint32 current_gen_number;
+
+    // Encrypt/decrypt mode
+    pdbool encrypt_mode;
+
+    // password or public key security
+    pdbool password_security;
+
+    // list of recipeints (terminated by NULL)
+    t_recipient* recipients;
+
+    // random seed data used by public key security
+    char* seed;
 };
 
 struct t_pdencrypter {
@@ -68,9 +82,8 @@ struct t_pdencrypter {
     pdbool active;
 };
 
-t_pdencrypter* pd_encrypt_new(t_pdmempool* pool, const char* user_passwd, const char* owner_passwd, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algoritm, pdbool encrypt_metada, const char* document_id, pdint32 id_len)
-{
-	t_pdencrypter* crypter = (t_pdencrypter*)pd_alloc(pool, sizeof(t_pdencrypter));
+static t_pdencrypter* alloc_pdencrypter(t_pdmempool* pool) {
+    t_pdencrypter* crypter = (t_pdencrypter*)pd_alloc(pool, sizeof(t_pdencrypter));
     if (!crypter)
         return NULL;
 
@@ -89,10 +102,31 @@ t_pdencrypter* pd_encrypt_new(t_pdmempool* pool, const char* user_passwd, const 
     crypter->data->bufferSize = BUFFER_SIZE;
     crypter->data->written = 0;
 
+    return crypter;
+}
+
+t_pdencrypter* pd_encrypt_new(t_pdmempool* pool, const char* user_passwd, const char* owner_passwd, PDFRAS_PERMS perms, PDFRAS_ENCRYPT_ALGORITHM algoritm, pdbool encrypt_metada, const char* document_id, pdint32 id_len)
+{
+    t_pdencrypter* crypter = alloc_pdencrypter(pool);
+    if (!crypter)
+        return NULL;
 
     crypter->encrypter = pdfr_create_encrypter(user_passwd, owner_passwd, perms, algoritm, encrypt_metada);
     pdfr_encrypter_dictionary_data(crypter->encrypter, document_id, id_len);
 	return crypter;
+}
+
+t_pdencrypter* pd_encrypt_new_pubsec(t_pdmempool* pool, const RasterPubSecRecipient* recipients, size_t recipients_count, PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool encrypt_metadata) {
+    t_pdencrypter* crypter = alloc_pdencrypter(pool);
+    if (!crypter)
+        return NULL;
+
+    crypter->encrypter = pdfr_create_pubsec_encrypter(recipients, recipients_count, algorithm, encrypt_metadata);
+    if (!crypter->encrypter)
+        return NULL;
+
+    pdfr_encrypter_dictionary_data(crypter->encrypter, NULL, 0);
+    return crypter;
 }
 
 void pd_encrypt_free(t_pdencrypter* crypter)
@@ -137,30 +171,51 @@ pdint32 pd_encrypt_data(t_pdencrypter *crypter, const pduint8* data_in, const pd
 }
 
 void pd_encrypt_fill_dictionary(t_pdencrypter* encrypter, t_pdvalue* dict) {
-    pd_dict_put(*dict, ((t_pdatom) "Filter"), pdatomvalue((t_pdatom)"Standard"));
+    pdbool password_security = pdfr_encrypter_is_password_security(encrypter->encrypter);
 
     pduint8 V = pdfr_encrypter_get_V(encrypter->encrypter);
     pd_dict_put(*dict, ((t_pdatom)"V"), pdintvalue(V));
-    
+
     pduint32 key_length = pdfr_encrypter_get_key_length(encrypter->encrypter);
-    pd_dict_put(*dict, ((t_pdatom) "Length"), pdintvalue(key_length));
-
-    pduint8 R = pdfr_encrypter_get_R(encrypter->encrypter);
-    pd_dict_put(*dict, ((t_pdatom) "R"), pdintvalue(R));
-
-    pduint32 ou_length = pdfr_encrypter_get_OU_length(encrypter->encrypter);
-    const char* O = pdfr_encrypter_get_O(encrypter->encrypter);
-    const char* U = pdfr_encrypter_get_U(encrypter->encrypter);
-    pd_dict_put(*dict, ((t_pdatom) "O"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, O)));
-    pd_dict_put(*dict, ((t_pdatom) "U"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, U)));
+    pdbool metadata_ecnrytped = pdfr_encrypter_get_metadata_encrypted(encrypter->encrypter);
     
-    pduint32 P = pdfr_encrypter_get_permissions(encrypter->encrypter);
-    pd_dict_put(*dict, ((t_pdatom) "P"), pdintvalue(P));
+    if (password_security) {
+        pd_dict_put(*dict, ((t_pdatom) "Filter"), pdatomvalue((t_pdatom)"Standard"));
+        pd_dict_put(*dict, ((t_pdatom) "Length"), pdintvalue(key_length));
+        pduint8 R = pdfr_encrypter_get_R(encrypter->encrypter);
+        pd_dict_put(*dict, ((t_pdatom) "R"), pdintvalue(R));
+
+        pduint32 ou_length = pdfr_encrypter_get_OU_length(encrypter->encrypter);
+        const char* O = pdfr_encrypter_get_O(encrypter->encrypter);
+        const char* U = pdfr_encrypter_get_U(encrypter->encrypter);
+        pd_dict_put(*dict, ((t_pdatom) "O"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, O)));
+        pd_dict_put(*dict, ((t_pdatom) "U"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, U)));
+
+        if (R == 6) {
+            const char* OE = pdfr_encrypter_get_OE(encrypter->encrypter);
+            const char* UE = pdfr_encrypter_get_UE(encrypter->encrypter);
+            const char* Perms = pdfr_encrypter_get_Perms(encrypter->encrypter);
+            pduint32 oue_length = pdfr_encrypter_get_OUE_length(encrypter->encrypter);
+            pduint32 Perms_length = pdfr_encrypter_get_Perms_length(encrypter->encrypter);
+
+            pd_dict_put(*dict, ((t_pdatom) "OE"), pdstringvalue(pd_string_new_binary(encrypter->pool, oue_length, OE)));
+            pd_dict_put(*dict, ((t_pdatom) "UE"), pdstringvalue(pd_string_new_binary(encrypter->pool, oue_length, UE)));
+            pd_dict_put(*dict, ((t_pdatom) "Perms"), pdstringvalue(pd_string_new_binary(encrypter->pool, Perms_length, Perms)));
+        }
+
+        pduint32 P = pdfr_encrypter_get_permissions(encrypter->encrypter);
+        pd_dict_put(*dict, ((t_pdatom) "P"), pdintvalue(P));
+
+        if (V == 4 || V == 5) {
+            pd_dict_put(*dict, ((t_pdatom) "EncryptMetadata"), pdboolvalue(metadata_ecnrytped));
+        }
+    }
+    else {
+        pd_dict_put(*dict, ((t_pdatom) "Filter"), pdatomvalue((t_pdatom)"Adobe.PubSec"));
+        pd_dict_put(*dict, ((t_pdatom) "SubFilter"), pdatomvalue((t_pdatom) "adbe.pkcs7.s5"));
+    }
 
     if (V == 4 || V == 5) {
-        pdbool metadata_ecnrytped = pdfr_encrypter_get_metadata_encrypted(encrypter->encrypter);
-        pd_dict_put(*dict, ((t_pdatom) "EncryptMetadata"), pdboolvalue(metadata_ecnrytped));
-
         t_pdvalue cf_dict = pd_dict_new(encrypter->pool, 1);
         t_pdvalue stdcf_dict = pd_dict_new(encrypter->pool, 4);
 
@@ -174,25 +229,40 @@ void pd_encrypt_fill_dictionary(t_pdencrypter* encrypter, t_pdvalue* dict) {
         if (algorithm == PDFRAS_AES_256)
             pd_dict_put(stdcf_dict, ((t_pdatom) "CFM"), pdatomvalue((t_pdatom) "AESV3"));
 
-        pd_dict_put(stdcf_dict, ((t_pdatom) "AuthEvent"), pdatomvalue((t_pdatom) "DocOpen"));
-        pd_dict_put(stdcf_dict, ((t_pdatom) "Length"), pdintvalue(key_length / 8));
+        if (password_security)
+            pd_dict_put(stdcf_dict, ((t_pdatom) "AuthEvent"), pdatomvalue((t_pdatom) "DocOpen"));
 
-        pd_dict_put(cf_dict, ((t_pdatom) "StdCF"), stdcf_dict);
+        pd_dict_put(stdcf_dict, ((t_pdatom) "Length"), pdintvalue(key_length));
+
+        if (password_security) {
+            pd_dict_put(cf_dict, ((t_pdatom) "StdCF"), stdcf_dict);
+            pd_dict_put(*dict, ((t_pdatom) "StrF"), pdatomvalue((t_pdatom) "StdCF"));
+            pd_dict_put(*dict, ((t_pdatom) "StmF"), pdatomvalue((t_pdatom) "StdCF"));
+        }
+        else {
+            pd_dict_put(cf_dict, ((t_pdatom) "DefaultCryptFilter"), stdcf_dict);
+            pd_dict_put(stdcf_dict, ((t_pdatom) "EncryptMetadata"), pdboolvalue(metadata_ecnrytped));
+            pd_dict_put(*dict, ((t_pdatom) "StrF"), pdatomvalue((t_pdatom) "DefaultCryptFilter"));
+            pd_dict_put(*dict, ((t_pdatom) "StmF"), pdatomvalue((t_pdatom) "DefaultCryptFilter"));
+        }
+
         pd_dict_put(*dict, ((t_pdatom) "CF"), cf_dict);
-        pd_dict_put(*dict, ((t_pdatom) "StrF"), pdatomvalue((t_pdatom) "StdCF"));
-        pd_dict_put(*dict, ((t_pdatom) "StmF"), pdatomvalue((t_pdatom) "StdCF"));
-    }
 
-    if (R == 6) {
-        const char* OE = pdfr_encrypter_get_OE(encrypter->encrypter);
-        const char* UE = pdfr_encrypter_get_UE(encrypter->encrypter);
-        const char* Perms = pdfr_encrypter_get_Perms(encrypter->encrypter);
-        pduint32 oue_length = pdfr_encrypter_get_OUE_length(encrypter->encrypter);
-        pduint32 Perms_length = pdfr_encrypter_get_Perms_length(encrypter->encrypter);
+        if (!password_security) {
+            // add recipients
+            pduint32 recipients_count = pdfr_encrypter_pubsec_recipients_count(encrypter->encrypter);
+            pduint32 pkcs7_size = 0;
 
-        pd_dict_put(*dict, ((t_pdatom) "OE"), pdstringvalue(pd_string_new_binary(encrypter->pool, oue_length, OE)));
-        pd_dict_put(*dict, ((t_pdatom) "UE"), pdstringvalue(pd_string_new_binary(encrypter->pool, oue_length, UE)));
-        pd_dict_put(*dict, ((t_pdatom) "Perms"), pdstringvalue(pd_string_new_binary(encrypter->pool, Perms_length, Perms)));
+            t_pdarray* recipients_array = pd_array_new(encrypter->pool, recipients_count);
+
+            for (pduint32 i = 0; i < recipients_count; ++i) {
+                const char* pkcs7_blob = pdfr_encrypter_pubsec_recipient_pkcs7(encrypter->encrypter, i, &pkcs7_size);
+                if (pkcs7_blob)
+                    pd_array_add(recipients_array, pdstringvalue(pd_string_new_binary(encrypter->pool, pkcs7_size, pkcs7_blob)));
+            }
+
+            pd_dict_put(stdcf_dict, ((t_pdatom) "Recipients"), pdarrayvalue(recipients_array));
+        }
     }
 }
 

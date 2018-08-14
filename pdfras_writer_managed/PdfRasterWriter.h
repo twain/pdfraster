@@ -3,6 +3,7 @@
 #pragma once
 
 using namespace System;
+using namespace System::Collections::Generic;
 
 namespace PdfRasterWriter {
 
@@ -47,8 +48,16 @@ namespace PdfRasterWriter {
 			PDFRASWR_PERM_FILL_FORMS = PDFRAS_PERM_FILL_FORMS,
 			PDFRASWR_PERM_ACCESSIBILITY = PDFRAS_PERM_ACCESSIBILITY,
 			PDFRASWR_PERM_ASSEMBLE_DOCUMENT = PDFRAS_PERM_ASSEMBLE_DOCUMENT,
-			PDFRASWR_PERM_HIGH_PRINT = PDFRAS_PERM_HIGH_PRINT
+			PDFRASWR_PERM_HIGH_PRINT = PDFRAS_PERM_HIGH_PRINT,
+            PDFRASWR_PERM_ALL = PDFRAS_PERM_ALL
 		};
+
+        value struct PdfRasterPubSecRecipient
+        {
+            String^ public_key;
+            PdfRasterPermissions perms;
+
+        };
 #pragma endregion Public Definitions for PdfRasterWriter
 
         ///////////////////////////////////////////////////////////////////////////////
@@ -62,6 +71,9 @@ namespace PdfRasterWriter {
         void encoder_set_RC4_128_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
         void encoder_set_AES128_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
         void encoder_set_AES256_encrypter(int idx, String^ user_password, String^ owner_password, PdfRasterPermissions perms, pdbool metadata);
+        void encoder_set_pubsec_RC4_128_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata);
+        void encoder_set_pubsec_AES128_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata);
+        void encoder_set_pubsec_AES256_encrypter(int idx, List<PdfRasterPubSecRecipient>^ recipients, pdbool metadata);
 		void encoder_set_creator(int enc, String^ creator);
 		void encoder_set_resolution(int enc, double xdpi, double ydpi);
 		void encoder_set_pixelformat(int enc, PdfRasterPixelFormat format);
