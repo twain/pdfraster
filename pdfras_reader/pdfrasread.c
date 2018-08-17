@@ -1,5 +1,6 @@
 #include "pdfrasread.h"
 #include "pdfras_encryption.h"
+#include "recipient.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -3241,6 +3242,8 @@ static const char* error_code_description(int code)
     case READ_NO_DOCUMENT_ID:       return "Document has not ID.";
     case READ_ARRAY_BAD_SYNTAX:     return "Bad syntax for array object.";
     case READ_ENCRYPTION_BAD_PASSWORD:  return "Bad password provided for encrypted document.";
+    case READ_ENCRYPTION_BAD_SECURITY_TYPE: return "Bad security type used in encrypted document.";
+    case READ_ENCRYPTION_NO_RECIPIENTS: return "No recipients found for public key security.";
     default:
         return "<no details>";
     }
@@ -3364,24 +3367,31 @@ int pdfrasread_open_secured(t_pdfrasreader* reader, void* source, const char* pa
             return PD_FALSE;
         }
 
-        RasterReaderEncryptData* data = parse_encryption_dictionary(reader, enc_pos);
-        if (data) {
-            data->document_id = parse_document_first_id(reader);
-            if (data->document_id)
-                data->document_id_length = 16; // According to specification
+        if (reader->security_type == RASREAD_STANDARD_SECURITY || reader->security_type == RASREAD_PUBLIC_KEY_SECURITY) {
+            RasterReaderEncryptData* data = parse_encryption_dictionary(reader, enc_pos);
+            if (data) {
+                data->document_id = parse_document_first_id(reader);
+                if (data->document_id)
+                    data->document_id_length = 16; // According to specification
 
-            reader->decrypter = pdfr_create_decrypter(data);
+                reader->decrypter = pdfr_create_decrypter(data);
 
-            if (pdfr_decrypter_get_document_access(reader->decrypter, password) == PDFRAS_DOCUMENT_NONE_ACCESS) {
-                api_error(reader, READ_ENCRYPTION_BAD_PASSWORD, __LINE__);
-                reader->source = NULL;
-                return PD_FALSE;
+                if (pdfr_decrypter_get_document_access(reader->decrypter, password) == PDFRAS_DOCUMENT_NONE_ACCESS) {
+                    api_error(reader, READ_ENCRYPTION_BAD_PASSWORD, __LINE__);
+                    reader->source = NULL;
+                    return PD_FALSE;
+                }
+                
+                reader->bOpen = PD_TRUE;
             }
-
-            reader->bOpen = PD_TRUE;
+            else {
+                reader->source = NULL;
+            }
         }
         else {
+            api_error(reader, READ_ENCRYPTION_BAD_SECURITY_TYPE, __LINE__);
             reader->source = NULL;
+            return PD_FALSE;
         }
     }
 
@@ -3458,6 +3468,10 @@ static void encrypt_data_destroy(RasterReaderEncryptData* data) {
     if (data->UE)
         free(data->UE);
 
+    if (data->recipients) {
+        pdfr_pubsec_delete_recipients(data->recipients);
+    }
+
     data = NULL;
 }
 
@@ -3497,145 +3511,153 @@ RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdf
     data->U = NULL;
     data->UE = NULL;
     data->V = 0;
+    data->recipients = NULL;
     
     pdbool error = PD_FALSE;
     pdfpos_t pos = 0;
     int hex = 0;
     size_t len = 0;
 
-    if (dictionary_lookup(reader, enc_pos, "/EncryptMetadata", &pos)) {
-        if (!parse_boolean(reader, pos, &data->encrypt_metadata))
-            data->encrypt_metadata = PD_TRUE;
-    }
+    pdbool standard_security = reader->security_type == RASREAD_STANDARD_SECURITY ? PD_TRUE : PD_FALSE;
 
-    if (dictionary_lookup(reader, enc_pos, "/O", &pos)) {
-        char* buffer = NULL;
-        len = parse_string(reader, pos, buffer, &hex);
-        
-        buffer = (char*)malloc(sizeof(char) * len);
-        len = parse_string(reader, pos, buffer, &hex);
+    if (standard_security) {
+        if (dictionary_lookup(reader, enc_pos, "/EncryptMetadata", &pos)) {
+            if (!parse_boolean(reader, pos, &data->encrypt_metadata))
+                data->encrypt_metadata = PD_TRUE;
+        }
 
-        if (hex) {
-            data->O = hex_string_to_byte_array(buffer, len);
-            
-            if (!data->O)
+        if (dictionary_lookup(reader, enc_pos, "/O", &pos)) {
+            char* buffer = NULL;
+            len = parse_string(reader, pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, pos, buffer, &hex);
+
+            if (hex) {
+                data->O = hex_string_to_byte_array(buffer, len);
+
+                if (!data->O)
+                    error = PD_TRUE;
+            }
+            else {
+                data->O = (char*)malloc(sizeof(char) * len);
+                memcpy(data->O, buffer, len);
+            }
+
+            free(buffer);
+        }
+        else
+            error = PD_TRUE;
+
+        if (dictionary_lookup(reader, enc_pos, "/U", &pos)) {
+            char* buffer = NULL;
+            len = parse_string(reader, pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, pos, buffer, &hex);
+
+            if (hex) {
+                data->U = hex_string_to_byte_array(buffer, len);
+
+                if (!data->U)
+                    error = PD_TRUE;
+            }
+            else {
+                data->U = (char*)malloc(sizeof(char) * len);
+                memcpy(data->U, buffer, len);
+            }
+
+            free(buffer);
+        }
+        else
+            error = PD_TRUE;
+
+        if (dictionary_lookup(reader, enc_pos, "/OE", &pos)) {
+            char* buffer = NULL;
+            len = parse_string(reader, pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, pos, buffer, &hex);
+
+            if (hex) {
+                data->OE = hex_string_to_byte_array(buffer, len);
+
+                if (!data->OE)
+                    error = PD_TRUE;
+            }
+            else {
+                data->OE = (char*)malloc(sizeof(char) * len);
+                memcpy(data->OE, buffer, len);
+            }
+
+            free(buffer);
+        }
+
+        if (dictionary_lookup(reader, enc_pos, "/UE", &pos)) {
+            char* buffer = NULL;
+            len = parse_string(reader, pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, pos, buffer, &hex);
+
+            if (hex) {
+                data->UE = hex_string_to_byte_array(buffer, len);
+
+                if (!data->UE)
+                    error = PD_TRUE;
+            }
+            else {
+                data->UE = (char*)malloc(sizeof(char) * len);
+                memcpy(data->UE, buffer, len);
+            }
+
+            free(buffer);
+        }
+
+        if (dictionary_lookup(reader, enc_pos, "/Perms", &pos)) {
+            char* buffer = NULL;
+            len = parse_string(reader, pos, buffer, &hex);
+
+            buffer = (char*)malloc(sizeof(char) * len);
+            len = parse_string(reader, pos, buffer, &hex);
+
+            if (hex) {
+                data->Perms = hex_string_to_byte_array(buffer, len);
+
+                if (!data->Perms)
+                    error = PD_TRUE;
+            }
+            else {
+                data->Perms = (char*)malloc(sizeof(char) * len);
+                memcpy(data->Perms, buffer, len);
+            }
+
+            free(buffer);
+        }
+
+        if (dictionary_lookup(reader, enc_pos, "/P", &pos)) {
+            long value = 0L;
+            if (parse_long_value(reader, &pos, &value))
+                data->perms = (PDFRAS_PERMS)value;
+            else
                 error = PD_TRUE;
         }
-        else {
-            data->O = (char*)malloc(sizeof(char) * len);
-            memcpy(data->O, buffer, len);
-        }
-
-        free(buffer);
-    }
-    else
-        error = PD_TRUE;
-
-    if (dictionary_lookup(reader, enc_pos, "/U", &pos)) {
-        char* buffer = NULL;
-        len = parse_string(reader, pos, buffer, &hex);
-
-        buffer = (char*)malloc(sizeof(char) * len);
-        len = parse_string(reader, pos, buffer, &hex);
-
-        if (hex) {
-            data->U = hex_string_to_byte_array(buffer, len);
-
-            if (!data->U)
-                error = PD_TRUE;
-        }
-        else {
-            data->U = (char*)malloc(sizeof(char) * len);
-            memcpy(data->U, buffer, len);
-        }
-
-        free(buffer);
-    }
-    else
-        error = PD_TRUE;
-
-    if (dictionary_lookup(reader, enc_pos, "/OE", &pos)) {
-        char* buffer = NULL;
-        len = parse_string(reader, pos, buffer, &hex);
-
-        buffer = (char*)malloc(sizeof(char) * len);
-        len = parse_string(reader, pos, buffer, &hex);
-
-        if (hex) {
-            data->OE = hex_string_to_byte_array(buffer, len);
-
-            if (!data->OE)
-                error = PD_TRUE;
-        }
-        else {
-            data->OE = (char*)malloc(sizeof(char) * len);
-            memcpy(data->OE, buffer, len);
-        }
-
-        free(buffer);
-    }
-
-    if (dictionary_lookup(reader, enc_pos, "/UE", &pos)) {
-        char* buffer = NULL;
-        len = parse_string(reader, pos, buffer, &hex);
-
-        buffer = (char*)malloc(sizeof(char) * len);
-        len = parse_string(reader, pos, buffer, &hex);
-
-        if (hex) {
-            data->UE = hex_string_to_byte_array(buffer, len);
-
-            if (!data->UE)
-                error = PD_TRUE;
-        }
-        else {
-            data->UE = (char*)malloc(sizeof(char) * len);
-            memcpy(data->UE, buffer, len);
-        }
-
-        free(buffer);
-    }
-
-    if (dictionary_lookup(reader, enc_pos, "/Perms", &pos)) {
-        char* buffer = NULL;
-        len = parse_string(reader, pos, buffer, &hex);
-
-        buffer = (char*)malloc(sizeof(char) * len);
-        len = parse_string(reader, pos, buffer, &hex);
-
-        if (hex) {
-            data->Perms = hex_string_to_byte_array(buffer, len);
-
-            if (!data->Perms)
-                error = PD_TRUE;
-        }
-        else {
-            data->Perms = (char*)malloc(sizeof(char) * len);
-            memcpy(data->Perms, buffer, len);
-        }
-
-        free(buffer);
-    }
-
-    if (dictionary_lookup(reader, enc_pos, "/P", &pos)) {
-        long value = 0L;
-        if (parse_long_value(reader, &pos, &value))
-            data->perms = (PDFRAS_PERMS)value;
         else
             error = PD_TRUE;
     }
-    else
-        error = PD_TRUE;
 
-    if (dictionary_lookup(reader, enc_pos, "/R", &pos)) {
-        long value = 0L;
-        if (parse_long_value(reader, &pos, &value))
-            data->R = (int)value;
+    if (standard_security) {
+        if (dictionary_lookup(reader, enc_pos, "/R", &pos)) {
+            long value = 0L;
+            if (parse_long_value(reader, &pos, &value))
+                data->R = (int)value;
+            else
+                error = PD_TRUE;
+        }
         else
             error = PD_TRUE;
     }
-    else
-        error = PD_TRUE;
+    
 
     if (dictionary_lookup(reader, enc_pos, "/V", &pos)) {
         long value = 0L;
@@ -3647,15 +3669,17 @@ RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdf
     else
         error = PD_TRUE;
 
-    if (data->R <= 4)
-        data->OU_length = 32;
-    else if (data->R == 6) {
-        data->OU_length = 48;
-        if (!data->OE || !data->UE)
+    if (standard_security) {
+        if (data->R <= 4)
+            data->OU_length = 32;
+        else if (data->R == 6) {
+            data->OU_length = 48;
+            if (!data->OE || !data->UE)
+                error = PD_TRUE;
+        }
+        else
             error = PD_TRUE;
     }
-    else
-        error = PD_TRUE;
 
     if (data->V == 1) {
         data->algorithm = PDFRAS_RC4_40;
@@ -3663,8 +3687,16 @@ RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdf
     }
     else {
         if (dictionary_lookup(reader, enc_pos, "/CF", &pos)) {
-            if (dictionary_lookup(reader, pos, "/StdCF", &pos)) {
-                if (dictionary_lookup(reader, pos, "/CFM", &pos)) {
+            char* cryptFilterName = NULL;
+            if (standard_security)
+                cryptFilterName = "/StdCF";
+            else
+                cryptFilterName = "/DefaultCryptFilter";
+
+            pdfpos_t cfPos = 0L;
+            // Parse crypt filter dictionary
+            if (dictionary_lookup(reader, pos, cryptFilterName, &cfPos)) {
+                if (dictionary_lookup(reader, cfPos, "/CFM", &pos)) {
                     char* buffer = NULL;
                     size_t len = parse_name(reader, pos, buffer) + 1;
                     buffer = (char*)malloc(sizeof(char) * len);
@@ -3688,6 +3720,57 @@ RasterReaderEncryptData* parse_encryption_dictionary(t_pdfrasreader* reader, pdf
                 }
                 else
                     error = PD_TRUE;
+
+                if (dictionary_lookup(reader, cfPos, "/EncryptMetadata", &pos)) {
+                    if (!parse_boolean(reader, pos, &data->encrypt_metadata))
+                        data->encrypt_metadata = PD_TRUE;
+                }
+
+                if (!standard_security) {
+                    // parse recipients
+                    if (!dictionary_lookup(reader, cfPos, "/Recipients", &pos)) {
+                        compliance(reader, READ_BAD_ENCRYPT_DICTIONARY, enc_pos);
+                        encrypt_data_destroy(data);
+                        return NULL;
+                    }
+
+                    pdfpos_t end_recipients = pos;
+
+                    if (!open_array(reader, &pos)) {
+                        compliance(reader, READ_BAD_ENCRYPT_DICTIONARY, enc_pos);
+                        encrypt_data_destroy(data);
+                        return NULL;
+                    }
+                    
+                    if (!parse_array(reader, &end_recipients)) {
+                        compliance(reader, READ_BAD_ENCRYPT_DICTIONARY, enc_pos);
+                        encrypt_data_destroy(data);
+                        return NULL;
+                    }
+
+                    while (pos < end_recipients) {
+                        char* buffer = NULL;
+                        int hex = 0;
+                        size_t len = 0;
+
+                        len = parse_string(reader, pos, NULL, &hex);
+                        if (!len)
+                            break;
+
+                        buffer = (char*)malloc(sizeof(char) * len);
+                        len = parse_string(reader, pos, buffer, &hex);
+
+                        if (hex) {
+                            char* blob = hex_string_to_byte_array(buffer, len);
+                            pdfr_pubsec_add_existing_recipient(&data->recipients, blob, (pduint32)len / 2);
+                        }
+                        else {
+                            pdfr_pubsec_add_existing_recipient(&data->recipients, buffer, (pduint32)len);
+                        }
+
+                        pos += (len + 1);
+                    }
+                }
             }
             else
                 error = PD_TRUE;
@@ -3812,9 +3895,11 @@ static RasterReaderSecurityType parse_security_type(t_pdfrasreader* reader) {
     if (strncmp(buffer, "Standard", bufLen) == 0) {
         ret = RASREAD_STANDARD_SECURITY;
     }
-    else {   
-        // not Standard filter, it will be public key security
+    else if (strncmp(buffer, "Adobe.PubSec", bufLen) == 0) {   
         ret = RASREAD_PUBLIC_KEY_SECURITY;
+    }
+    else {
+        ret = RASREAD_SECURITY_UNKNOWN;
     }
 
     if (buffer)

@@ -147,6 +147,8 @@ typedef int (PDFRASAPICALL *pfn_pdfrasread_open)(t_pdfrasreader* reader, void* s
 // It also fails if the source does not pass initial parsing/tests for PDF/raster.
 // No assumptions are made about the source parameter, it is only stored,
 // and passed to the readfn and closefn of the reader.
+// password: if document is secured by standard security it is password for opening. If the document
+// is secured by public key security then it's password for private key of user.
 int PDFRASAPICALL pdfrasread_open_secured(t_pdfrasreader* reader, void* source, const char* password);
 typedef int (PDFRASAPICALL *pfn_pdfrasread_open_secured) (t_pdfrasreader* reader, void* source, const char* password);
 
@@ -415,6 +417,8 @@ typedef enum {
     READ_NO_DOCUMENT_ID,            // Document has not ID (required by encryption/decryption)
     READ_ARRAY_BAD_SYNTAX,          // Array has bad syntax
     READ_ENCRYPTION_BAD_PASSWORD,    // Bad password provided for encrypted document
+    READ_ENCRYPTION_BAD_SECURITY_TYPE, // Bad security type used in document.
+    READ_ENCRYPTION_NO_RECIPIENTS,   // No recipients found for public key security.
     READ_pdfrt_error_code_COUNT
 } ReadErrorCode;
 

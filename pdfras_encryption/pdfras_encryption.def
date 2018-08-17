@@ -30,3 +30,9 @@ EXPORTS
 	pdfr_create_pubsec_encrypter				@28
 	pdfr_encrypter_pubsec_recipients_count		@29
 	pdfr_encrypter_pubsec_recipient_pkcs7		@30
+	pdfr_pubsec_add_recipient					@31
+	pdfr_pubsec_delete_recipients				@32
+	pdfr_pubsec_recipients_count				@33
+	pdfr_pubsec_add_existing_recipient			@34
+	pdfr_pubsec_decrypt_recipient				@35
+	pdfr_decrypter_get_pubsec_recipients		@36

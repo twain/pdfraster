@@ -64,6 +64,7 @@ extern "C" {
         pduint8 V;
         pduint8 encryption_key_length;
         pdbool encrypt_metadata;
+        t_recipient* recipients;
     } RasterReaderEncryptData;
 
 #ifdef __cplusplus
