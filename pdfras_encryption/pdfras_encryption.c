@@ -659,7 +659,7 @@ t_encrypter* pdfr_create_pubsec_encrypter(const RasterPubSecRecipient* recipient
     pdfras_generate_random_bytes(encrypter->seed, PUBSEC_SEED_LEN);
 
     for (size_t i = 0; i < recipients_count; ++i) {
-        if (!add_recipient(&encrypter->recipients, recipients[i].pubkey, recipients[i].perms, encrypter->seed, algorithm)) {
+        if (!pdfr_pubsec_add_recipient(&encrypter->recipients, recipients[i].pubkey, recipients[i].perms, encrypter->seed, algorithm)) {
             pdfr_destroy_encrypter(encrypter);
             return NULL;
         }
@@ -677,7 +677,7 @@ pduint32 pdfr_encrypter_pubsec_recipients_count(t_encrypter* encrypter) {
     if (!encrypter || !encrypter->recipients)
         return 0;
 
-    return recipients_count(encrypter->recipients);
+    return pdfr_pubsec_recipients_count(encrypter->recipients);
 }
 
 const char* pdfr_encrypter_pubsec_recipient_pkcs7(t_encrypter* encrypter, pduint32 idx, pduint32* pkcs7_size) {
@@ -735,7 +735,7 @@ void pdfr_destroy_encrypter(t_encrypter* encrypter) {
             free(encrypter->seed);
 
         if (encrypter->recipients)
-            delete_recipients(encrypter->recipients);
+            pdfr_pubsec_delete_recipients(encrypter->recipients);
 
         free(encrypter);
     }
@@ -981,7 +981,7 @@ pdbool pdfr_encrypter_is_password_security(t_encrypter* encrypter) {
 }
 
 // Decryption part
-t_decrypter* pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data) {
+t_decrypter* pdfr_create_decrypter(RasterReaderEncryptData* encrypt_data) {
     if (!encrypt_data)
         return NULL;
 
@@ -1015,6 +1015,11 @@ t_decrypter* pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data) 
     decrypter->OE = NULL;
     decrypter->UE = NULL;
     decrypter->Perms = NULL;
+
+    decrypter->password_security = PD_TRUE;
+
+    decrypter->seed = NULL;
+    decrypter->recipients = NULL;
 
     if (encrypt_data->document_id && encrypt_data->document_id_length > 0) {
         decrypter->document_id = (char*)malloc(sizeof(char) * encrypt_data->document_id_length);
@@ -1051,6 +1056,27 @@ t_decrypter* pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data) 
     if (encrypt_data->Perms) {
         decrypter->Perms = (char*)malloc(sizeof(char) * decrypter->Perms_length);
         memcpy(decrypter->Perms, encrypt_data->Perms, decrypter->Perms_length);
+    }
+
+    if (encrypt_data->recipients) {
+        decrypter->recipients = encrypt_data->recipients;
+        encrypt_data->recipients = NULL;
+        decrypter->password_security = PD_FALSE;
+
+        switch (decrypter->algorithm) {
+        case PDFRAS_RC4_40:
+            decrypter->R = 2;
+            break;
+        case PDFRAS_RC4_128:
+        case PDFRAS_AES_128:
+            decrypter->R = 4;
+            break;
+        case PDFRAS_AES_256:
+            decrypter->R = 6;
+            break;
+        default:
+            break;
+        }
     }
   
     return decrypter;
@@ -1195,15 +1221,46 @@ static pdbool is_owner(t_decrypter* decrypter, const char* password) {
 }
 
 PDFRAS_DOCUMENT_ACCESS pdfr_decrypter_get_document_access(t_decrypter* decrypter, const char* password) {
-    // let's try authentificate user for user access
-    if (!decrypter)
-        return PDFRAS_DOCUMENT_NONE_ACCESS;
+    if (decrypter->password_security) {
+        // let's try authentificate user for user access
+        if (!decrypter)
+            return PDFRAS_DOCUMENT_NONE_ACCESS;
 
-    if (is_user(decrypter, password, PD_TRUE))
-        return PDFRAS_DOCUMENT_USER_ACCESS;
+        if (is_user(decrypter, password, PD_TRUE))
+            return PDFRAS_DOCUMENT_USER_ACCESS;
 
-    if (is_owner(decrypter, password))
-        return PDFRAS_DOCUMENT_OWNER_ACCESS;
+        if (is_owner(decrypter, password))
+            return PDFRAS_DOCUMENT_OWNER_ACCESS;
+    }
+    else {
+        char* message = NULL;
+        pduint32 message_len = 0;
+        if (pdfr_pubsec_decrypt_recipient(decrypter->recipients, password, &message, &message_len)) {
+            decrypter->seed = (char*)malloc(sizeof(char) * 20);
+            memcpy(decrypter->seed, message, 20);
+            
+            // fill perms
+            decrypter->perms = 0;
+            decrypter->perms |= (((pduint8)message[20]) << 24 & 0xFF);
+            decrypter->perms |= (((pduint8)message[21]) << 16 & 0xFF);
+            decrypter->perms |= (((pduint8)message[22]) << 8 & 0xFF);
+            decrypter->perms |= (((pduint8)message[23]));
+
+            free(message);
+
+            if ((decrypter->perms & 0x01) == 0x01) {
+                decrypter->perms &= ~0x01;
+
+                if (!generate_encryption_key_pubsec(decrypter))
+                    return PDFRAS_DOCUMENT_NONE_ACCESS;
+
+                if ((decrypter->perms & PDFRAS_PERM_ALL) == PDFRAS_PERM_ALL)
+                    return PDFRAS_DOCUMENT_OWNER_ACCESS;
+                else 
+                    return PDFRAS_DOCUMENT_USER_ACCESS;
+            }
+        }
+    }
 
     return PDFRAS_DOCUMENT_NONE_ACCESS;
 }
@@ -1298,4 +1355,10 @@ void pdfr_decrypter_object_number(t_decrypter* decrypter, pduint32 objnum, pduin
 pdbool pdfr_decrypter_get_metadata_encrypted(t_decrypter* decrypter) {
     assert(decrypter);
     return pdfr_encrypter_get_metadata_encrypted(decrypter);
+}
+
+t_recipient* pdfr_decrypter_get_pubsec_recipients(t_decrypter* decrypter) {
+    assert(decrypter);
+
+    return decrypter->recipients;
 }

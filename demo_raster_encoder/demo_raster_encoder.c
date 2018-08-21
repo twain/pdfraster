@@ -316,7 +316,7 @@ int write_bitonal_uncompressed_signed_and_encrypted_file(t_OS os, const char* fi
     sprintf(cert_path + (demo - image_path), "%s", "certificate.p12");
     t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, cert_path, "");
     pdfr_encoder_set_AES128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_TRUE);
-
+   
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_subject(enc, "BW 1-bit Uncompressed sample output");
 
@@ -950,6 +950,7 @@ int write_rgb24_jpeg_file_encrypted_rc4_128(t_OS os, const char* filename) {
 
     t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
     pdfr_encoder_set_RC4_128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_FALSE);
+    
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_title(enc, filename);
     pdfr_encoder_set_subject(enc, "24-bit JPEG-compressed sample output");
@@ -979,6 +980,7 @@ int write_rgb24_jpeg_file_encrypted_aes128(t_OS os, const char* filename) {
 
     t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
     pdfr_encoder_set_AES128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_TRUE);
+    
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_title(enc, filename);
     pdfr_encoder_set_subject(enc, "24-bit JPEG-compressed sample output");
@@ -1009,7 +1011,7 @@ int write_rgb24_jpeg_file_encrypted_aes256(t_OS os, const char* filename) {
     t_pdfrasencoder* enc = pdfr_encoder_create(PDFRAS_API_LEVEL, &os);
  
     pdfr_encoder_set_AES256_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_FALSE);
-
+    
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_title(enc, filename);
     pdfr_encoder_set_subject(enc, "24-bit JPEG-compressed sample output");

@@ -176,6 +176,12 @@ void application::pdfr_open() {
             ERR(PDFRAS_READER_OPEN_FAIL);
         }
     }
+    else if (security_type == RASREAD_PUBLIC_KEY_SECURITY) {
+        if (FALSE == pdfrasread_open_secured(handle.get_reader(), handle.ifile.get_fp(), config.get_password())) {
+            LOG(err, "| error opening secured pdfras_reader handle for \"%s\"", handle.ifile.get_fp());
+            ERR(PDFRAS_READER_OPEN_FAIL);
+        }
+    }
     else {
         LOG(err, "| unknown security type used for \"%s\"", handle.ifile.get_fp());
         ERR(PDFRAS_READER_OPEN_FAIL);

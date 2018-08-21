@@ -104,8 +104,8 @@ typedef const char* (PDFRASAPICALL pfn_pdfr_encrypter_pubsec_recipient_pkcs7) (t
 // Decryption
 // Creates decrypter used for authentification of user and decryption of encrypted file.
 // encrypt_data: encryption data extracted from /Encrypt dictionary
-t_decrypter* PDFRASAPICALL pdfr_create_decrypter(const RasterReaderEncryptData* encrypt_data);
-typedef t_decrypter* (PDFRASAPICALL *pfn_pdfr_create_decrypter) (const RasterReaderEncryptData* encrypt_data);
+t_decrypter* PDFRASAPICALL pdfr_create_decrypter(RasterReaderEncryptData* encrypt_data);
+typedef t_decrypter* (PDFRASAPICALL *pfn_pdfr_create_decrypter) (RasterReaderEncryptData* encrypt_data);
 
 // Destroy decrypter object.
 void PDFRASAPICALL pdfr_destroy_decrypter(t_decrypter* decrypter);
@@ -130,6 +130,10 @@ typedef void (PDFRASAPICALL *pfn_pdfr_decrypter_object_number) (t_decrypter* dec
 // Check if metadata are encrypted
 pdbool PDFRASAPICALL pdfr_decrypter_get_metadata_encrypted(t_decrypter* decrypter);
 typedef pdbool(PDFRASAPICALL *pfn_pdfr_decrypter_get_metadata_encrypted) (t_decrypter* decrypter);
+
+// Get Recipients for Pubkey security
+t_recipient* PDFRASAPICALL pdfr_decrypter_get_pubsec_recipients(t_decrypter* decrypter);
+typedef t_recipient* (PDFRASAPICALL pfn_pdfr_decrypter_get_pubsec_recipients) (t_decrypter* decrypter);
 
 #ifdef __cplusplus
 }

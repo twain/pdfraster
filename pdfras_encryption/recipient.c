@@ -7,7 +7,7 @@
 
 #define PUBSEC_SEED_LEN 20
 
-pdbool add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm) {
+pdbool pdfr_pubsec_add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm) {
     t_recipient* recipient = NULL;
 
     if (!(*root)) {
@@ -66,6 +66,51 @@ pdbool add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms
     return PD_TRUE;
 }
 
+void pdfr_pubsec_add_existing_recipient(t_recipient** root, char* pkcs7_blob, pduint32 pkcs7_len) {
+    if (!pkcs7_blob || (pkcs7_len <= 0))
+        return;
+
+    t_recipient* recipient = NULL;
+
+    if (!(*root)) {
+        *root = (t_recipient*)malloc(sizeof(t_recipient));
+
+        (*root)->pkcs7_blob = NULL;
+        (*root)->pkcs7_blob_size = 0;
+        (*root)->next = NULL;
+
+        recipient = *root;
+    }
+    else {
+        // find last recipient in the list
+        if (!(*root)->next) {
+            recipient = *root;
+        }
+        else {
+            recipient = (*root)->next;
+            while (recipient && recipient->next) {
+                recipient = recipient->next;
+            }
+        }
+
+        // create new recipient
+        t_recipient* new_recipient = (t_recipient*)malloc(sizeof(t_recipient));
+        
+        new_recipient->pkcs7_blob = NULL;
+        new_recipient->pkcs7_blob_size = 0;
+        new_recipient->next = NULL;
+
+        // link new recipient to last one found
+        recipient->next = new_recipient;
+
+        // last recipient created
+        recipient = new_recipient;
+    }
+
+    recipient->pkcs7_blob = pkcs7_blob;
+    recipient->pkcs7_blob_size = pkcs7_len;
+}
+
 static void delete_recipient(t_recipient* recipient) {
     if (recipient) {
         if (recipient->pkcs7_blob)
@@ -76,7 +121,7 @@ static void delete_recipient(t_recipient* recipient) {
     }
 }
 
-void delete_recipients(t_recipient* root) {
+void pdfr_pubsec_delete_recipients(t_recipient* root) {
     if (!root)
         return;
 
@@ -88,7 +133,7 @@ void delete_recipients(t_recipient* root) {
     }
 }
 
-pduint32 recipients_count(t_recipient* root) {
+pduint32 pdfr_pubsec_recipients_count(t_recipient* root) {
     pduint32 count = 0;
     
     if (root) {
@@ -100,4 +145,23 @@ pduint32 recipients_count(t_recipient* root) {
     }
 
     return count;
+}
+
+// function allocates buffer for decrypted data.
+pdbool PDFRASAPICALL pdfr_pubsec_decrypt_recipient(t_recipient* recipients, const char* password, char** decrypted_blob, pduint32* decrypted_blob_len) {
+    if (!recipients)
+        return PD_FALSE;
+
+    t_recipient* recipient = recipients;
+    while (recipient) {
+        const char* cms = recipient->pkcs7_blob;
+        pduint32 cms_size = recipient->pkcs7_blob_size;
+
+        if (decrypt_recipient_message(cms, cms_size, password, decrypted_blob, decrypted_blob_len))
+            return PD_TRUE;
+
+        recipient = recipient->next;
+    }
+
+    return PD_FALSE;
 }

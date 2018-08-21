@@ -119,9 +119,14 @@ namespace PdfRasterReader {
         char *filename = wchar2char(pdfFileName);
         LOG(fprintf(fp, "- filename=\"%s\"", filename));
 
-        char* passwd = wchar2char(password);
+        char* passwd = nullptr;
+        if (password)
+            passwd = wchar2char(password);
 
         state[idx].decoder = pdfrasread_open_filename_secured(RASREAD_API_LEVEL, filename, passwd);
+
+        if (passwd)
+            delete[] passwd;
 
         if (state[idx].decoder == nullptr) {
             state[idx].invalidate();
