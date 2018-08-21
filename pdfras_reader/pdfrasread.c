@@ -2091,7 +2091,8 @@ static size_t read_bytes_for_validation(t_pdfrasreader* reader, char* buffer) {
     return count;
 }
 
-static size_t parse_digital_signature_contents(t_pdfrasreader* reader, char* buffer) {
+// caller must free allocated buffer
+static char* parse_digital_signature_contents(t_pdfrasreader* reader, pduint32* content_len_out) {
     if (reader->digital_signature == NULL)
         return 0;
 
@@ -2107,16 +2108,23 @@ static size_t parse_digital_signature_contents(t_pdfrasreader* reader, char* buf
     if (contents_len == 0)
         return 0;
 
-    if (buffer == NULL)
-        return contents_len;
-
+    char* buffer = (char*)malloc(sizeof(char) * contents_len);
     contents_len = parse_string(reader, contents_pos, buffer, &hex);
 
-    if (contents_len == 0) {
-        return 0;
+    if (hex) {
+        char* bytes = hex_string_to_byte_array(buffer, contents_len);
+        free(buffer);
+
+        if (content_len_out)
+            *content_len_out = (pduint32) (contents_len / 2);
+
+        return bytes;
     }
 
-    return contents_len;
+    if (content_len_out)
+        *content_len_out = (pduint32) contents_len;
+
+    return buffer;
 }
 
 static int parse_digital_signature(t_pdfrasreader* reader, pdfpos_t afpos) {
@@ -2310,9 +2318,6 @@ static int parse_trailer(t_pdfrasreader* reader)
     pdfpos_t afpos = 0;
     if (dictionary_lookup(reader, reader->catalog_pos, "/AcroForm", &afpos)) {
         if (!parse_digital_signature(reader, afpos))
-            return FALSE;
-
-        if (pdfrasread_digital_signature_validate(reader, 0) == -1)
             return FALSE;
     }
 
@@ -3019,34 +3024,11 @@ static char hex_to_char(const char ch) {
 pdint32 pdfrasread_digital_signature_validate(t_pdfrasreader* reader, pdint32 idx) {
     assert(idx == 0); // only single digital signature supported now
 
-    size_t contents_hex_len = parse_digital_signature_contents(reader, NULL);
-    if (contents_hex_len == 0)
+    pduint32 contents_len = 0;
+    char* contents = parse_digital_signature_contents(reader, &contents_len);;
+    if (!contents)
         return -1;
-    char* contents_hex = NULL;
-    if ((contents_hex_len % 2) == 0) {
-        contents_hex = (char*)malloc(sizeof(char) * contents_hex_len);
-        contents_hex_len = parse_digital_signature_contents(reader, contents_hex);
-    }
-    else {
-        contents_hex = (char*)malloc(sizeof(char) * (contents_hex_len + 1));
-        memset(contents_hex, '0', contents_hex_len + 1);
-        contents_hex_len = parse_digital_signature_contents(reader, contents_hex);
-        ++contents_hex_len;
-    }
-
-    // decode contents
-    size_t contents_len = contents_hex_len / 2;
-    char* contents = (char*)malloc(sizeof(char) * contents_len);
-    char h, l;
-    for (size_t i = 0; i < contents_len; ++i) {
-        h = hex_to_char(contents_hex[i * 2]) & 0x0F;
-        l = hex_to_char(contents_hex[i * 2 + 1]) & 0x0F;
-        
-        contents[i] = ((h << 4) | l);
-    }
-
-    free(contents_hex);
-
+    
     size_t bytes_count = read_bytes_for_validation(reader, NULL);
     if (bytes_count == 0) {
         free(contents);
@@ -3059,7 +3041,7 @@ pdint32 pdfrasread_digital_signature_validate(t_pdfrasreader* reader, pdint32 id
     }
     bytes_count = read_bytes_for_validation(reader, bytes);
    
-    pdint32 result = pdfr_digitalsignature_validate(reader->digital_signature->ds, (pduint8*) contents, (pduint32) contents_len, (pduint8*) bytes, (pduint32) bytes_count);
+    pdint32 result = pdfr_digitalsignature_validate(reader->digital_signature->ds, (pduint8*) contents, contents_len, (pduint8*) bytes, (pduint32) bytes_count);
     
     free(contents);
     free(bytes);
@@ -3475,6 +3457,7 @@ static void encrypt_data_destroy(RasterReaderEncryptData* data) {
     data = NULL;
 }
 
+// caller must free allocated returned buffer
 char* hex_string_to_byte_array(const char* hexstr, size_t hexlen) {
     if ((hexlen % 2) != 0)
         return NULL;
