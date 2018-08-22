@@ -19,6 +19,15 @@
 #define R_6_KEY_LENGTH  32
 #define PUBSEC_SEED_LEN 20
 
+// List of already decrypted objects.
+struct t_decrypted_objects {
+    pdint32 obj_num;
+    pdint32 data_len;
+    pduint8* data;
+    struct t_decrypted_objects* next;
+};
+typedef struct t_decrypted_objects t_decrypted_objects;
+
 struct t_encrypter {
     // user entered data
     char* user_password;  // Only for PDF 2.0
@@ -64,6 +73,9 @@ struct t_encrypter {
 
     // random seed data used by public key security
     char* seed;
+
+    // caching decrypted data
+    t_decrypted_objects* decrypted_objects;
 };
 
 static char password_padding[] = "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
@@ -569,6 +581,7 @@ static t_encrypter* alloc_encrypter(PDFRAS_ENCRYPT_ALGORITHM algorithm, pdbool m
     encrypter->R = 0;
     encrypter->recipients = NULL;
     encrypter->seed = NULL;
+    encrypter->decrypted_objects = NULL;
     
     switch (encrypter->algorithm)
     {
@@ -736,6 +749,19 @@ void pdfr_destroy_encrypter(t_encrypter* encrypter) {
 
         if (encrypter->recipients)
             pdfr_pubsec_delete_recipients(encrypter->recipients);
+
+        if (encrypter->decrypted_objects) {
+            t_decrypted_objects* obj = encrypter->decrypted_objects;
+            
+            while (obj) {
+                if (obj->data)
+                    free(obj->data);
+
+                obj = obj->next;
+            }
+
+            encrypter->decrypted_objects = NULL;
+        }
 
         free(encrypter);
     }
@@ -1020,6 +1046,7 @@ t_decrypter* pdfr_create_decrypter(RasterReaderEncryptData* encrypt_data) {
 
     decrypter->seed = NULL;
     decrypter->recipients = NULL;
+    decrypter->decrypted_objects = NULL;
 
     if (encrypt_data->document_id && encrypt_data->document_id_length > 0) {
         decrypter->document_id = (char*)malloc(sizeof(char) * encrypt_data->document_id_length);
@@ -1274,6 +1301,18 @@ pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_
     if (decrypter->current_obj_number <= 0 || decrypter->current_gen_number < 0)
         return -1;
 
+    // look for if object was already decrypted
+    t_decrypted_objects* obj = decrypter->decrypted_objects;
+    while (obj) {
+        if (obj->obj_num == decrypter->current_obj_number) {
+            memcpy(data_out, obj->data, obj->data_len);
+         
+            return obj->data_len;  // return alrady decrypted data
+        }
+
+        obj = obj->next;
+    }
+
     pdbool aes = PD_FALSE;
     if (decrypter->algorithm == PDFRAS_RC4_40 || decrypter->algorithm == PDFRAS_RC4_128)
         aes = PD_FALSE;
@@ -1338,6 +1377,32 @@ pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_
 
     if (decrypter->R <= 5)
         free(decryption_key);
+
+    // save decrypted data into cache
+    if (decrypter->decrypted_objects) {
+        t_decrypted_objects* last = decrypter->decrypted_objects;
+        while (last->next)
+            last = last->next;
+
+        last->next = (t_decrypted_objects*)malloc(sizeof(t_decrypted_objects));
+
+        last->next->data = (pduint8*)malloc(sizeof(pduint8) * out_len);
+        memcpy(last->next->data, data_out, out_len);
+
+        last->next->data_len = out_len;
+        last->next->obj_num = decrypter->current_obj_number;
+        last->next->next = NULL;
+    }
+    else {
+        decrypter->decrypted_objects = (t_decrypted_objects*)malloc(sizeof(t_decrypted_objects));
+
+        decrypter->decrypted_objects->data = (pduint8*)malloc(sizeof(pduint8) * out_len);
+        memcpy(decrypter->decrypted_objects->data, data_out, out_len);
+        
+        decrypter->decrypted_objects->data_len = out_len;
+        decrypter->decrypted_objects->obj_num = decrypter->current_obj_number;
+        decrypter->decrypted_objects->next = NULL;
+    }
 
     return out_len;
 }

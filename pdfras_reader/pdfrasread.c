@@ -2448,6 +2448,41 @@ static int get_strip_info(t_pdfrasreader* reader, int p, int s, t_pdfstripinfo* 
 		// compliance errors have already been reported
 		return FALSE;
 	}
+
+    // if document is secured by AES algorithm we have to decrypt the
+    // stream to get length of unencrypted stream
+    if (reader->decrypter) {
+        PDFRAS_ENCRYPT_ALGORITHM alg = pdfr_decrypter_get_algorithm(reader->decrypter);
+        if (alg == PDFRAS_AES_128 || alg == PDFRAS_AES_256) {
+            pduint32 obj_num = 0;
+            pduint8 gen_num = 0;
+
+            if (get_object_numbers(reader, pinfo->pos, &obj_num, &gen_num)) {
+                pdfr_decrypter_object_number(reader->decrypter, obj_num, gen_num);
+
+                pdfpos_t stream_pos = 0;
+                pdfpos_t pos = pinfo->pos;
+                long stream_len = 0;
+
+                if (parse_stream(reader, &pos, &stream_pos, &stream_len)) {
+                    pduint8* encrypted_stream = (pduint8*)malloc(sizeof(pduint8) * pinfo->raw_size);
+                    if (reader->fread(reader->source, stream_pos, pinfo->raw_size, (char*)encrypted_stream) == pinfo->raw_size) {
+                        pduint8* decrypted_data = (pduint8*)malloc(sizeof(pduint8) * pinfo->raw_size);
+                        memset(decrypted_data, 0, pinfo->raw_size);
+
+                        pdint32 decrypted_len = pdfr_decrypter_decrypt_data(reader->decrypter, encrypted_stream, pinfo->raw_size, decrypted_data);
+                        if (decrypted_len > 0)
+                            pinfo->raw_size = decrypted_len;
+
+                        free(decrypted_data);
+                    }
+
+                    free(encrypted_stream);
+                }
+            }
+        }
+    }
+
 	assert(pinfo->pos != 0);
 	assert(pinfo->raw_size > 0);
 	pdfpos_t val;
@@ -2856,6 +2891,7 @@ size_t pdfrasread_max_strip_size(t_pdfrasreader* reader, int p)
     if (!get_page_info(reader, p, &info)) {
         return 0;
     }
+
     return info.max_strip_size;
 }
 
