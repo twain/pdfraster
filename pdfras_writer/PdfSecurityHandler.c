@@ -20,6 +20,15 @@ typedef struct {
 
 // We need this to make C# happy...
 // same struct defined in pdfras_encryption.c (TODO: fix this duplicity).
+struct t_decrypted_objects {
+    pdint32 obj_num;
+    pdint32 data_len;
+    pduint8* data;
+    struct t_decrypted_objects* next;
+};
+typedef struct t_decrypted_objects t_decrypted_objects;
+
+// Duplicity, TODO: remove it
 struct t_encrypter {
 	// user entered data
 	char* user_password;  // Only for PDF 2.0
@@ -65,6 +74,9 @@ struct t_encrypter {
 
     // random seed data used by public key security
     char* seed;
+
+    // caching decrypted data
+    t_decrypted_objects* decrypted_objects;
 };
 
 struct t_pdencrypter {
