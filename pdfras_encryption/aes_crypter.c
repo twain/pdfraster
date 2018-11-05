@@ -10,11 +10,11 @@
 
 #define IV_LEN 16
 
-pduint32 pdfras_aes_encrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+pduint32 pdfras_aes_encrypt_data(const unsigned char* key, const pduint32 key_len, const unsigned char* data_in, const pdint32 in_len, unsigned char* data_out) {
     if (data_in == NULL || data_out == NULL)
         return -1;
 
-    char iv[IV_LEN];
+    unsigned char iv[IV_LEN];
     pdfras_generate_random_bytes(iv, IV_LEN);
 
     EVP_CIPHER_CTX* cipher = EVP_CIPHER_CTX_new();
@@ -41,10 +41,10 @@ pduint32 pdfras_aes_encrypt_data(const char* key, const pduint32 key_len, const 
     return out_len + padded_len;
 }
 
-void pdfras_generate_random_bytes(char* buf, pdint32 buf_len) {
+void pdfras_generate_random_bytes(unsigned char* buf, pdint32 buf_len) {
     if (RAND_bytes(buf, buf_len) == 0) {
         // try pseudo random generator
-        if (RAND_pseudo_bytes(buf, buf_len) == 0) {
+        if (RAND_bytes(buf, buf_len) == 0) {
 			pdint32 i;
             // ok, openssl failed to generate random nums
             srand((unsigned int)time(NULL));
@@ -55,7 +55,7 @@ void pdfras_generate_random_bytes(char* buf, pdint32 buf_len) {
     }
 }
 
-pduint32 pdfras_aes_decrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+pduint32 pdfras_aes_decrypt_data(const unsigned char* key, const pduint32 key_len, const unsigned char* data_in, const pdint32 in_len, unsigned char* data_out) {
     if (data_in == NULL || data_out == NULL)
         return -1;
 
@@ -63,7 +63,7 @@ pduint32 pdfras_aes_decrypt_data(const char* key, const pduint32 key_len, const 
     if (!cipher)
         return -1;
 
-    char iv[IV_LEN];
+    unsigned char iv[IV_LEN];
     memcpy(iv, data_in, IV_LEN);
 
     if (key_len <= 16)
@@ -88,7 +88,7 @@ pduint32 pdfras_aes_decrypt_data(const char* key, const pduint32 key_len, const 
     return out_len;
 }
 
-pduint32 pdfras_aes_decrypt_encryption_key(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out) {
+pduint32 pdfras_aes_decrypt_encryption_key(const unsigned char* key, const pduint32 key_len, const unsigned char* data_in, const pdint32 in_len, unsigned char* data_out) {
     if (data_in == NULL || data_out == NULL)
         return -1;
 
@@ -97,7 +97,7 @@ pduint32 pdfras_aes_decrypt_encryption_key(const char* key, const pduint32 key_l
 
     EVP_CIPHER_CTX* cipher = EVP_CIPHER_CTX_new();
 
-    char iv[IV_LEN];
+    unsigned char iv[IV_LEN];
     memset(iv, 0, IV_LEN);
 
     EVP_DecryptInit_ex(cipher, EVP_aes_256_cbc(), NULL, key, iv);

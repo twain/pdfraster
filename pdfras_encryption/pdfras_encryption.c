@@ -30,17 +30,17 @@ typedef struct t_decrypted_objects t_decrypted_objects;
 
 struct t_encrypter {
     // user entered data
-    char* user_password;  // Only for PDF 2.0
-    char* owner_password; // Only for PDF 2.0
+    unsigned char* user_password;  // Only for PDF 2.0
+    unsigned char* owner_password; // Only for PDF 2.0
 
-    char padded_up[32];
-    char padded_op[32];
+    unsigned char padded_up[32];
+    unsigned char padded_op[32];
 
-    char* O;
-    char* U;
-    char* OE;
-    char* UE;
-    char* Perms;
+    unsigned char* O;
+    unsigned char* U;
+    unsigned char* OE;
+    unsigned char* UE;
+    unsigned char* Perms;
     PDFRAS_PERMS perms;
     PDFRAS_ENCRYPT_ALGORITHM algorithm;
     pdbool encrypt_metadata;
@@ -52,11 +52,11 @@ struct t_encrypter {
     pduint8 V;
     pduint8 R;
 
-    char* document_id;
+    unsigned char* document_id;
     pduint32 document_id_length;
     
     // encryption key
-    char* encryption_key;
+    unsigned char* encryption_key;
     pduint16 encryption_key_length;
 
     pdint32 current_obj_number;
@@ -72,20 +72,20 @@ struct t_encrypter {
     t_recipient* recipients;
 
     // random seed data used by public key security
-    char* seed;
+    unsigned char* seed;
 
     // caching decrypted data
     t_decrypted_objects* decrypted_objects;
 };
 
-static char password_padding[] = "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
+static unsigned char password_padding[] = "\x28\xBF\x4E\x5E\x4E\x75\x8A\x41\x64\x00\x4E\x56\xFF\xFA\x01\x08\x2E\x2E\x00\xB6\xD0\x68\x3E\x80\x2F\x0C\xA9\xFE\x64\x53\x69\x7A";
 
-static void padd_passwords(t_encrypter* enc, const char* user_password, const char* owner_password) {
+static void padd_passwords(t_encrypter* enc, const unsigned char* user_password, const unsigned char* owner_password) {
     // a
     pdint32 len = 0;
     pdint32 idx = 0;
     if (owner_password) {
-        len = (pdint32)strlen(owner_password);
+        len = (pdint32)strlen((char*) owner_password);
         memcpy(enc->padded_op, owner_password, len > 32 ? 32 : len);
 
         // pad password
@@ -97,7 +97,7 @@ static void padd_passwords(t_encrypter* enc, const char* user_password, const ch
 
     idx = 0;
     if (user_password) {
-        len = (pdint32)strlen(user_password);
+        len = (pdint32)strlen((char*) user_password);
         memcpy(enc->padded_up, user_password, len > 32 ? 32 : len);
 
         // pad password
@@ -216,12 +216,12 @@ static pdbool compute_U_r3_4(t_encrypter* enc) {
 }
 
 // Algorithm 2.B, PDF 2.0
-static void compute_2B(const char* password, const pduint8* salt, const pduint8* additional, pduint8* hash) {
+static void compute_2B(const unsigned char* password, const pduint8* salt, const pduint8* additional, pduint8* hash) {
     // Algorithm 2.B from ISO 32000-2 to compute hash from password
 
     pdint32 length = 0;
     if (password != NULL)
-        length = (pdint32)strlen(password);
+        length = (pdint32)strlen((const char*) password);
     if (length > 127)
         length = 127;
 
@@ -229,7 +229,7 @@ static void compute_2B(const char* password, const pduint8* salt, const pduint8*
     pduint16 K_length = 32;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
-    SHA256_Update(&sha256, (const unsigned char *)password, length);
+    SHA256_Update(&sha256, password, length);
     SHA256_Update(&sha256, salt, 8);
     if (additional != NULL)
         SHA256_Update(&sha256, additional, 48);
@@ -416,14 +416,12 @@ static pdbool compute_Perms(t_encrypter* enc) {
 static pdbool generate_encryption_key(t_encrypter* enc) {
     if (enc->R == 6) {
         if (enc->encrypt_mode) {
-            enc->encryption_key = (char*)malloc(sizeof(char) * R_6_KEY_LENGTH);
+            enc->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * R_6_KEY_LENGTH);
             enc->encryption_key_length = R_6_KEY_LENGTH;
             pdfras_generate_random_bytes(enc->encryption_key, R_6_KEY_LENGTH);
         }
     }
     else {
-        pduint8 idx = 0;
-        pduint32 len = 0;
 		int i;
 
         // a -> passwords already padded
@@ -469,7 +467,7 @@ static pdbool generate_encryption_key(t_encrypter* enc) {
         }
 
         // h
-        enc->encryption_key = (char*)malloc(sizeof(char) * enc->encryption_key_length);
+        enc->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * enc->encryption_key_length);
         memcpy(enc->encryption_key, (const unsigned char*)hash, enc->encryption_key_length);
     }
 
@@ -482,7 +480,7 @@ static pdbool generate_encryption_key_pubsec(t_encrypter* encrypter) {
     
     if (encrypter->encryption_key_length <= 16) {
         SHA_CTX ctx;
-        char digest[SHA_DIGEST_LENGTH];
+        unsigned char digest[SHA_DIGEST_LENGTH];
 
         if (!SHA1_Init(&ctx))
             return PD_FALSE;
@@ -510,14 +508,14 @@ static pdbool generate_encryption_key_pubsec(t_encrypter* encrypter) {
             return PD_FALSE;
         }
 
-        encrypter->encryption_key = (char*)malloc(sizeof(char) * encrypter->encryption_key_length);
+        encrypter->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * encrypter->encryption_key_length);
         memcpy(encrypter->encryption_key, digest, encrypter->encryption_key_length);
 
         return PD_TRUE;
     }
     else {
         SHA256_CTX ctx;
-        char digest[SHA256_DIGEST_LENGTH];
+        unsigned char digest[SHA256_DIGEST_LENGTH];
 
         if (!SHA256_Init(&ctx))
             return PD_FALSE;
@@ -545,7 +543,7 @@ static pdbool generate_encryption_key_pubsec(t_encrypter* encrypter) {
             return PD_FALSE;
         }
 
-        encrypter->encryption_key = (char*)malloc(sizeof(char) * encrypter->encryption_key_length);
+        encrypter->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * encrypter->encryption_key_length);
         memcpy(encrypter->encryption_key, digest, encrypter->encryption_key_length);
 
         return PD_TRUE;
@@ -620,32 +618,32 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
 
     if (encrypter->R <= 4) {
         encrypter->OU_length = 32;
-        encrypter->O = (char*)malloc(encrypter->OU_length * sizeof(char));
-        encrypter->U = (char*)malloc(encrypter->OU_length * sizeof(char));        
+        encrypter->O = (unsigned char*)malloc(encrypter->OU_length * sizeof(unsigned char));
+        encrypter->U = (unsigned char*)malloc(encrypter->OU_length * sizeof(unsigned char));        
     }
     else if (encrypter->R >= 6) {
         encrypter->OU_length = 48;
-        encrypter->O = (char*)malloc(encrypter->OU_length * sizeof(char));
-        encrypter->U = (char*)malloc(encrypter->OU_length * sizeof(char));
+        encrypter->O = (unsigned char*)malloc(encrypter->OU_length * sizeof(unsigned char));
+        encrypter->U = (unsigned char*)malloc(encrypter->OU_length * sizeof(unsigned char));
 
         encrypter->OUE_length = 32;
-        encrypter->OE = (char*)malloc(encrypter->OUE_length * sizeof(char));
-        encrypter->UE = (char*)malloc(encrypter->OUE_length * sizeof(char));
+        encrypter->OE = (unsigned char*)malloc(encrypter->OUE_length * sizeof(unsigned char));
+        encrypter->UE = (unsigned char*)malloc(encrypter->OUE_length * sizeof(unsigned char));
 
         encrypter->Perms_length = 16;
-        encrypter->Perms = (char*)malloc(encrypter->Perms_length * sizeof(char));
+        encrypter->Perms = (unsigned char*)malloc(encrypter->Perms_length * sizeof(unsigned char));
 
         if (user_password) {
             pdint32 len = (pdint32)strlen(user_password);
-            encrypter->user_password = (char*)malloc(sizeof(char) * (len + 1));
-            strncpy(encrypter->user_password, user_password, len);
+            encrypter->user_password = (unsigned char*)malloc(sizeof(unsigned char) * (len + 1));
+            strncpy((char*) encrypter->user_password, user_password, len);
             encrypter->user_password[len] = '\0';
         }
 
         if (owner_password) {
             pdint32 len = (pdint32)strlen(owner_password);
-            encrypter->owner_password = (char*)malloc(sizeof(char) * (len + 1));
-            strncpy(encrypter->owner_password, owner_password, len);
+            encrypter->owner_password = (unsigned char*)malloc(sizeof(unsigned char) * (len + 1));
+            strncpy((char*) encrypter->owner_password, owner_password, len);
             encrypter->owner_password[len] = '\0';
         }
     }
@@ -655,7 +653,7 @@ t_encrypter* pdfr_create_encrypter(const char* user_password, const char* owner_
         encrypter->OU_length = 0;
     }
 
-    padd_passwords(encrypter, user_password, owner_password);
+    padd_passwords(encrypter, (unsigned char*) user_password, (unsigned char*) owner_password);
 
     return encrypter;
 }
@@ -668,7 +666,7 @@ t_encrypter* pdfr_create_pubsec_encrypter(const RasterPubSecRecipient* recipient
     t_encrypter* encrypter = alloc_encrypter(algorithm, metadata);
     encrypter->password_security = PD_FALSE;
 
-    encrypter->seed = (char*)malloc(sizeof(char) * PUBSEC_SEED_LEN);
+    encrypter->seed = (unsigned char*)malloc(sizeof(unsigned char) * PUBSEC_SEED_LEN);
     pdfras_generate_random_bytes(encrypter->seed, PUBSEC_SEED_LEN);
 
     for (size_t i = 0; i < recipients_count; ++i) {
@@ -781,8 +779,8 @@ pdbool pdfr_encrypter_dictionary_data(t_encrypter* encrypter, const char* docume
         if (encrypter->document_id != NULL)
             free(encrypter->document_id);
 
-        encrypter->document_id = (char*)malloc(id_len * sizeof(char));
-        strncpy(encrypter->document_id, document_id, id_len);
+        encrypter->document_id = (unsigned char*)malloc(id_len * sizeof(unsigned char));
+        strncpy((char*) encrypter->document_id, document_id, id_len);
         encrypter->document_id_length = id_len;
     }
 
@@ -856,7 +854,7 @@ pdint32 pdfr_encrypter_encrypt_data(t_encrypter* encrypter, const pduint8* data_
         return out_len;
 
     pduint32 encryption_key_len = 0;
-    char* encryption_key = NULL;
+    unsigned char* encryption_key = NULL;
 
     if (encrypter->R <= 5) {
         pduint32 obj_key_len = 0;
@@ -882,7 +880,7 @@ pdint32 pdfr_encrypter_encrypt_data(t_encrypter* encrypter, const pduint8* data_
         }
 
         MD5_CTX md5;
-        char hash[MD5_HASH_BYTES];
+        unsigned char hash[MD5_HASH_BYTES];
 
         if (MD5_Init(&md5) == 0) {
             free(obj_key);
@@ -893,7 +891,7 @@ pdint32 pdfr_encrypter_encrypt_data(t_encrypter* encrypter, const pduint8* data_
         MD5_Final(hash, &md5);
 
         encryption_key_len = encrypter->encryption_key_length + 5 > 16 ? 16 : encrypter->encryption_key_length + 5;
-        encryption_key = (char*)malloc(sizeof(char) * encryption_key_len);
+        encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * encryption_key_len);
         memcpy(encryption_key, hash, encryption_key_len);
 
         free(obj_key);
@@ -940,13 +938,13 @@ pduint32 pdfr_encrypter_get_OU_length(t_encrypter* encrypter) {
     return encrypter->OU_length;
 }
 
-const char* pdfr_encrypter_get_O(t_encrypter* encrypter) {
+const unsigned char* pdfr_encrypter_get_O(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->O;
 }
 
-const char* pdfr_encrypter_get_U(t_encrypter* encrypter) {
+const unsigned char* pdfr_encrypter_get_U(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->U;
@@ -970,13 +968,13 @@ PDFRAS_ENCRYPT_ALGORITHM pdfr_encrypter_get_algorithm(t_encrypter* encrypter) {
     return encrypter->algorithm;
 }
 
-const char* pdfr_encrypter_get_OE(t_encrypter* encrypter) {
+const unsigned char* pdfr_encrypter_get_OE(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->OE;
 }
 
-const char* pdfr_encrypter_get_UE(t_encrypter* encrypter) {
+const unsigned char* pdfr_encrypter_get_UE(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->UE;
@@ -988,7 +986,7 @@ pduint32 pdfr_encrypter_get_OUE_length(t_encrypter* encrypter) {
     return encrypter->OUE_length;
 }
 
-const char* pdfr_encrypter_get_Perms(t_encrypter* encrypter) {
+const unsigned char* pdfr_encrypter_get_Perms(t_encrypter* encrypter) {
     assert(encrypter);
 
     return encrypter->Perms;
@@ -1049,7 +1047,7 @@ t_decrypter* pdfr_create_decrypter(RasterReaderEncryptData* encrypt_data) {
     decrypter->decrypted_objects = NULL;
 
     if (encrypt_data->document_id && encrypt_data->document_id_length > 0) {
-        decrypter->document_id = (char*)malloc(sizeof(char) * encrypt_data->document_id_length);
+        decrypter->document_id = (unsigned char*)malloc(sizeof(unsigned char) * encrypt_data->document_id_length);
         decrypter->document_id_length = encrypt_data->document_id_length;
         memcpy(decrypter->document_id, encrypt_data->document_id, encrypt_data->document_id_length);
     }
@@ -1061,27 +1059,27 @@ t_decrypter* pdfr_create_decrypter(RasterReaderEncryptData* encrypt_data) {
     decrypter->OU_length = encrypt_data->OU_length;
 
     if (encrypt_data->O) {
-        decrypter->O = (char*)malloc(sizeof(char) * decrypter->OU_length);
+        decrypter->O = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->OU_length);
         memcpy(decrypter->O, encrypt_data->O, decrypter->OU_length);
     }
 
     if (encrypt_data->U) {
-        decrypter->U = (char*)malloc(sizeof(char) * decrypter->OU_length);
+        decrypter->U = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->OU_length);
         memcpy(decrypter->U, encrypt_data->U, decrypter->OU_length);
     }
         
     if (encrypt_data->OE) {
-        decrypter->OE = (char*)malloc(sizeof(char) * decrypter->OUE_length);
+        decrypter->OE = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->OUE_length);
         memcpy(decrypter->OE, encrypt_data->OE, decrypter->OUE_length);
     }
 
     if (encrypt_data->UE) {
-        decrypter->UE = (char*)malloc(sizeof(char) * decrypter->OUE_length);
+        decrypter->UE = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->OUE_length);
         memcpy(decrypter->UE, encrypt_data->UE, decrypter->OUE_length);
     }
 
     if (encrypt_data->Perms) {
-        decrypter->Perms = (char*)malloc(sizeof(char) * decrypter->Perms_length);
+        decrypter->Perms = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->Perms_length);
         memcpy(decrypter->Perms, encrypt_data->Perms, decrypter->Perms_length);
     }
 
@@ -1113,8 +1111,8 @@ void pdfr_destroy_decrypter(t_decrypter* decrypter) {
     pdfr_destroy_encrypter(decrypter);
 }
 
-static pdbool is_user(t_decrypter* decrypter, const char* password, pdbool pad) {
-    char tempU[48];
+static pdbool is_user(t_decrypter* decrypter, const unsigned char* password, pdbool pad) {
+    unsigned char tempU[48];
 
     if (pad)
         padd_passwords(decrypter, password, NULL);
@@ -1136,7 +1134,7 @@ static pdbool is_user(t_decrypter* decrypter, const char* password, pdbool pad) 
         }
     }
     else if (decrypter->R == 6) {
-        char userValidationSalt[8];
+        pduint8 userValidationSalt[8];
         memcpy(userValidationSalt, decrypter->U + 32, 8);
         compute_2B(password, userValidationSalt, NULL, tempU);
     }
@@ -1155,9 +1153,9 @@ static pdbool is_user(t_decrypter* decrypter, const char* password, pdbool pad) 
         if (memcmp(tempU, decrypter->U, 32) == 0) {
             if (decrypter->encryption_key)
                 free(decrypter->encryption_key);
-            decrypter->encryption_key = (char*)malloc(sizeof(char) * decrypter->encryption_key_length);
+            decrypter->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->encryption_key_length);
             
-            char userKeySalt[8];
+            pduint8 userKeySalt[8];
             memcpy(userKeySalt, decrypter->U + 40, 8);
             compute_2B(password, userKeySalt, NULL, tempU);
 
@@ -1171,7 +1169,7 @@ static pdbool is_user(t_decrypter* decrypter, const char* password, pdbool pad) 
     return PD_FALSE;
 }
 
-static pdbool is_owner(t_decrypter* decrypter, const char* password) {
+static pdbool is_owner(t_decrypter* decrypter, const unsigned char* password) {
     if (decrypter->R < 6) {
         padd_passwords(decrypter, NULL, password);
 
@@ -1222,8 +1220,8 @@ static pdbool is_owner(t_decrypter* decrypter, const char* password) {
             return PD_TRUE;
     }
     else {
-        char tempO[48];
-        char ownerValidationSalt[8];
+        unsigned char tempO[48];
+        unsigned char ownerValidationSalt[8];
         
         memcpy(ownerValidationSalt, decrypter->O + 32, 8);
         compute_2B(password, ownerValidationSalt, decrypter->U, tempO);
@@ -1231,9 +1229,9 @@ static pdbool is_owner(t_decrypter* decrypter, const char* password) {
         if (memcmp(decrypter->O, tempO, 32) == 0) {
             if (decrypter->encryption_key)
                 free(decrypter->encryption_key);
-            decrypter->encryption_key = (char*)malloc(sizeof(char) * decrypter->encryption_key_length);
+            decrypter->encryption_key = (unsigned char*)malloc(sizeof(unsigned char) * decrypter->encryption_key_length);
 
-            char ownerKeySalt[8];
+            unsigned char ownerKeySalt[8];
             memcpy(ownerKeySalt, decrypter->O + 40, 8);
             compute_2B(password, ownerKeySalt, decrypter->U, tempO);
 
@@ -1253,17 +1251,17 @@ PDFRAS_DOCUMENT_ACCESS pdfr_decrypter_get_document_access(t_decrypter* decrypter
         if (!decrypter)
             return PDFRAS_DOCUMENT_NONE_ACCESS;
 
-        if (is_user(decrypter, password, PD_TRUE))
+        if (is_user(decrypter, (unsigned char*) password, PD_TRUE))
             return PDFRAS_DOCUMENT_USER_ACCESS;
 
-        if (is_owner(decrypter, password))
+        if (is_owner(decrypter, (unsigned char*) password))
             return PDFRAS_DOCUMENT_OWNER_ACCESS;
     }
     else {
         char* message = NULL;
         pduint32 message_len = 0;
         if (pdfr_pubsec_decrypt_recipient(decrypter->recipients, password, &message, &message_len)) {
-            decrypter->seed = (char*)malloc(sizeof(char) * 20);
+            decrypter->seed = (unsigned char*)malloc(sizeof(unsigned char) * 20);
             memcpy(decrypter->seed, message, 20);
             
             // fill perms
@@ -1324,7 +1322,7 @@ pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_
     int out_len = -1;
 
     pduint32 decryption_key_len = 0;
-    char* decryption_key = NULL;
+    unsigned char* decryption_key = NULL;
 
     if (decrypter->R <= 5) {
         pduint32 obj_key_len = aes == PD_TRUE ? decrypter->encryption_key_length + 9 : decrypter->encryption_key_length + 5;
@@ -1347,7 +1345,7 @@ pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_
         }
 
         MD5_CTX md5;
-        char hash[MD5_HASH_BYTES];
+        unsigned char hash[MD5_HASH_BYTES];
 
         if (MD5_Init(&md5) == 0) {
             free(obj_key);
@@ -1358,7 +1356,7 @@ pdint32 pdfr_decrypter_decrypt_data(t_decrypter* decrypter, const pduint8* data_
         MD5_Final(hash, &md5);
 
         decryption_key_len = decrypter->encryption_key_length + 5 > 16 ? 16 : decrypter->encryption_key_length + 5;
-        decryption_key = (char*)malloc(sizeof(char) * decryption_key_len);
+        decryption_key = (unsigned char*)malloc(sizeof(unsigned char) * decryption_key_len);
         memcpy(decryption_key, hash, decryption_key_len);
 
         free(obj_key);

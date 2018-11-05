@@ -471,11 +471,11 @@ static int advance_buffer(t_pdfrasreader* reader, pdfpos_t* poff)
     return reader->buffer.len != 0;
 }
 
-// Reead the previous buffer-full into the buffer.
+// Read the previous buffer-full into the buffer.
 // Append a NULL.
 // Set *poff to the offset in the file of the first byte in the buffer.
 // If nothing read return FALSE, otherwise TRUE.
-static int back_buffer(t_pdfrasreader* reader, pdfpos_t* poff) {
+/*static int back_buffer(t_pdfrasreader* reader, pdfpos_t* poff) {
     *poff = reader->buffer.off - reader->buffer.len;
     if (*poff < 0)
         *poff = 0;
@@ -484,7 +484,7 @@ static int back_buffer(t_pdfrasreader* reader, pdfpos_t* poff) {
     reader->buffer.data[reader->buffer.len] = 0;
 
     return reader->buffer.len != 0;
-}
+}*/
 
 static int seek_to(t_pdfrasreader* reader, pdfpos_t off)
 {
@@ -492,7 +492,7 @@ static int seek_to(t_pdfrasreader* reader, pdfpos_t off)
         reader->buffer.off = off;
         reader->buffer.len = 0;
         if (!advance_buffer(reader, &off)) {
-            assert(off = reader->buffer.off + reader->buffer.len);
+            assert((off = reader->buffer.off + reader->buffer.len));
             return FALSE;
         }
     }
@@ -3896,8 +3896,8 @@ static RasterReaderSecurityType parse_security_type(t_pdfrasreader* reader) {
     }
 
     char* buffer = NULL;
-    int hex = 0;
     size_t bufLen = parse_name(reader, filter_pos, buffer);
+    
     if (bufLen <= 0) {
         compliance(reader, READ_ENCRYPT_FILTER_NOT_FOUND, encrypt_pos);
         return RASREAD_SECURITY_UNKNOWN;

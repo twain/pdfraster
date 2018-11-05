@@ -229,8 +229,9 @@ void pdfr_encoder_write_document_xmp(t_pdfrasencoder *enc, const char* xmpdata)
     // flush the metadata stream to output immediately
     pd_write_reference_declaration(enc->stm, xmpstm);
 
-    if (enc->encrypter)
+    if (enc->encrypter) {
         pd_encrypt_activate(enc->encrypter);
+	}
 
 	pd_dict_put(enc->catalog, PDA_Metadata, xmpstm);
 }
@@ -718,11 +719,13 @@ void pdfr_encoder_set_pubsec_encrypter(t_pdfrasencoder* enc, const RasterPubSecR
 
 void pdfr_encoder_destroy(t_pdfrasencoder* enc)
 {
-    if (enc->signer)
+    if (enc->signer) {
         digitalsignature_destroy(enc->signer);
+	}
 
-    if (enc->encrypter)
+    if (enc->encrypter) {
         pd_encrypt_free(enc->encrypter);
+	}
 
 	if (enc) {
 		// free everything in the pool associated
