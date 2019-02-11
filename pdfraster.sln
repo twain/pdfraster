@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2047
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_writer", "pdfras_writer\pdfras_writer.vcxproj", "{F96F701B-73F9-4BAB-BA84-CEFF8A112289}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -33,6 +33,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_writer_tests", "pdfr
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_writer_managed", "pdfras_writer_managed\pdfras_writer_managed.vcxproj", "{943AD428-4D74-49AA-807C-36D854FA7723}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F96F701B-73F9-4BAB-BA84-CEFF8A112289} = {F96F701B-73F9-4BAB-BA84-CEFF8A112289}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader_tests", "pdfras_reader_tests\pdfras_reader_tests.vcxproj", "{34032D75-96A8-43EE-ADBF-F2B68AA4218D}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -40,6 +43,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader_tests", "pdfr
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pdfras_reader_managed", "pdfras_reader_managed\pdfras_reader_managed.vcxproj", "{B37B7306-E288-4D83-A810-ADF3F53DB542}"
+	ProjectSection(ProjectDependencies) = postProject
+		{C06A94CA-439B-4C91-9FA3-F9C2E3487473} = {C06A94CA-439B-4C91-9FA3-F9C2E3487473}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".NET Wrappers", ".NET Wrappers", "{121036C4-905A-4B8E-AC1D-A26BCD0985BD}"
 EndProject
@@ -211,5 +217,8 @@ Global
 		{34032D75-96A8-43EE-ADBF-F2B68AA4218D} = {D9567C23-AE7B-454A-A06B-74F397A27DF2}
 		{B37B7306-E288-4D83-A810-ADF3F53DB542} = {121036C4-905A-4B8E-AC1D-A26BCD0985BD}
 		{830942A3-B9B6-4BEA-A5AA-213DA65C6E1B} = {1CBDE3D8-0C71-409E-AF14-FBD9988212C4}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2B241B2A-9317-4211-B74A-B4613189769C}
 	EndGlobalSection
 EndGlobal

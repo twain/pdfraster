@@ -114,7 +114,7 @@ char* encrypt_recipient_message(const char* pub_key_file, char* message, pduint8
 pdbool decrypt_recipient_message(const char* in_blob, pduint32 in_len, const char* password, char** message, pduint32* message_len) {
     // On Windows platform we use Windows crypto API to decrypt message
 #ifdef _WIN32
-    HCERTSTORE certStore = CertOpenSystemStore(NULL, L"MY");
+    HCERTSTORE certStore = CertOpenSystemStore((HCRYPTPROV_LEGACY)NULL, L"MY");
     if (!certStore)
         return PD_FALSE;
 
