@@ -8,8 +8,8 @@ extern "C" {
 #include "PdfPlatform.h"
 #include "pdfras_data_structures.h"
 
-pdbool PDFRASAPICALL pdfr_pubsec_add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm);
-typedef pdbool (PDFRASAPICALL *pfn_pdfr_pubsec_add_recipient) (t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm);
+pdbool PDFRASAPICALL pdfr_pubsec_add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const unsigned char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm);
+typedef pdbool (PDFRASAPICALL *pfn_pdfr_pubsec_add_recipient) (t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const unsigned char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm);
 
 // calling function becomes the owner of the buffer.
 void PDFRASAPICALL pdfr_pubsec_add_existing_recipient(t_recipient** root, char* pkcs7_blob, pduint32 pkcs7_len);

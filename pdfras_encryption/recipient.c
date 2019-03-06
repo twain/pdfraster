@@ -7,7 +7,7 @@
 
 #define PUBSEC_SEED_LEN 20
 
-pdbool pdfr_pubsec_add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm) {
+pdbool pdfr_pubsec_add_recipient(t_recipient** root, const char* pub_key, PDFRAS_PERMS perms, const unsigned char* seed, PDFRAS_ENCRYPT_ALGORITHM algorithm) {
     t_recipient* recipient = NULL;
 
     if (!(*root)) {

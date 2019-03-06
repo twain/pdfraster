@@ -62,11 +62,11 @@ typedef pduint8(PDFRASAPICALL *pfn_pdfr_encrypter_get_R) (t_encrypter* encrypter
 pduint32 PDFRASAPICALL pdfr_encrypter_get_OU_length(t_encrypter* encrypter);
 typedef pduint32(PDFRASAPICALL *pfn_pdfr_encrypter_get_OU_length) (t_encrypter* encrypter);
 
-const char* PDFRASAPICALL pdfr_encrypter_get_O(t_encrypter* encrypter);
-typedef const char* (PDFRASAPICALL *pfn_pdfr_encrypter_get_O) (t_encrypter* encrypter);
+const unsigned char* PDFRASAPICALL pdfr_encrypter_get_O(t_encrypter* encrypter);
+typedef const unsigned char* (PDFRASAPICALL *pfn_pdfr_encrypter_get_O) (t_encrypter* encrypter);
 
-const char* PDFRASAPICALL pdfr_encrypter_get_U(t_encrypter* encrypter);
-typedef const char* (PDFRASAPICALL *pfn_pdfr_encrypter_get_U) (t_encrypter* encrypter);
+const unsigned char* PDFRASAPICALL pdfr_encrypter_get_U(t_encrypter* encrypter);
+typedef unsigned const char* (PDFRASAPICALL *pfn_pdfr_encrypter_get_U) (t_encrypter* encrypter);
 
 pduint32 PDFRASAPICALL pdfr_encrypter_get_permissions(t_encrypter* encrypter);
 typedef pduint32(PDFRASAPICALL *pfn_pdfr_encrypter_get_permissions) (t_encrypter* encrypter);
@@ -77,17 +77,17 @@ typedef pdbool(PDFRASAPICALL *pfn_pdfr_encrypter_get_metadata_encrypted) (t_encr
 PDFRAS_ENCRYPT_ALGORITHM PDFRASAPICALL pdfr_encrypter_get_algorithm(t_encrypter* encrypter);
 typedef PDFRAS_ENCRYPT_ALGORITHM(PDFRASAPICALL *pfn_pdfr_encrypter_get_algorithm) (t_encrypter* encrypter);
 
-const char* PDFRASAPICALL pdfr_encrypter_get_OE(t_encrypter* encrypter);
-typedef const char* (PDFRASAPICALL pfn_pdfr_encrypter_get_OE) (t_encrypter* encrypter);
+const unsigned char* PDFRASAPICALL pdfr_encrypter_get_OE(t_encrypter* encrypter);
+typedef const unsigned char* (PDFRASAPICALL pfn_pdfr_encrypter_get_OE) (t_encrypter* encrypter);
 
-const char* PDFRASAPICALL pdfr_encrypter_get_UE(t_encrypter* encrypter);
-typedef const char* (PDFRASAPICALL pfn_pdfr_encrypter_get_UE) (t_encrypter* encrypter);
+const unsigned char* PDFRASAPICALL pdfr_encrypter_get_UE(t_encrypter* encrypter);
+typedef const unsigned char* (PDFRASAPICALL pfn_pdfr_encrypter_get_UE) (t_encrypter* encrypter);
 
 pduint32 PDFRASAPICALL pdfr_encrypter_get_OUE_length(t_encrypter* encrypter);
 typedef pduint32(PDFRASAPICALL pfn_pdfr_encrypter_get_OUE_length) (t_encrypter* encrypter);
 
-const char* PDFRASAPICALL pdfr_encrypter_get_Perms(t_encrypter* encrypter);
-typedef const char* (PDFRASAPICALL pfn_pdfr_encrypter_get_Perms) (t_encrypter* encrypter);
+const unsigned char* PDFRASAPICALL pdfr_encrypter_get_Perms(t_encrypter* encrypter);
+typedef unsigned const char* (PDFRASAPICALL pfn_pdfr_encrypter_get_Perms) (t_encrypter* encrypter);
 
 pduint32 PDFRASAPICALL pdfr_encrypter_get_Perms_length(t_encrypter* encrypter);
 typedef pduint32(PDFRASAPICALL pfn_pdfr_encrypter_get_Perms_length) (t_encrypter* encrypter);

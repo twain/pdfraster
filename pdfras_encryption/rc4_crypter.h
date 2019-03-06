@@ -7,8 +7,8 @@ extern "C" {
 
 #include "PdfPlatform.h"
 
-extern pduint32 pdfras_rc4_encrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out);
-extern pduint32 pdfras_rc4_decrypt_data(const char* key, const pduint32 key_len, const char* data_in, const pdint32 in_len, char* data_out);
+extern pduint32 pdfras_rc4_encrypt_data(const unsigned char* key, const pduint32 key_len, const unsigned char* data_in, const pdint32 in_len, unsigned char* data_out);
+extern pduint32 pdfras_rc4_decrypt_data(const unsigned char* key, const pduint32 key_len, const unsigned char* data_in, const pdint32 in_len, unsigned char* data_out);
 
 #ifdef __cplusplus
 }

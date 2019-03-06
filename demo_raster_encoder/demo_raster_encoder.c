@@ -84,11 +84,13 @@ static char XMP_metadata[4096] = "\
 	<rdf:Description rdf:about=\"\" xmlns:xapMM=\"http://ns.adobe.com/xap/1.0/mm/\"><xapMM:DocumentID>uuid:42646CE2-2A6C-482A-BC04-030FDD35E676</xapMM:DocumentID>\
 	</rdf:Description>\
 "
+/*
 //// Tag file as PDF/A-1b
-//"\
+//"
 //	<rdf:Description rdf:about=\"\" xmlns:pdfaid=\"http://www.aiim.org/pdfa/ns/id/\" pdfaid:part=\"1\" pdfaid:conformance=\"B\">\
 //	</rdf:Description>\
 //"
+*/
 "\
   </rdf:RDF>\
 </x:xmpmeta>\n\

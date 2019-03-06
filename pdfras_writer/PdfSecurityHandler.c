@@ -31,17 +31,17 @@ typedef struct t_decrypted_objects t_decrypted_objects;
 // Duplicity, TODO: remove it
 struct t_encrypter {
 	// user entered data
-	char* user_password;  // Only for PDF 2.0
-	char* owner_password; // Only for PDF 2.0
+	unsigned char* user_password;  // Only for PDF 2.0
+	unsigned char* owner_password; // Only for PDF 2.0
 
-	char padded_up[32];
-	char padded_op[32];
+	unsigned char padded_up[32];
+	unsigned char padded_op[32];
 
-	char* O;
-	char* U;
-	char* OE;
-	char* UE;
-	char* Perms;
+	unsigned char* O;
+	unsigned char* U;
+	unsigned char* OE;
+	unsigned char* UE;
+	unsigned char* Perms;
 	PDFRAS_PERMS perms;
 	PDFRAS_ENCRYPT_ALGORITHM algorithm;
 	pdbool encrypt_metadata;
@@ -53,11 +53,11 @@ struct t_encrypter {
 	pduint8 V;
 	pduint8 R;
 
-	char* document_id;
+	unsigned char* document_id;
 	pduint32 document_id_length;
 
 	// encryption key
-	char* encryption_key;
+	unsigned char* encryption_key;
 	pduint16 encryption_key_length;
 
 	pdint32 current_obj_number;
@@ -73,7 +73,7 @@ struct t_encrypter {
     t_recipient* recipients;
 
     // random seed data used by public key security
-    char* seed;
+    unsigned char* seed;
 
     // caching decrypted data
     t_decrypted_objects* decrypted_objects;
@@ -143,8 +143,9 @@ t_pdencrypter* pd_encrypt_new_pubsec(t_pdmempool* pool, const RasterPubSecRecipi
 
 void pd_encrypt_free(t_pdencrypter* crypter)
 {
-    if (crypter->encrypter)
+    if (crypter->encrypter) {
         pdfr_destroy_encrypter(crypter->encrypter);
+    }
 
 	pd_free(crypter);
 }
@@ -198,15 +199,15 @@ void pd_encrypt_fill_dictionary(t_pdencrypter* encrypter, t_pdvalue* dict) {
         pd_dict_put(*dict, ((t_pdatom) "R"), pdintvalue(R));
 
         pduint32 ou_length = pdfr_encrypter_get_OU_length(encrypter->encrypter);
-        const char* O = pdfr_encrypter_get_O(encrypter->encrypter);
-        const char* U = pdfr_encrypter_get_U(encrypter->encrypter);
+        const unsigned char* O = pdfr_encrypter_get_O(encrypter->encrypter);
+        const unsigned char* U = pdfr_encrypter_get_U(encrypter->encrypter);
         pd_dict_put(*dict, ((t_pdatom) "O"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, O)));
         pd_dict_put(*dict, ((t_pdatom) "U"), pdstringvalue(pd_string_new_binary(encrypter->pool, ou_length, U)));
 
         if (R == 6) {
-            const char* OE = pdfr_encrypter_get_OE(encrypter->encrypter);
-            const char* UE = pdfr_encrypter_get_UE(encrypter->encrypter);
-            const char* Perms = pdfr_encrypter_get_Perms(encrypter->encrypter);
+            const unsigned char* OE = pdfr_encrypter_get_OE(encrypter->encrypter);
+            const unsigned char* UE = pdfr_encrypter_get_UE(encrypter->encrypter);
+            const unsigned char* Perms = pdfr_encrypter_get_Perms(encrypter->encrypter);
             pduint32 oue_length = pdfr_encrypter_get_OUE_length(encrypter->encrypter);
             pduint32 Perms_length = pdfr_encrypter_get_Perms_length(encrypter->encrypter);
 
