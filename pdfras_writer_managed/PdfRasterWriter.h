@@ -89,7 +89,8 @@ namespace PdfRasterWriter {
         void digital_signature_set_location(int enc, String^ location);
         void digital_signature_set_contactinfo(int enc, String^ contact);
         void encoder_destroy(int enc);
-
+	private:
+		int file_open(int apiLevel, String^ pdfFileName, String^ mode);
 #pragma endregion Public Methods for PdfRasterWriter
 	};
 }

@@ -24,24 +24,11 @@ struct t_digitalsignature {
 	X509_STORE* cert_store;
 };
 
-#define BUFFER_SIZE 8192
-
-typedef struct {
-    pduint8* buffer;
-    pduint32 bufferSize;
-    pduint32 written;
-} t_writer_data;
-
 // data structure for digital signature
 struct t_pdfdigitalsignature {
     t_pdmempool* pool;
 
     t_pdfrasencoder* encoder;
-    fOutputWriter userWriter;
-    void* userCookie;
-
-    // writer data
-    t_writer_data* data;
 
     // data used by pdfras_digitalsignature module
     t_digitalsignature* ds;
@@ -58,11 +45,19 @@ struct t_pdfdigitalsignature {
     // written to output
     pdbool written;
 
+    // output pdf file
+    char* pdf_file;
+
+    // mark digital signature
+    pdbool digisig_finish;
+
     pduint32 digsig_objnum;
+    pdint32 content_pos_begin, content_pos_end;
+    pdint32 byterange_pos_begin, byterange_pos_end;
 };
 
 // Initialization
-t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const char* pfx_file, const char* password) {
+t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const char *pdf_file, const char* pfx_file, const char* password) {
     assert(encoder);
 
     t_pdmempool* pool = pdfr_encoder_mempool(encoder);
@@ -83,19 +78,8 @@ t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const c
         return NULL;
     }
 
-    digitalSignature->data = (t_writer_data*) pd_alloc(pool, sizeof(t_writer_data));
-    
-    digitalSignature->data->buffer = (pduint8*)pd_alloc(pool, sizeof(pduint8) * BUFFER_SIZE);
-    if (!digitalSignature->data->buffer)
-        return NULL;
-
-    digitalSignature->data->bufferSize = BUFFER_SIZE;
-    digitalSignature->data->written = 0;
-    
     digitalSignature->pool = pool;
     digitalSignature->encoder = encoder;
-    digitalSignature->userWriter = pdfr_encoder_set_outputwriter(encoder, digitalsignature_writer);
-    digitalSignature->userCookie = pdfr_encoder_set_cookie(encoder, (void*) digitalSignature);
 
     digitalSignature->name = NULL;
     digitalSignature->location = NULL;
@@ -103,110 +87,86 @@ t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const c
     digitalSignature->contact_info = NULL;
 
     digitalSignature->written = PD_FALSE;
+    digitalSignature->digisig_finish = PD_FALSE;
 
     digitalSignature->digsig_objnum = 0;
-    
+    digitalSignature->content_pos_begin = 0;
+    digitalSignature->content_pos_end = 0;
+    digitalSignature->byterange_pos_begin = 0;
+    digitalSignature->byterange_pos_end = 0;
+    digitalSignature->pdf_file = (char *)pd_alloc(pool, strlen(pdf_file) + 1);
+    if (!digitalSignature->pdf_file)
+        return NULL;
+
+    strcpy(digitalSignature->pdf_file, pdf_file);
+
     return digitalSignature;
 }
 
-static pduint8* find_string_in_binary(pduint8* data, const pduint32 data_len, const char* what) {
-    size_t idx = 0;
-    size_t what_len = strlen(what);
-
-    while ((idx < (data_len - what_len))) {
-        if (memcmp(data + idx, what, what_len) == 0) {
-            return data + idx;
-        }
-
-        ++idx;
-    }
-
-    return NULL;
+void digitalsignature_ready(t_pdfdigitalsignature* signature) {
+    signature->digisig_finish = PD_TRUE;
 }
 
 void digitalsignature_finish(t_pdfdigitalsignature* signature) {
-    pduint32 offset1 = 0;
-    pduint32 length1 = 0;
-    pduint32 offset2 = 0;
-    pduint32 length2 = 0;
+    FILE* fd;
+    char byterange_value[50];
+    int byterange_len;
+    pduint8* content_value;
+    t_sign_range ranges[2];
+    pdint32 signature_len;
+    pdint32 content_len;
 
-    pduint8* contents = find_string_in_binary(signature->data->buffer, signature->data->written, "/Contents <");
-    if (!contents)
+    if (signature->digisig_finish == PD_FALSE ||
+        signature->content_pos_begin == 0 ||
+        signature->content_pos_end == 0 ||
+        signature->byterange_pos_begin == 0 ||
+        signature->byterange_pos_end == 0) {
         return;
-
-    length1 = (pduint32)(contents - signature->data->buffer + 10);
-
-    pduint8* p = signature->data->buffer + length1;
-    offset2 = length1;
-    while (*p != '>') {
-        ++offset2;
-        ++p;
     }
-
-    offset2 += 1; 
-    length2 = signature->data->written - offset2;
-
-    p = find_string_in_binary(signature->data->buffer, signature->data->written, "/ByteRange [");
-    if (!p)
+    if (fopen_s(&fd, signature->pdf_file, "rb+")) {
         return;
-
-    sprintf((char*) (p + 12), "%d %d %d %d", offset1, length1, offset2, length2);
-
-    p += 12;
-    while (*p != '\0') {
-        ++p;
     }
-    *p = ' ';
-    while (*p != ']') {
-        *p = ' ';
-        ++p;
+    ranges[0].offset = 0;
+    ranges[0].len = signature->content_pos_begin;
+    ranges[1].offset = signature->content_pos_end;
+
+    fseek(fd, 0, SEEK_END);
+    ranges[1].len = ftell(fd) - signature->content_pos_end;
+    snprintf(byterange_value, sizeof(byterange_value), " %d %d %d %d",
+                                                ranges[0].offset,
+                                                ranges[0].len,
+                                                ranges[1].offset,
+                                                ranges[1].len);
+    byterange_len = signature->byterange_pos_end - signature->byterange_pos_begin - strlen(byterange_value) - 2;
+    fseek(fd, signature->byterange_pos_begin + 1, SEEK_SET);
+    fputs(byterange_value, fd);
+    while (byterange_len--) {
+        fputc(' ', fd);
     }
-
-    pduint8* buffer_to_sign = (pduint8*)pd_alloc(signature->pool, sizeof(pduint8) * (length1 + length2));
-    memcpy(buffer_to_sign, signature->data->buffer + offset1, length1);
-    memcpy(buffer_to_sign + length1, signature->data->buffer + offset2, length2);
-
-    pduint32 signed_len_in_hex = offset2 - length1 - 2;
-    pduint32 signed_len_in_bytes = 0;
-    pduint8* signed_data = (pduint8*)pd_alloc(signature->pool, sizeof(pduint8) * signed_len_in_hex);
-    pduint8* signed_data_hex = (pduint8*)pd_alloc(signature->pool, sizeof(pduint8) * (signed_len_in_hex + 1));
-    memset(signed_data, 0, sizeof(pduint8) * signed_len_in_hex);
-    memset(signed_data_hex, 0, sizeof(pduint8) * (signed_len_in_hex + 1));
-
-    signed_len_in_bytes = pdfr_digsig_sign_data(signature->ds, buffer_to_sign, length1 + length2, signed_data, signed_len_in_hex);
-    if (signed_len_in_bytes > 0) {
-		pduint32 i;
-        // converting to hex
-        for (i = 0; i < signed_len_in_bytes; ++i) {
-            sprintf((char*)&signed_data_hex[i * 2], "%02X", signed_data[i]);
+    fflush(fd);
+    content_len = (signature->content_pos_end - signature->content_pos_begin) / 2;
+    content_value = (pduint8*)pd_alloc(signature->pool, content_len);
+    if (content_value) {
+        signature_len = pdfr_digsig_sign_range(signature->ds, fd, ranges, sizeof(ranges) / sizeof(t_sign_range), content_value, content_len);
+        if (signature_len > 0) {
+            fseek(fd, signature->content_pos_begin + 1, SEEK_SET);
+            for (int i = 0; i < signature_len; i++) {
+                fprintf(fd, "%02X", content_value[i]);
+            }
         }
-
-        p = signature->data->buffer + offset1 + length1 + 1;
-        sprintf((char*)p, "%s", signed_data_hex);
-        while (*p != '\0') {
-            ++p;
-        }
-        *p = '0';
-        while (*p != '>') {
-            *p = '0';
-            ++p;
-        }
+        pd_free(content_value);
     }
-
-    pd_free(buffer_to_sign);
-
-    signature->userWriter(signature->data->buffer, 0, signature->data->written, signature->userCookie);
+    fflush(fd);
+    fclose(fd);   
 }
 
 // Destroy
 void digitalsignature_destroy(t_pdfdigitalsignature* signature) {
     assert(signature);
-
+    
+    // sign document
+    digitalsignature_finish(signature);
     pdfr_exit_digitalsignature(signature->ds);
-
-    // restore user defined write callback and cookie
-    pdfr_encoder_set_outputwriter(signature->encoder, signature->userWriter);
-    pdfr_encoder_set_cookie(signature->encoder, signature->userCookie);
 
     // free allocated memmory
     if (signature->name != NULL)
@@ -217,9 +177,8 @@ void digitalsignature_destroy(t_pdfdigitalsignature* signature) {
         pd_free(signature->reason);
     if (signature->contact_info != NULL)
         pd_free(signature->contact_info);
-    if (signature->data->buffer != NULL)
-        pd_free(signature->data->buffer);
-
+    if (signature->pdf_file != NULL)
+        pd_free(signature->pdf_file);
     pd_free(signature);
 
     signature = NULL;
@@ -297,41 +256,12 @@ void digitalsignature_set_page(t_pdfdigitalsignature* signature, t_pdvalue page)
         signature->page = page;
 }
 
-// callback for writing data during digital signing
-int digitalsignature_writer(const pduint8* data, pduint32 offset, pduint32 len, void* cookie) {
-    assert(cookie);
-
-    if (!data || !len)
-        return 0;
-
-    data += offset;
-
-    t_pdfdigitalsignature* digitalSignature = (t_pdfdigitalsignature*) cookie;
-    
-    if ((digitalSignature->data->written + len) > digitalSignature->data->bufferSize) {
-        pduint32 size = digitalSignature->data->written + len;
-        pduint8* buf = (pduint8*)pd_alloc(digitalSignature->pool, sizeof(pduint8) * size);
-
-        if (!buf)
-            return 0;
-
-        memcpy(buf, digitalSignature->data->buffer, digitalSignature->data->written);
-        pd_free(digitalSignature->data->buffer);
-        digitalSignature->data->buffer = buf;
-        digitalSignature->data->bufferSize = size;
-    }
-
-    memcpy(digitalSignature->data->buffer + digitalSignature->data->written, data, len);
-    digitalSignature->data->written += len;
-
-    return len;
-}
-
 // Creates necessary dictionaries for signature
 void digitalsignature_create_dictionaries(t_pdfdigitalsignature* signature) {
     pdbool succ;
     t_pdvalue* catalog = pdfr_encoder_catalog(signature->encoder);
     t_pdxref* xref = pdfr_encoder_xref(signature->encoder);
+    pduint8* content;
 
     // Create AcroForm entry in the Catalog
     t_pdvalue acro_form = pd_dict_get(*catalog, (t_pdatom)"AcroForm", &succ);
@@ -384,14 +314,15 @@ void digitalsignature_create_dictionaries(t_pdfdigitalsignature* signature) {
     }
     
     // Preparing /V dictionary 
-    char content[1024];
-    memset(content, '0', 1024);
-
+    t_pdvalue v_dict = pd_dict_new(signature->pool, 3);
     // calculating lenght of the Content just to have accurate size 
     pdint32 signature_length = pdfr_digsig_signature_length(signature->ds);
-    
-    t_pdvalue v_dict = pd_dict_new(signature->pool, 3);
-    pd_dict_put(v_dict, ((t_pdatom)"Contents"), pdstringvalue(pd_string_new_binary(signature->pool, signature_length, content)));
+    content = (pduint8 *)pd_alloc(signature->pool, signature_length);
+    if (content != NULL) {
+        memset(content, '\0', signature_length);
+        pd_dict_put(v_dict, ((t_pdatom)"Contents"), pdstringvalue(pd_string_new_binary(signature->pool, signature_length, content)));
+        pd_free(content);
+    }
     pd_dict_put(v_dict, ((t_pdatom)"Type"), pdatomvalue((t_pdatom)"Sig"));
     pd_dict_put(v_dict, ((t_pdatom)"Filter"), pdatomvalue((t_pdatom)"Adobe.PPKLite"));
     pd_dict_put(v_dict, ((t_pdatom)"SubFilter"), pdatomvalue((t_pdatom)"adbe.pkcs7.detached"));
@@ -435,4 +366,18 @@ pduint32 pd_digitalsignature_digsig_objnum(t_pdfdigitalsignature* signature) {
     assert(signature);
 
     return signature->digsig_objnum;
+}
+
+void pd_digitalsignature_setcontent_pos(t_pdfdigitalsignature* signature, pduint32 content_pos_begin, pduint32 content_pos_end) {
+    assert(signature);
+
+    signature->content_pos_begin = content_pos_begin;
+    signature->content_pos_end = content_pos_end;
+}
+
+void pd_digitalsignature_setbyterange_pos(t_pdfdigitalsignature* signature, pduint32 byterange_pos_begin, pduint32 byterange_pos_end) {
+    assert(signature);
+
+    signature->byterange_pos_begin = byterange_pos_begin;
+    signature->byterange_pos_end = byterange_pos_end;
 }

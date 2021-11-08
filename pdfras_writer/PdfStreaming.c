@@ -20,6 +20,7 @@ struct t_pdoutstream {
 
 	void *writercookie;
 	pduint32 pos;
+	pduint32 current_obj;
     fOutStreamEventHandler eventHandler[PDF_OUTPUT_EVENT_COUNT];
     void* eventCookie[PDF_OUTPUT_EVENT_COUNT];
 };
@@ -235,30 +236,41 @@ static pdbool itemwriter(t_pdatom key, t_pdvalue value, void *cookie)
 		writeatom(os, key);
 		pd_putc(os, ' ');
 
-        // Don't encrypt /Contents from digital signature dictionary
-        pduint32 digsig_objnum = 0;
-        pduint32 current_objnum = 0;
-        if (os->signature)
-            digsig_objnum = pd_digitalsignature_digsig_objnum(os->signature);
+        // Don't encrypt /Contents from digital signature dictionary   
+        pdbool disable_encrypt_value = PD_FALSE;
+		pduint32 content_pos_begin = 0, byterange_pos_begin = 0;
 
-        if (os->encrypter)
-            current_objnum = pd_encrypt_get_current_objectnumber(os->encrypter);
-        
-        pdbool digsig_contents = PD_FALSE;
-        if (digsig_objnum == current_objnum) {
+		if (os->signature) {
+			pduint32 digsig_objnum = pd_digitalsignature_digsig_objnum(os->signature);
+			pduint32 enc_objnum = os->encrypter? pd_encrypt_get_current_objectnumber(os->encrypter) : 0;
+
             const char* key_name = pd_atom_name(key);
             if (strcmp(key_name, "Contents") == 0) {
-                digsig_contents = PD_TRUE;
-            }
+				disable_encrypt_value = enc_objnum != 0 && digsig_objnum == enc_objnum;
+				if (os->current_obj != 0 && os->current_obj == digsig_objnum) {
+					content_pos_begin = pd_outstream_pos(os);
+				}
+			}
+			else if (strcmp(key_name, "ByteRange") == 0) {
+				if (os->current_obj != 0 && os->current_obj == digsig_objnum) {
+					byterange_pos_begin = pd_outstream_pos(os);
+				}
+			}
         }
 
-        if (digsig_contents == PD_TRUE)
-            pd_encrypt_deactivate(os->encrypter);
+		if (disable_encrypt_value == PD_TRUE)
+			pd_encrypt_deactivate(os->encrypter);
 
 		pd_write_value(os, value);
-
-        if (digsig_contents == PD_TRUE)
-            pd_encrypt_activate(os->encrypter);
+		if (content_pos_begin > 0) {
+			pd_digitalsignature_setcontent_pos(os->signature, content_pos_begin, pd_outstream_pos(os));
+		}
+		else if (byterange_pos_begin > 0) {
+			pd_digitalsignature_setbyterange_pos(os->signature, byterange_pos_begin, pd_outstream_pos(os));
+		}
+		if (disable_encrypt_value == PD_TRUE) {
+			pd_encrypt_activate(os->encrypter);		
+		}
 
 		return PD_TRUE;
 	}
@@ -488,7 +500,9 @@ void pd_write_reference_declaration(t_pdoutstream *stm, t_pdvalue ref)
 			if (pd_stream_is_encrypted(stm) && pd_encrypt_is_active(stm->encrypter)) {
 				pd_encrypt_start_object(stm->encrypter, onr, 0);
 			}
+			stm->current_obj = onr;
 			pd_write_value(stm, pd_reference_get_value(ref));
+			stm->current_obj = 0;
 			pd_puts(stm, "\nendobj\n");
 			pd_reference_mark_written(ref);
 		}

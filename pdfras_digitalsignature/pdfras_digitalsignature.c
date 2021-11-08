@@ -28,6 +28,16 @@ struct t_digitalsignature {
     X509_STORE* cert_store;
 };
 
+struct t_sign_file_bio {
+    FILE* fd;
+    t_sign_range* ranges;
+    pdint32 ranges_length;
+    pdint32 pos;
+    pduint32 read_bytes;
+    pdbool eof;
+    pdbool init;
+};
+
 pdbool static load_certificate(t_signer* signer, const char* file, const char* password) {
     PKCS12* pkcs12 = NULL;
     FILE* pfx_file = NULL;
@@ -144,6 +154,108 @@ pdint32 pdfr_digsig_signature_length(t_digitalsignature* ds) {
 
         if (mem && mem->data && mem->length)
             ret = (pdint32)mem->length + 20;
+
+        BIO_free(outputbio);
+        PKCS7_free(pkcs7);
+    }
+
+    return ret;
+}
+
+static int sign_range_bio_create(BIO* b) {
+    BIO_set_init(b, 1);
+    return 1;
+}
+
+static int sign_range_bio_destroy(BIO* b) {
+    return 0;
+}
+
+static int sign_range_bio_read(BIO* b, char* buf, int len) {
+    struct t_sign_file_bio* sign_bio_data = BIO_get_data(b);
+    t_sign_range* ranges = sign_bio_data->ranges;
+    t_sign_range* current_range;
+    FILE* fd = sign_bio_data->fd;
+    int ret = -1;
+
+    if (sign_bio_data->eof || sign_bio_data->pos >= sign_bio_data->ranges_length)
+        return -1;
+
+    current_range = &ranges[sign_bio_data->pos];
+    if (!sign_bio_data->init) {
+        fseek(fd, current_range->offset, SEEK_SET);
+        sign_bio_data->init = PD_TRUE;
+    }
+    // if length of bytes to read overflow the current range then try
+    //  move to next range or reduce it to the current range boundary
+    while (sign_bio_data->read_bytes + len > current_range->len) {
+        int len_ = current_range->len - sign_bio_data->read_bytes;
+        if (len_ <= 0) {
+            if (sign_bio_data->pos + 1 >= sign_bio_data->ranges_length) {
+                sign_bio_data->eof = PD_TRUE;
+                break;
+            }
+            // move to next range
+            sign_bio_data->pos++;
+            current_range++;
+            sign_bio_data->read_bytes = 0;
+            fseek(fd, current_range->offset, SEEK_SET);
+        }
+        else {
+            len = len_;
+        }
+    }
+    if (!sign_bio_data->eof) {
+        ret = fread(buf, 1, len, fd);
+        if (ret > 0) {
+            sign_bio_data->read_bytes += ret;
+        }
+    }
+
+    return ret;
+}
+
+// sign data from an input file
+pdint32 pdfr_digsig_sign_range(t_digitalsignature* ds, FILE* fd, t_sign_range* ranges, pdint32 ranges_length, pduint8* output, const pduint32 output_length) {
+    assert(ds);
+    assert(ds->signer);
+    pdint32 ret = -1;
+    struct t_sign_file_bio signer_bio_data = {.fd = fd,
+                                              .ranges = ranges,
+                                              .ranges_length = ranges_length,
+                                              .pos = 0,
+                                              .read_bytes = 0,
+                                              .init = PD_FALSE,
+                                              .eof = PD_FALSE
+                                              };
+    BIO_METHOD* meth = BIO_meth_new(BIO_TYPE_FD, "sign-range-content-bio");
+
+    BIO_meth_set_read(meth, sign_range_bio_read);
+    BIO_meth_set_create(meth, sign_range_bio_create);
+    BIO_meth_set_destroy(meth, sign_range_bio_destroy);
+
+    BIO* inputbio = BIO_new(meth);
+    if (inputbio == NULL)
+        return -1;
+
+    BIO_set_data(inputbio, &signer_bio_data);
+    PKCS7* pkcs7;
+    pduint32 flags = PKCS7_DETACHED | PKCS7_BINARY;
+    pkcs7 = PKCS7_sign(ds->signer->digsig_cert, ds->signer->digsig_pkey, NULL, inputbio, flags);
+  
+    BIO_free(inputbio);
+
+    if (pkcs7) {
+        BIO* outputbio = BIO_new(BIO_s_mem());
+        i2d_PKCS7_bio(outputbio, pkcs7);
+
+        BUF_MEM* mem = NULL;
+        BIO_get_mem_ptr(outputbio, &mem);
+
+        if (mem && mem->data && output_length >= mem->length) {
+            ret = (pdint32)mem->length;
+            memcpy(output, mem->data, mem->length);
+        }
 
         BIO_free(outputbio);
         PKCS7_free(pkcs7);

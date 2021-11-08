@@ -136,7 +136,8 @@ static void checkStateValid(int idx)
 }
 
 namespace PdfRasterWriter {
-	int Writer::encoder_create(int apiLevel, String^ pdfFileName)
+
+	int Writer::file_open(int apiLevel, String^ pdfFileName, String^ mode)
 	{
 		LOG(fprintf(fp, "> apiLevel=%d", apiLevel));
 
@@ -152,15 +153,23 @@ namespace PdfRasterWriter {
 		}
 
 		pin_ptr<const wchar_t> wfile = PtrToStringChars(pdfFileName);
-		LOG(fprintf(fp, "- pdfFileName=\"%S\"", wfile));
+		pin_ptr<const wchar_t> wmode = PtrToStringChars(mode);
+		LOG(fprintf(fp, "- pdfFileName=\"%S\" \"%S\"", wfile, wmode));
 
-		if (errno_t err = _wfopen_s((FILE **)&state[idx].os.writeoutcookie, wfile, L"wb")) {
+		if (errno_t err = _wfopen_s((FILE **)&state[idx].os.writeoutcookie, wfile, wmode)) {
 			state[idx].os.writeoutcookie = nullptr;
 			state[idx].invalidate();
 			char buf[256]; buf[0] = 0; strerror_s(buf, sizeof(buf) - 1, err);
 			LOG(fprintf(fp, "- ERROR: _wfopen_s() returned 0 errno=%d \"%s\"", err, buf));
 			throw(L"_wfopen_s() returned 0 ");
 		}
+
+		return idx;
+	}
+
+	int Writer::encoder_create(int apiLevel, String^ pdfFileName)
+	{
+		int idx = file_open(apiLevel, pdfFileName, "wb");
 
 		state[idx].enc = pdfr_encoder_create(apiLevel, &state[idx].os);
 		if (!state[idx].valid()) {
@@ -175,36 +184,15 @@ namespace PdfRasterWriter {
 
     int Writer::encoder_create_digitally_signed(int apiLevel, String^ pdfFileName, String^ pfxFile, String^ password)
     {
-        LOG(fprintf(fp, "> apiLevel=%d", apiLevel));
-
-        int idx;
-        for (idx = 0; idx < MAX_ENCODERS; ++idx) {
-            if (!state[idx].valid()) {
-                break; // good, found an unused encoder struct
-            }
-        }
-
-        if (idx == MAX_ENCODERS) {
-            LOG(fprintf(fp, "- ERROR: too many encoders used"));
-            throw(L"too many encoder used");
-        }
-
-        pin_ptr<const wchar_t> wfile = PtrToStringChars(pdfFileName);
-        LOG(fprintf(fp, "- pdfFileName=\"%S\"", wfile));
-
-        if (errno_t err = _wfopen_s((FILE **)&state[idx].os.writeoutcookie, wfile, L"wb")) {
-            state[idx].os.writeoutcookie = nullptr;
-            state[idx].invalidate();
-            char buf[256]; buf[0] = 0; strerror_s(buf, sizeof(buf) - 1, err);
-            LOG(fprintf(fp, "- ERROR: _wfopen_s() returned 0 errno=%d \"%s\"", err, buf));
-            throw(L"_wfopen_s() returned 0");
-        }
+		int idx = file_open(apiLevel, pdfFileName, "wb");
 
         const char* pfx_file = (const char*)(Marshal::StringToHGlobalAnsi(pfxFile)).ToPointer();
         const char* pfx_passwd = (const char*)(Marshal::StringToHGlobalAnsi(password)).ToPointer();
+		const char* pdf_file = (const char*)(Marshal::StringToHGlobalAnsi(pdfFileName)).ToPointer();
 
-        state[idx].enc = pdfr_signed_encoder_create(apiLevel, &state[idx].os, pfx_file, pfx_passwd);
+        state[idx].enc = pdfr_signed_encoder_create(apiLevel, &state[idx].os, pdf_file, pfx_file, pfx_passwd);
 
+		Marshal::FreeHGlobal(IntPtr((void*)pdf_file));
         Marshal::FreeHGlobal(IntPtr((void*)pfx_file));
         Marshal::FreeHGlobal(IntPtr((void*)pfx_passwd));
 

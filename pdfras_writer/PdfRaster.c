@@ -138,12 +138,12 @@ t_pdfrasencoder* pdfr_encoder_create(int apiLevel, t_OS *os)
     return enc;
 }
 
-t_pdfrasencoder* pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char* pfx_file, const char* password) {
+t_pdfrasencoder* pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char *pdf_file, const char* pfx_file, const char* password) {
     t_pdfrasencoder* enc = create_encoder(apiLevel, os);
     if (!enc)
         return NULL;
 
-    enc->signer = digitalsignature_create(enc, pfx_file, password);
+    enc->signer = digitalsignature_create(enc, pdf_file, pfx_file, password);
     if (!enc->signer) {
         pdfr_encoder_destroy(enc);
         return NULL;
@@ -626,9 +626,9 @@ void pdfr_encoder_end_document(t_pdfrasencoder* enc)
     pd_outstream_set_event_handler(stm, PDF_EVENT_BEFORE_STARTXREF, pdfr_sig_handler, NULL);
 	pd_write_endofdocument(stm, enc->xref, enc->catalog, enc->info, enc->trailer);
 
-    // sign document if was set to sign
-    if (enc->signer)
-        digitalsignature_finish(enc->signer);
+	// mark signature as ready (before call digitalsignature_finish method)
+	if (enc->signer)
+		digitalsignature_ready(enc->signer);
 
 	// Note: we leave all the final data structures intact in case the client
 	// has questions, like 'how many pages did we write?' or 'how big was the output file?'.
