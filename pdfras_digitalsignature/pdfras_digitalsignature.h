@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include "PdfPlatform.h"
 
 #define DS_DOC_NOT_CHANGED      0x1 // Document has not been changed
@@ -15,6 +16,10 @@ extern "C" {
 
 typedef struct t_signer t_signer;
 typedef struct t_digitalsignature t_digitalsignature;
+typedef struct {
+	pduint32 offset;
+	pduint32 len;
+} t_sign_range;
 
 // Initiliaze digital signature module
 // return: t_digitalsignature object
@@ -48,7 +53,10 @@ typedef pdint32 (PDFRASAPICALL pfn_pdfr_digitalsignature_validate) (t_digitalsig
 // output_length: size of buffer for signed data. 
 //                If it smaller than signed data computed in function than function will return -1.
 pdint32 PDFRASAPICALL pdfr_digsig_sign_data(t_digitalsignature* ds, const pduint8* input, const pdint32 input_length, pduint8* output, const pduint32 output_length);
-typedef pdint32(PDFRASAPICALL *pfn_pdfr_digisig_sign_data) (t_digitalsignature* ds, const pduint8* input, const pdint32 input_length, const pduint8* output, const pduint32 output_length);
+typedef pdint32(PDFRASAPICALL *pfn_pdfr_digisig_sign_data) (t_digitalsignature* ds, const pduint8* input, const pdint32 input_length, pduint8* output, const pduint32 output_length);
+
+pdint32 PDFRASAPICALL pdfr_digsig_sign_range(t_digitalsignature* ds, FILE* fd, t_sign_range* ranges, pdint32 ranges_length, pduint8* output, const pduint32 output_length);
+typedef pdint32(PDFRASAPICALL* pfn_pdfr_digsig_sign_range) (t_digitalsignature* ds, FILE* fd, t_sign_range* ranges, pdint32 ranges_length, pduint8* output, const pduint32 output_length);
 
 #ifdef __cplusplus
 }

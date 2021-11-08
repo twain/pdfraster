@@ -279,7 +279,7 @@ int write_bitonal_uncompressed_signed_file(t_OS os, const char* filename, const 
     char* demo = strstr(image_path, "demo_raster_encoder");
     strncpy(cert_path, image_path, demo - image_path);
     sprintf(cert_path + (demo - image_path), "%s", "certificate.p12");
-    t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, cert_path, "");
+    t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, filename, cert_path, "");
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");
     pdfr_encoder_set_subject(enc, "BW 1-bit Uncompressed sample output");
 
@@ -314,7 +314,7 @@ int write_bitonal_uncompressed_signed_and_encrypted_file(t_OS os, const char* fi
     char* demo = strstr(image_path, "demo_raster_encoder");
     strncpy(cert_path, image_path, demo - image_path);
     sprintf(cert_path + (demo - image_path), "%s", "certificate.p12");
-    t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, cert_path, "");
+    t_pdfrasencoder* enc = pdfr_signed_encoder_create(PDFRAS_API_LEVEL, &os, filename, cert_path, "");
     pdfr_encoder_set_AES128_encrypter(enc, "open", "master", PDFRAS_PERM_COPY_FROM_DOCUMENT, PD_TRUE);
    
     pdfr_encoder_set_creator(enc, "raster_encoder_demo 1.0");

@@ -15,7 +15,10 @@ extern "C" {
 // encoder - t_pdfrasencoder
 // pfx_file - pfx file with certificate
 // password - password for certificate
-t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const char* pfx_file, const char* password);
+t_pdfdigitalsignature* digitalsignature_create(t_pdfrasencoder* encoder, const char *pdf_file, const char* pfx_file, const char* password);
+
+// mark signature as ready
+void digitalsignature_ready(t_pdfdigitalsignature* signature);
 
 // finish process of signing
 void digitalsignature_finish(t_pdfdigitalsignature* signature);
@@ -37,6 +40,12 @@ int digitalsignature_writer(const pduint8* data, pduint32 offset, pduint32 len, 
 
 // get digital signature dictionary object number
 extern pduint32 pd_digitalsignature_digsig_objnum(t_pdfdigitalsignature* signature);
+
+// save content position from stream
+extern void pd_digitalsignature_setcontent_pos(t_pdfdigitalsignature* signature, pduint32 content_pos_begin, pduint32 content_pos_end);
+
+// save byterange position from stream
+void pd_digitalsignature_setbyterange_pos(t_pdfdigitalsignature* signature, pduint32 byterange_pos_begin, pduint32 byterange_pos_end);
 
 #ifdef __cplusplus
 }

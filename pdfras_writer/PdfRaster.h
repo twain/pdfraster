@@ -81,7 +81,7 @@ typedef t_pdfrasencoder* (PDFRASAPICALL *pfn_pdfr_encoder_create)(int apiLevel, 
 // Extended params:
 // pfx_file: path to the certificate stored in PFX file
 // password: password for certificate
-t_pdfrasencoder* PDFRASAPICALL pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char* pfx_file, const char* password);
+t_pdfrasencoder* PDFRASAPICALL pdfr_signed_encoder_create(int apiLevel, t_OS* os, const char *pdf_file, const char* pfx_file, const char* password);
 typedef t_pdfrasencoder* (PDFRASAPICALL *pfn_signed_encoder_create) (int apiLevel, t_OS* os, const char* pfx_file, const char* password);
 
 // Query function for t_pdfrasencoder
